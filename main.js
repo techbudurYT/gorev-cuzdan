@@ -395,13 +395,13 @@ async function loadTaskDetailPageData(user) {
     const requiredFileCountSpan = document.getElementById('requiredFileCount'); 
     const multipleFileUploadContainer = document.getElementById('multipleFileUploadContainer'); 
     const submitTaskBtn = document.getElementById('submitTask');
-    const taskStockDisplay = document.getElementById('taskStockDisplay'); // NEW: Stock display element
+    const taskStockDisplay = document.getElementById('taskStockDisplay'); 
     const IMGBB_API_KEY = "84a7c0a54294a6e8ea2ffc9bab240719"; 
     
     let filesToUpload = []; 
     const allowedTypes = ['image/jpeg', 'image/png'];
 
-    let currentTask = null; // Store task data
+    let currentTask = null; 
 
     try {
         const taskDoc = await getDoc(doc(db, "tasks", taskId));
@@ -410,20 +410,19 @@ async function loadTaskDetailPageData(user) {
             taskTitle.textContent = currentTask.text;
             taskReward.textContent = `+${currentTask.reward} ₺`;
             taskDescription.textContent = currentTask.description;
-            taskStockDisplay.textContent = `Mevcut Stok: ${currentTask.stock || 0}`; // NEW: Display stock
+            taskStockDisplay.textContent = `Mevcut Stok: ${currentTask.stock || 0}`; 
 
-            if ((currentTask.stock || 0) <= 0) { // NEW: Disable submit if no stock
+            if ((currentTask.stock || 0) <= 0) { 
                 submitTaskBtn.disabled = true;
                 submitTaskBtn.textContent = "Stok Yok";
                 showAlert("Bu görevin stoğu kalmamıştır.", false);
             }
 
-            // Display "Göreve Git" button if link exists, now only on task-detail page
             if (currentTask.link) {
                 const goTaskBtn = document.createElement('a');
                 goTaskBtn.href = currentTask.link;
                 goTaskBtn.target = "_blank";
-                goTaskBtn.className = "spark-button task-go-button"; // NEW CLASS
+                goTaskBtn.className = "spark-button task-go-button"; 
                 goTaskBtn.textContent = "Göreve Git";
                 taskLinkContainer.appendChild(goTaskBtn);
                 taskLinkContainer.style.display = 'block'; 
@@ -431,7 +430,6 @@ async function loadTaskDetailPageData(user) {
                 taskLinkContainer.style.display = 'none'; 
             }
 
-            // Render multiple file inputs
             const fileCount = currentTask.fileCount || 1;
             requiredFileCountSpan.textContent = fileCount;
             renderFileInputs(fileCount);
@@ -490,15 +488,13 @@ async function loadTaskDetailPageData(user) {
     }
 
     submitTaskBtn.addEventListener('click', async () => {
-        // Initial client-side check for stock (most up-to-date check will be in transaction)
         if ((currentTask.stock || 0) <= 0) {
             showAlert("Bu görevin stoğu kalmamıştır.", false);
-            submitTaskBtn.disabled = true; // Keep disabled if no stock
+            submitTaskBtn.disabled = true; 
             submitTaskBtn.textContent = "Stok Yok";
             return;
         }
 
-        // Validate all files are selected
         const missingFiles = filesToUpload.filter(f => f === null || f === undefined);
         if (missingFiles.length > 0) {
             return showAlert(`Lütfen tüm ${filesToUpload.length} kanıt dosyasını seçin!`, false);
@@ -509,8 +505,14 @@ async function loadTaskDetailPageData(user) {
         
         let uploadedFileURLs = [];
         try {
-            // Step 1: Upload images (outside of Firestore transaction as it's an external API call)
             for (const file of filesToUpload) {
+                console.log("Attempting to upload file:", file); // Debug: See the file object
+                console.log("Is file an instance of File?", file instanceof File); // Debug: Check type
+
+                if (!(file instanceof File)) {
+                    throw new Error("Geçersiz bir dosya yükleme denemesi yapıldı. Lütfen geçerli bir resim dosyası seçtiğinizden emin olun.");
+                }
+
                 const formData = new FormData();
                 formData.append('image', file);
                 const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, { method: 'POST', body: formData });
@@ -518,15 +520,14 @@ async function loadTaskDetailPageData(user) {
                 if (result.success) {
                     uploadedFileURLs.push(result.data.url);
                 } else {
-                    throw new Error(result.error?.message || 'Resim yükleme başarısız.');
+                    console.error("ImgBB upload error response:", result); // Log the full error response
+                    throw new Error(result.error?.message || 'Resim yükleme başarısız oldu.');
                 }
             }
 
-            // Step 2: Perform Firestore transaction for stock decrement and submission creation
             await runTransaction(db, async (transaction) => {
                 const taskRef = doc(db, "tasks", taskId);
                 
-                // Check if user already submitted this task (pending or approved)
                 const userSubmissionsQuery = query(collection(db, "submissions"), where("userId", "==", user.uid), where("taskId", "==", taskId), where("status", "in", ["pending", "approved"]));
                 const userSubmissionsSnapshot = await transaction.get(userSubmissionsQuery);
 
@@ -534,7 +535,6 @@ async function loadTaskDetailPageData(user) {
                     throw new Error('Bu görevi zaten gönderdiniz.');
                 }
 
-                // Get the latest task document inside the transaction to ensure atomic stock check/update
                 const latestTaskDoc = await transaction.get(taskRef);
                 if (!latestTaskDoc.exists() || (latestTaskDoc.data().stock || 0) <= 0) {
                     throw new Error("Görev bulunamadı veya stoğu kalmamıştır.");
@@ -542,10 +542,9 @@ async function loadTaskDetailPageData(user) {
 
                 const currentStock = latestTaskDoc.data().stock;
                 const newStock = currentStock - 1;
-                transaction.update(taskRef, { stock: newStock }); // Decrement stock
+                transaction.update(taskRef, { stock: newStock }); 
 
-                // Add submission (with pre-uploaded image URLs)
-                await transaction.set(doc(collection(db, "submissions")), { // Use set(doc(collection)) for auto-ID
+                await transaction.set(doc(collection(db, "submissions")), { 
                     taskId, userId: user.uid, userEmail: user.email, 
                     fileURLs: uploadedFileURLs, 
                     submittedAt: serverTimestamp(), status: 'pending'
@@ -556,12 +555,11 @@ async function loadTaskDetailPageData(user) {
             setTimeout(() => { window.location.href = 'my-tasks.html'; }, 1500);
 
         } catch (error) {
+            console.error("Görev gönderilirken genel hata:", error); // Log the full error object
             showAlert("Hata: " + error.message, false);
-            // If an error occurred in the transaction or image upload, re-enable button and reset text
             submitTaskBtn.disabled = false;
             submitTaskBtn.textContent = "Görevi Onaya Gönder";
 
-            // If stock was exhausted during the process, update display
             if (error.message.includes("stoğu kalmamıştır")) {
                 taskStockDisplay.textContent = `Mevcut Stok: 0`;
                 submitTaskBtn.textContent = "Stok Yok";
@@ -663,7 +661,6 @@ async function loadSupportPageData(user) {
         if (!subject || !message) return showAlert("Lütfen tüm alanları doldurun.", false);
 
         try {
-            // Butonu geçici olarak devre dışı bırak
             const submitBtn = createTicketForm.querySelector('button[type="submit"]');
             submitBtn.disabled = true;
             submitBtn.textContent = "Talep Oluşturuluyor...";
@@ -681,7 +678,6 @@ async function loadSupportPageData(user) {
             console.error("Talep oluşturulurken bir hata oluştu:", error);
             showAlert("Talep oluşturulurken bir hata oluştu: " + error.message, false);
         } finally {
-            // Butonu tekrar etkinleştir
             const submitBtn = createTicketForm.querySelector('button[type="submit"]');
             submitBtn.disabled = false;
             submitBtn.textContent = "Talep Oluştur";
@@ -689,7 +685,6 @@ async function loadSupportPageData(user) {
     });
 
     const ticketsQuery = query(collection(db, "tickets"), where("userId", "==", user.uid), orderBy("lastUpdatedAt", "desc"));
-    // onSnapshot hata kontrolü eklendi
     onSnapshot(ticketsQuery, (snapshot) => {
         if (snapshot.empty) {
             previousTicketsList.innerHTML = `<p class="empty-state">Henüz bir destek talebiniz bulunmuyor.</p>`;
@@ -706,7 +701,8 @@ async function loadSupportPageData(user) {
                 </a>`;
         });
         previousTicketsList.innerHTML = ticketsHtml;
-    }, (error) => { // Hata geri çağrısı e        console.error("Destek talepleri yüklenirken hata oluştu:", error);
+    }, (error) => { 
+        console.error("Destek talepleri yüklenirken hata oluştu:", error);
         previousTicketsList.innerHTML = `<p class="empty-state" style="color:var(--spark-danger);">Destek talepleri yüklenemedi: ${error.message}</p>`;
     });
 }
@@ -725,7 +721,6 @@ async function loadTicketDetailPageData(user) {
     const closeTicketBtn = document.getElementById('closeTicketBtn');
     const ticketRef = doc(db, "tickets", ticketId);
 
-    // Ticket detaylarını dinle (hata kontrolü eklendi)
     onSnapshot(ticketRef, (docSnapshot) => {
         if (docSnapshot.exists()) {
             const ticket = docSnapshot.data();
@@ -738,13 +733,12 @@ async function loadTicketDetailPageData(user) {
             showAlert("Bu destek talebi bulunamadı.", false);
             setTimeout(() => { window.location.replace("support.html"); }, 2000);
         }
-    }, (error) => { // Hata geri çağrısı eklendi
+    }, (error) => { 
         console.error("Talep detayları yüklenirken hata oluştu:", error);
         showAlert("Talep detayları yüklenirken bir hata oluştu: " + error.message, false);
     });
 
     const repliesQuery = query(collection(db, "tickets", ticketId, "replies"), orderBy("sentAt", "asc"));
-    // Cevapları dinle (hata kontrolü eklendi)
     onSnapshot(repliesQuery, (snapshot) => {
         let repliesHtml = '';
         if (snapshot.empty) {
@@ -762,7 +756,7 @@ async function loadTicketDetailPageData(user) {
         }
         repliesContainer.innerHTML = repliesHtml;
         repliesContainer.scrollTop = repliesContainer.scrollHeight;
-    }, (error) => { // Hata geri çağrısı eklendi
+    }, (error) => { 
         console.error("Talep cevapları yüklenirken hata oluştu:", error);
         repliesContainer.innerHTML = `<p class="empty-state" style="color:var(--spark-danger);">Cevaplar yüklenemedi: ${error.message}</p>`;
     });
@@ -772,7 +766,6 @@ async function loadTicketDetailPageData(user) {
         const message = document.getElementById('replyMessage').value.trim();
         if (!message) return;
 
-        // Butonu geçici olarak devre dışı bırak
         const replyBtn = replyForm.querySelector('button[type="submit"]');
         replyBtn.disabled = true;
         replyBtn.textContent = "Gönderiliyor...";
@@ -785,7 +778,6 @@ async function loadTicketDetailPageData(user) {
             console.error("Cevap gönderilirken hata oluştu:", error);
             showAlert("Cevap gönderilirken hata oluştu: " + error.message, false);
         } finally {
-            // Butonu tekrar etkinleştir
             const replyBtn = replyForm.querySelector('button[type="submit"]');
             replyBtn.disabled = false;
             replyBtn.textContent = "Gönder";
@@ -794,7 +786,6 @@ async function loadTicketDetailPageData(user) {
 
     closeTicketBtn.addEventListener('click', async () => {
         if (confirm("Bu talebi kapatmak istediğinize emin misiniz?")) {
-            // Butonu geçici olarak devre dışı bırak
             closeTicketBtn.disabled = true;
             closeTicketBtn.textContent = "Kapatılıyor...";
             try {
@@ -804,7 +795,6 @@ async function loadTicketDetailPageData(user) {
                 console.error("Talep kapatılırken bir hata oluştu:", error);
                 showAlert("Talep kapatılırken bir hata oluştu: " + error.message, false);
             } finally {
-                // Butonu tekrar etkinleştir
                 closeTicketBtn.disabled = false;
                 closeTicketBtn.textContent = "Talebi Kapat";
             }
