@@ -1,3 +1,5 @@
+// --- START OF FILE main.js ---
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, query, where, orderBy, getDocs, runTransaction, addDoc, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
@@ -159,9 +161,10 @@ async function loadIndexPageData(user) {
 
         const renderTasks = (filterCategory) => {
             taskList.innerHTML = "";
-            const filteredTasks = filterCategory === 'all' 
+            const filteredTasks = (filterCategory === 'all' 
                 ? allTasks 
-                : allTasks.filter(task => task.category === filterCategory);
+                : allTasks.filter(task => task.category === filterCategory))
+                .filter(task => (task.stock || 0) > 0); // NEW: Filter tasks with stock > 0
 
             if (filteredTasks.length === 0) {
                 taskList.innerHTML = `<p class="empty-state">Bu kategoride aktif görev bulunmamaktadır.</p>`;
@@ -178,8 +181,10 @@ async function loadIndexPageData(user) {
                 let actionButtonsHtml = '';
                 if (isSubmitted) {
                     actionButtonsHtml += `<button class='spark-button completed' disabled>Gönderildi</button>`;
-                } else {
-                    // "Göreve Git" butonu ana menüden kaldırıldı, sadece görev detay sayfasında olacak.
+                } else if ((task.stock || 0) <= 0) { // NEW: Check for stock
+                    actionButtonsHtml += `<button class='spark-button disabled-stock' disabled>Stok Yok</button>`;
+                } 
+                else {
                     actionButtonsHtml += `<a href="task-detail.html?id=${task.id}" class="spark-button task-link-button">Yap</a>`;
                 }
                 
@@ -345,13 +350,12 @@ async function loadMyTasksPageData(user) {
                 }
                 const submissionDate = submission.submittedAt ? submission.submittedAt.toDate().toLocaleDateString('tr-TR') : 'Bilinmiyor';
 
-                // Handle multiple fileURLs
                 let submissionImagesHtml = '';
                 if (Array.isArray(submission.fileURLs) && submission.fileURLs.length > 0) {
                     submission.fileURLs.forEach((url, index) => {
                         submissionImagesHtml += `<img src="${url}" class="submission-image-thumbnail" onclick="window.open(this.src, '_blank')" alt="Kanıt ${index + 1}">`;
                     });
-                } else if (submission.fileURL) { // Fallback for old single fileURL if any
+                } else if (submission.fileURL) { 
                     submissionImagesHtml += `<img src="${submission.fileURL}" class="submission-image-thumbnail" onclick="window.open(this.src, '_blank')" alt="Kanıt">`;
                 } else {
                     submissionImagesHtml += `<p>Görsel kanıt yok.</p>`;
@@ -391,34 +395,44 @@ async function loadTaskDetailPageData(user) {
     const requiredFileCountSpan = document.getElementById('requiredFileCount'); 
     const multipleFileUploadContainer = document.getElementById('multipleFileUploadContainer'); 
     const submitTaskBtn = document.getElementById('submitTask');
+    const taskStockDisplay = document.getElementById('taskStockDisplay'); // NEW: Stock display element
     const IMGBB_API_KEY = "84a7c0a54294a6e8ea2ffc9bab240719"; 
     
     let filesToUpload = []; 
     const allowedTypes = ['image/jpeg', 'image/png'];
 
+    let currentTask = null; // Store task data
+
     try {
         const taskDoc = await getDoc(doc(db, "tasks", taskId));
         if (taskDoc.exists()) {
-            const task = taskDoc.data();
-            taskTitle.textContent = task.text;
-            taskReward.textContent = `+${task.reward} ₺`;
-            taskDescription.textContent = task.description;
+            currentTask = taskDoc.data();
+            taskTitle.textContent = currentTask.text;
+            taskReward.textContent = `+${currentTask.reward} ₺`;
+            taskDescription.textContent = currentTask.description;
+            taskStockDisplay.textContent = `Mevcut Stok: ${currentTask.stock || 0}`; // NEW: Display stock
+
+            if ((currentTask.stock || 0) <= 0) { // NEW: Disable submit if no stock
+                submitTaskBtn.disabled = true;
+                submitTaskBtn.textContent = "Stok Yok";
+                showAlert("Bu görevin stoğu kalmamıştır.", false);
+            }
 
             // Display "Göreve Git" button if link exists, now only on task-detail page
-            if (task.link) {
+            if (currentTask.link) {
                 const goTaskBtn = document.createElement('a');
-                goTaskBtn.href = task.link;
+                goTaskBtn.href = currentTask.link;
                 goTaskBtn.target = "_blank";
-                goTaskBtn.className = "spark-button task-go-button";
+                goTaskBtn.className = "spark-button task-go-button"; // NEW CLASS
                 goTaskBtn.textContent = "Göreve Git";
                 taskLinkContainer.appendChild(goTaskBtn);
-                taskLinkContainer.style.display = 'block'; // Ensure container is visible
+                taskLinkContainer.style.display = 'block'; 
             } else {
-                taskLinkContainer.style.display = 'none'; // Hide if no link
+                taskLinkContainer.style.display = 'none'; 
             }
 
             // Render multiple file inputs
-            const fileCount = task.fileCount || 1;
+            const fileCount = currentTask.fileCount || 1;
             requiredFileCountSpan.textContent = fileCount;
             renderFileInputs(fileCount);
 
@@ -476,6 +490,14 @@ async function loadTaskDetailPageData(user) {
     }
 
     submitTaskBtn.addEventListener('click', async () => {
+        // Initial client-side check for stock (most up-to-date check will be in transaction)
+        if ((currentTask.stock || 0) <= 0) {
+            showAlert("Bu görevin stoğu kalmamıştır.", false);
+            submitTaskBtn.disabled = true; // Keep disabled if no stock
+            submitTaskBtn.textContent = "Stok Yok";
+            return;
+        }
+
         // Validate all files are selected
         const missingFiles = filesToUpload.filter(f => f === null || f === undefined);
         if (missingFiles.length > 0) {
@@ -485,17 +507,9 @@ async function loadTaskDetailPageData(user) {
         submitTaskBtn.disabled = true;
         submitTaskBtn.textContent = "Yükleniyor...";
         
+        let uploadedFileURLs = [];
         try {
-            const q = query(collection(db, "submissions"), where("userId", "==", user.uid), where("taskId", "==", taskId));
-            const existingSubmissions = await getDocs(q);
-            if (!existingSubmissions.empty) {
-                showAlert('Bu görevi zaten gönderdiniz.', false);
-                submitTaskBtn.disabled = false;
-                submitTaskBtn.textContent = "Görevi Onaya Gönder";
-                return;
-            }
-
-            const uploadedFileURLs = [];
+            // Step 1: Upload images (outside of Firestore transaction as it's an external API call)
             for (const file of filesToUpload) {
                 const formData = new FormData();
                 formData.append('image', file);
@@ -507,19 +521,52 @@ async function loadTaskDetailPageData(user) {
                     throw new Error(result.error?.message || 'Resim yükleme başarısız.');
                 }
             }
-            
-            await addDoc(collection(db, "submissions"), {
-                taskId, userId: user.uid, userEmail: user.email, 
-                fileURLs: uploadedFileURLs, 
-                submittedAt: serverTimestamp(), status: 'pending'
+
+            // Step 2: Perform Firestore transaction for stock decrement and submission creation
+            await runTransaction(db, async (transaction) => {
+                const taskRef = doc(db, "tasks", taskId);
+                
+                // Check if user already submitted this task (pending or approved)
+                const userSubmissionsQuery = query(collection(db, "submissions"), where("userId", "==", user.uid), where("taskId", "==", taskId), where("status", "in", ["pending", "approved"]));
+                const userSubmissionsSnapshot = await transaction.get(userSubmissionsQuery);
+
+                if (!userSubmissionsSnapshot.empty) {
+                    throw new Error('Bu görevi zaten gönderdiniz.');
+                }
+
+                // Get the latest task document inside the transaction to ensure atomic stock check/update
+                const latestTaskDoc = await transaction.get(taskRef);
+                if (!latestTaskDoc.exists() || (latestTaskDoc.data().stock || 0) <= 0) {
+                    throw new Error("Görev bulunamadı veya stoğu kalmamıştır.");
+                }
+
+                const currentStock = latestTaskDoc.data().stock;
+                const newStock = currentStock - 1;
+                transaction.update(taskRef, { stock: newStock }); // Decrement stock
+
+                // Add submission (with pre-uploaded image URLs)
+                await transaction.set(doc(collection(db, "submissions")), { // Use set(doc(collection)) for auto-ID
+                    taskId, userId: user.uid, userEmail: user.email, 
+                    fileURLs: uploadedFileURLs, 
+                    submittedAt: serverTimestamp(), status: 'pending'
+                });
             });
+
             showAlert('Göreviniz başarıyla onaya gönderildi!', true);
             setTimeout(() => { window.location.href = 'my-tasks.html'; }, 1500);
+
         } catch (error) {
             showAlert("Hata: " + error.message, false);
-        } finally {
+            // If an error occurred in the transaction or image upload, re-enable button and reset text
             submitTaskBtn.disabled = false;
             submitTaskBtn.textContent = "Görevi Onaya Gönder";
+
+            // If stock was exhausted during the process, update display
+            if (error.message.includes("stoğu kalmamıştır")) {
+                taskStockDisplay.textContent = `Mevcut Stok: 0`;
+                submitTaskBtn.textContent = "Stok Yok";
+                submitTaskBtn.disabled = true;
+            }
         }
     });
 }
@@ -764,3 +811,4 @@ async function loadTicketDetailPageData(user) {
         }
     });
 }
+// --- END OF FILE main.js ---

@@ -1,3 +1,5 @@
+/* --- START OF FILE style.css --- */
+
 /* ===================================================================
    GörevCüzdan Stil Dosyası
    Yazar: Gemini
@@ -368,6 +370,15 @@ body.auth-page .container { min-height: 100vh; padding: 20px; justify-content: c
 .task-action .task-go-button:hover:enabled {
     box-shadow: 0 0 25px rgba(255, 154, 74, 0.3);
 }
+/* NEW: Style for "Stok Yok" button on index page */
+.spark-button.disabled-stock {
+    background: var(--spark-secondary);
+    color: var(--spark-bg-dark);
+    box-shadow: none;
+    transform: none;
+    cursor: not-allowed;
+    opacity: 0.8;
+}
 
 /* --- C. Profil Sayfası --- */
 .profile-dashboard .stat-card { text-align: center; }
@@ -523,6 +534,20 @@ body.auth-page .container { min-height: 100vh; padding: 20px; justify-content: c
     cursor: pointer;
 }
 
+/* NEW: Task Detail - Göreve Git Button Styling */
+#taskLinkContainer .task-go-button {
+    background: linear-gradient(45deg, var(--spark-orange), #ff7a2a);
+    color: var(--spark-text);
+    text-decoration: none;
+    display: block; /* Make it full width */
+    text-align: center;
+    padding: 15px;
+    margin-bottom: 15px; /* Spacing below the button */
+}
+#taskLinkContainer .task-go-button:hover:enabled {
+    box-shadow: 0 0 25px rgba(255, 154, 74, 0.3);
+}
+
 /* -------------------------------------------------------------------
    8. Responsive Tasarım
    ------------------------------------------------------------------- */
@@ -546,3 +571,4 @@ body.auth-page .container { min-height: 100vh; padding: 20px; justify-content: c
   .task-action { flex-direction: column; align-items: flex-end; } /* Stack buttons vertically on small screens */
   .task-action .spark-button { width: auto; min-width: unset; margin-right: 0 !important; }
 }
+/* --- END OF FILE style.css --- */

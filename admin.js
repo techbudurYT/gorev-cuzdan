@@ -1,3 +1,5 @@
+// --- START OF FILE admin.js ---
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, query, where, orderBy, getDocs, runTransaction, addDoc, deleteDoc, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
@@ -192,12 +194,12 @@ function initAdminPanel(user) {
         const text = document.getElementById('taskText').value;
         const category = document.getElementById('taskCategory').value;
         const reward = Number(document.getElementById('taskReward').value);
-        // NEW: Get taskLink and taskFileCount
         const taskLink = document.getElementById('taskLink').value.trim();
         const taskFileCount = Number(document.getElementById('taskFileCount').value);
         const description = document.getElementById('taskDescription').value;
+        const taskStock = Number(document.getElementById('taskStock').value); // NEW: Get taskStock
         
-        if (!text || !category || !reward || !description || !taskFileCount) {
+        if (!text || !category || !reward || !description || !taskFileCount || !taskStock) { // NEW: Add taskStock to validation
              showAlert("Lütfen tüm alanları doldurun!", false);
              return;
         }
@@ -205,6 +207,11 @@ function initAdminPanel(user) {
             showAlert("Gereken Kanıt Dosyası Sayısı en az 1 olmalıdır!", false);
             return;
         }
+        if (taskStock < 0) { // NEW: Stock cannot be negative
+            showAlert("Stok sayısı negatif olamaz!", false);
+            return;
+        }
+
 
         try {
             await addDoc(collection(db, "tasks"), { 
@@ -212,14 +219,15 @@ function initAdminPanel(user) {
                 category, 
                 reward, 
                 description, 
-                link: taskLink, // NEW
-                fileCount: taskFileCount, // NEW
+                link: taskLink, 
+                fileCount: taskFileCount, 
+                stock: taskStock, // NEW: Add stock to task
                 createdAt: serverTimestamp() 
             });
             showAlert("Görev eklendi!", true);
             addTaskForm.reset();
-            // Reset taskFileCount to 1 after adding
             document.getElementById('taskFileCount').value = 1;
+            document.getElementById('taskStock').value = 1; // NEW: Reset stock to 1 after adding
         } catch (error) {
             showAlert("Görev ekleme hatası: " + error.message, false);
         }
@@ -229,10 +237,10 @@ function initAdminPanel(user) {
         let tasksHtml = snapshot.empty ? `<p class="empty-state">Henüz görev yok.</p>` : '';
         snapshot.forEach(doc => {
             const task = { id: doc.id, ...doc.data() };
-            // Display link and file count in the admin panel if desired
             const taskLinkDisplay = task.link ? `<a href="${task.link}" target="_blank" style="margin-left: 10px; color: var(--spark-primary);">Link</a>` : '';
             const fileCountDisplay = task.fileCount ? `(${task.fileCount} Dosya)` : '';
-            tasksHtml += `<div class="task-list-item"><span>${task.text} (${task.reward} ₺) ${fileCountDisplay} ${taskLinkDisplay}</span><button class="btn-delete" data-id="${task.id}">Sil</button></div>`;
+            const stockDisplay = `(Stok: ${task.stock || 0})`; // NEW: Display stock
+            tasksHtml += `<div class="task-list-item"><span>${task.text} (${task.reward} ₺) ${fileCountDisplay} ${stockDisplay} ${taskLinkDisplay}</span><button class="btn-delete" data-id="${task.id}">Sil</button></div>`;
         });
         existingTasksList.innerHTML = tasksHtml;
     });
@@ -256,13 +264,12 @@ function initAdminPanel(user) {
             const taskDoc = await getDoc(doc(db, "tasks", sub.taskId));
             const task = taskDoc.exists() ? taskDoc.data() : { text: 'Bilinmeyen Görev', reward: 0 };
             
-            // NEW: Handle multiple fileURLs
             let submissionImagesHtml = '';
             if (Array.isArray(sub.fileURLs) && sub.fileURLs.length > 0) {
                 sub.fileURLs.forEach((url, index) => {
                     submissionImagesHtml += `<img src="${url}" class="submission-image" onclick="window.open(this.src, '_blank')" alt="Kanıt ${index + 1}">`;
                 });
-            } else if (sub.fileURL) { // Fallback for old single fileURL if any
+            } else if (sub.fileURL) { 
                  submissionImagesHtml += `<img src="${sub.fileURL}" class="submission-image" onclick="window.open(this.src, '_blank')" alt="Kanıt">`;
             } else {
                  submissionImagesHtml += `<p>Görsel kanıt yok.</p>`;
@@ -387,3 +394,4 @@ function initAdminPanel(user) {
         }
     });
 }
+// --- END OF FILE admin.js ---
