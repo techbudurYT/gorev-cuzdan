@@ -19,17 +19,16 @@
         </div>
         
         <div class="spark-card upload-section">
-          <h3>Görev Kanıtı Yükle</h3>
-          <p>Lütfen görevi tamamladığınıza dair bir ekran görüntüsü yükleyin (JPG, PNG).</p>
+          <!-- NEW: Göreve Git Linki için yer, buraya taşındı -->
+          <div id="taskLinkContainer" style="margin-bottom: 20px;"></div>
+
+          <h3>Görev Kanıtı Yükle (<span id="requiredFileCount">1</span> Adet)</h3>
+          <p>Lütfen görevi tamamladığınıza dair ekran görüntüsü(leri) yükleyin (JPG, PNG).</p>
           <div id="alertBox"></div>
           
-          <div class="file-upload">
-            <input type="file" id="taskProof" accept=".jpg,.jpeg,.png" style="display: none;">
-            <label for="taskProof" class="spark-button">Dosya Seç</label>
-            <span id="fileName">Dosya seçilmedi</span>
+          <div id="multipleFileUploadContainer">
+            <!-- Dynamic file inputs will be rendered here by main.js -->
           </div>
-          
-          <div class="upload-preview" id="imagePreview"></div>
           
           <button id="submitTask" class="spark-button submit-task-button">Görevi Onaya Gönder</button>
         </div>

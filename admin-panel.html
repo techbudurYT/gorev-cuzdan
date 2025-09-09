@@ -34,6 +34,16 @@
                             <input type="number" id="taskReward" required min="1">
                             <label>Ödül (₺)</label>
                         </div>
+                        <!-- NEW: Göreve Git Linki -->
+                        <div class="input-group spark">
+                            <input type="url" id="taskLink">
+                            <label>Göreve Git Linki (İsteğe Bağlı)</label>
+                        </div>
+                        <!-- NEW: Gereken Kanıt Dosyası Sayısı -->
+                        <div class="input-group spark">
+                            <input type="number" id="taskFileCount" required min="1" value="1">
+                            <label>Gereken Kanıt Dosyası Sayısı</label>
+                        </div>
                         <div class="input-group spark">
                             <textarea id="taskDescription" required rows="3"></textarea> 
                             <label>Görev Açıklaması</label> 

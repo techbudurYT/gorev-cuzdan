@@ -175,9 +175,13 @@ async function loadIndexPageData(user) {
                 li.className = "spark-card task-card";
                 li.style.animationDelay = `${index * 0.05}s`;
 
-                const buttonHtml = isSubmitted 
-                    ? `<button class='spark-button completed' disabled>Gönderildi</button>` 
-                    : `<a href="task-detail.html?id=${task.id}" class="spark-button task-link-button">Yap</a>`;
+                let actionButtonsHtml = '';
+                if (isSubmitted) {
+                    actionButtonsHtml += `<button class='spark-button completed' disabled>Gönderildi</button>`;
+                } else {
+                    // "Göreve Git" butonu ana menüden kaldırıldı, sadece görev detay sayfasında olacak.
+                    actionButtonsHtml += `<a href="task-detail.html?id=${task.id}" class="spark-button task-link-button">Yap</a>`;
+                }
                 
                 li.innerHTML = `
                     <div class="task-logo"><img src="${categoryInfo.logo}" alt="${categoryInfo.name} logo"></div>
@@ -185,7 +189,7 @@ async function loadIndexPageData(user) {
                         <div class="task-title">${task.text}</div>
                         <div class="task-reward">+${task.reward} ₺</div>
                     </div>
-                    <div class="task-action">${buttonHtml}</div>`;
+                    <div class="task-action">${actionButtonsHtml}</div>`;
                 taskList.appendChild(li);
             });
         };
@@ -341,6 +345,19 @@ async function loadMyTasksPageData(user) {
                 }
                 const submissionDate = submission.submittedAt ? submission.submittedAt.toDate().toLocaleDateString('tr-TR') : 'Bilinmiyor';
 
+                // Handle multiple fileURLs
+                let submissionImagesHtml = '';
+                if (Array.isArray(submission.fileURLs) && submission.fileURLs.length > 0) {
+                    submission.fileURLs.forEach((url, index) => {
+                        submissionImagesHtml += `<img src="${url}" class="submission-image-thumbnail" onclick="window.open(this.src, '_blank')" alt="Kanıt ${index + 1}">`;
+                    });
+                } else if (submission.fileURL) { // Fallback for old single fileURL if any
+                    submissionImagesHtml += `<img src="${submission.fileURL}" class="submission-image-thumbnail" onclick="window.open(this.src, '_blank')" alt="Kanıt">`;
+                } else {
+                    submissionImagesHtml += `<p>Görsel kanıt yok.</p>`;
+                }
+
+
                 submissionsList.innerHTML += `
                   <div class="spark-card submission-card">
                     <div class="submission-header">
@@ -350,6 +367,7 @@ async function loadMyTasksPageData(user) {
                     <div class="submission-details">
                         <p>Gönderim Tarihi: ${submissionDate}</p>
                         <p>Ödül: +${task.reward} ₺</p>
+                        <div class="submission-images-container">${submissionImagesHtml}</div>
                     </div>
                     <div class="submission-actions">${reasonButtonHtml}</div>
                   </div>`;
@@ -369,13 +387,14 @@ async function loadTaskDetailPageData(user) {
     const taskTitle = document.getElementById('taskTitle');
     const taskReward = document.getElementById('taskReward');
     const taskDescription = document.getElementById('taskDescription');
+    const taskLinkContainer = document.getElementById('taskLinkContainer'); 
+    const requiredFileCountSpan = document.getElementById('requiredFileCount'); 
+    const multipleFileUploadContainer = document.getElementById('multipleFileUploadContainer'); 
     const submitTaskBtn = document.getElementById('submitTask');
-    const fileInput = document.getElementById('taskProof');
-    const fileNameSpan = document.getElementById('fileName');
-    const imagePreview = document.getElementById('imagePreview');
-    
     const IMGBB_API_KEY = "84a7c0a54294a6e8ea2ffc9bab240719"; 
-    let fileToUpload = null;
+    
+    let filesToUpload = []; 
+    const allowedTypes = ['image/jpeg', 'image/png'];
 
     try {
         const taskDoc = await getDoc(doc(db, "tasks", taskId));
@@ -384,53 +403,118 @@ async function loadTaskDetailPageData(user) {
             taskTitle.textContent = task.text;
             taskReward.textContent = `+${task.reward} ₺`;
             taskDescription.textContent = task.description;
+
+            // Display "Göreve Git" button if link exists, now only on task-detail page
+            if (task.link) {
+                const goTaskBtn = document.createElement('a');
+                goTaskBtn.href = task.link;
+                goTaskBtn.target = "_blank";
+                goTaskBtn.className = "spark-button task-go-button";
+                goTaskBtn.textContent = "Göreve Git";
+                taskLinkContainer.appendChild(goTaskBtn);
+                taskLinkContainer.style.display = 'block'; // Ensure container is visible
+            } else {
+                taskLinkContainer.style.display = 'none'; // Hide if no link
+            }
+
+            // Render multiple file inputs
+            const fileCount = task.fileCount || 1;
+            requiredFileCountSpan.textContent = fileCount;
+            renderFileInputs(fileCount);
+
         } else { window.location.replace("index.html"); }
     } catch(error) {
         console.error("Görev detayları yüklenirken hata:", error);
         window.location.replace("index.html");
     }
 
-    fileInput.addEventListener('change', (e) => {
-        fileToUpload = e.target.files[0];
-        if (fileToUpload) {
-            fileNameSpan.textContent = fileToUpload.name;
-            const reader = new FileReader();
-            reader.onload = e => imagePreview.innerHTML = `<img src="${e.target.result}" alt="Önizleme">`;
-            reader.readAsDataURL(fileToUpload);
-        } else {
-            fileNameSpan.textContent = "Dosya seçilmedi";
-            imagePreview.innerHTML = "";
+    function renderFileInputs(count) {
+        multipleFileUploadContainer.innerHTML = ''; 
+        filesToUpload = Array(count).fill(null); 
+        
+        for (let i = 0; i < count; i++) {
+            const wrapperDiv = document.createElement('div');
+            wrapperDiv.className = 'file-upload-item'; 
+            
+            wrapperDiv.innerHTML = `
+                <div class="file-upload">
+                    <input type="file" id="taskProof-${i}" accept=".jpg,.jpeg,.png" style="display: none;">
+                    <label for="taskProof-${i}" class="spark-button small-button">Kanıt ${i + 1} Seç</label>
+                    <span id="fileName-${i}" class="file-name-display">Dosya seçilmedi</span>
+                </div>
+                <div class="upload-preview" id="imagePreview-${i}"></div>
+            `;
+            multipleFileUploadContainer.appendChild(wrapperDiv);
+
+            const currentFileInput = wrapperDiv.querySelector(`#taskProof-${i}`);
+            const currentFileNameSpan = wrapperDiv.querySelector(`#fileName-${i}`);
+            const currentImagePreviewDiv = wrapperDiv.querySelector(`#imagePreview-${i}`);
+
+            currentFileInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    if (!allowedTypes.includes(file.type)) {
+                        showAlert('Lütfen sadece JPG veya PNG formatında bir resim dosyası seçin.', false);
+                        e.target.value = ''; 
+                        filesToUpload[i] = null;
+                        currentFileNameSpan.textContent = "Dosya seçilmedi";
+                        currentImagePreviewDiv.innerHTML = "";
+                        return;
+                    }
+                    filesToUpload[i] = file;
+                    currentFileNameSpan.textContent = file.name;
+                    const reader = new FileReader();
+                    reader.onload = e => currentImagePreviewDiv.innerHTML = `<img src="${e.target.result}" alt="Önizleme ${i + 1}">`;
+                    reader.readAsDataURL(file);
+                } else {
+                    filesToUpload[i] = null;
+                    currentFileNameSpan.textContent = "Dosya seçilmedi";
+                    currentImagePreviewDiv.innerHTML = "";
+                }
+            });
         }
-    });
+    }
 
     submitTaskBtn.addEventListener('click', async () => {
-        if (!fileToUpload) return showAlert('Lütfen bir kanıt dosyası seçin!', false);
-        const allowedTypes = ['image/jpeg', 'image/png'];
-        if (!allowedTypes.includes(fileToUpload.type)) {
-            return showAlert('Lütfen sadece JPG veya PNG formatında bir resim dosyası seçin.', false);
+        // Validate all files are selected
+        const missingFiles = filesToUpload.filter(f => f === null || f === undefined);
+        if (missingFiles.length > 0) {
+            return showAlert(`Lütfen tüm ${filesToUpload.length} kanıt dosyasını seçin!`, false);
         }
 
         submitTaskBtn.disabled = true;
         submitTaskBtn.textContent = "Yükleniyor...";
-        const formData = new FormData();
-        formData.append('image', fileToUpload);
-
+        
         try {
-            const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, { method: 'POST', body: formData });
-            const result = await response.json();
-            if (result.success) {
-                const q = query(collection(db, "submissions"), where("userId", "==", user.uid), where("taskId", "==", taskId));
-                if (!(await getDocs(q)).empty) {
-                    showAlert('Bu görevi zaten gönderdiniz.', false);
+            const q = query(collection(db, "submissions"), where("userId", "==", user.uid), where("taskId", "==", taskId));
+            const existingSubmissions = await getDocs(q);
+            if (!existingSubmissions.empty) {
+                showAlert('Bu görevi zaten gönderdiniz.', false);
+                submitTaskBtn.disabled = false;
+                submitTaskBtn.textContent = "Görevi Onaya Gönder";
+                return;
+            }
+
+            const uploadedFileURLs = [];
+            for (const file of filesToUpload) {
+                const formData = new FormData();
+                formData.append('image', file);
+                const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, { method: 'POST', body: formData });
+                const result = await response.json();
+                if (result.success) {
+                    uploadedFileURLs.push(result.data.url);
                 } else {
-                    await addDoc(collection(db, "submissions"), {
-                        taskId, userId: user.uid, userEmail: user.email, fileURL: result.data.url,
-                        submittedAt: serverTimestamp(), status: 'pending'
-                    });
-                    showAlert('Göreviniz başarıyla onaya gönderildi!', true);
-                    setTimeout(() => { window.location.href = 'my-tasks.html'; }, 1500);
+                    throw new Error(result.error?.message || 'Resim yükleme başarısız.');
                 }
-            } else { throw new Error(result.error?.message || 'Resim yükleme başarısız.'); }
+            }
+            
+            await addDoc(collection(db, "submissions"), {
+                taskId, userId: user.uid, userEmail: user.email, 
+                fileURLs: uploadedFileURLs, 
+                submittedAt: serverTimestamp(), status: 'pending'
+            });
+            showAlert('Göreviniz başarıyla onaya gönderildi!', true);
+            setTimeout(() => { window.location.href = 'my-tasks.html'; }, 1500);
         } catch (error) {
             showAlert("Hata: " + error.message, false);
         } finally {
@@ -520,6 +604,7 @@ async function loadWalletPageData(user) {
     });
 }
 
+// main.js - loadSupportPageData içinde
 async function loadSupportPageData(user) {
     const createTicketForm = document.getElementById('createTicketForm');
     const previousTicketsList = document.getElementById('previousTicketsList');
@@ -531,6 +616,11 @@ async function loadSupportPageData(user) {
         if (!subject || !message) return showAlert("Lütfen tüm alanları doldurun.", false);
 
         try {
+            // Butonu geçici olarak devre dışı bırak
+            const submitBtn = createTicketForm.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.textContent = "Talep Oluşturuluyor...";
+
             const newTicketRef = await addDoc(collection(db, "tickets"), {
                 userId: user.uid, userEmail: user.email, subject, status: 'open',
                 createdAt: serverTimestamp(), lastUpdatedAt: serverTimestamp()
@@ -541,11 +631,18 @@ async function loadSupportPageData(user) {
             showAlert("Destek talebiniz başarıyla oluşturuldu!", true);
             createTicketForm.reset();
         } catch (error) {
+            console.error("Talep oluşturulurken bir hata oluştu:", error);
             showAlert("Talep oluşturulurken bir hata oluştu: " + error.message, false);
+        } finally {
+            // Butonu tekrar etkinleştir
+            const submitBtn = createTicketForm.querySelector('button[type="submit"]');
+            submitBtn.disabled = false;
+            submitBtn.textContent = "Talep Oluştur";
         }
     });
 
     const ticketsQuery = query(collection(db, "tickets"), where("userId", "==", user.uid), orderBy("lastUpdatedAt", "desc"));
+    // onSnapshot hata kontrolü eklendi
     onSnapshot(ticketsQuery, (snapshot) => {
         if (snapshot.empty) {
             previousTicketsList.innerHTML = `<p class="empty-state">Henüz bir destek talebiniz bulunmuyor.</p>`;
@@ -562,9 +659,12 @@ async function loadSupportPageData(user) {
                 </a>`;
         });
         previousTicketsList.innerHTML = ticketsHtml;
+    }, (error) => { // Hata geri çağrısı e        console.error("Destek talepleri yüklenirken hata oluştu:", error);
+        previousTicketsList.innerHTML = `<p class="empty-state" style="color:var(--spark-danger);">Destek talepleri yüklenemedi: ${error.message}</p>`;
     });
 }
 
+// main.js - loadTicketDetailPageData içinde
 async function loadTicketDetailPageData(user) {
     const urlParams = new URLSearchParams(window.location.search);
     const ticketId = urlParams.get('id');
@@ -578,52 +678,88 @@ async function loadTicketDetailPageData(user) {
     const closeTicketBtn = document.getElementById('closeTicketBtn');
     const ticketRef = doc(db, "tickets", ticketId);
 
-    onSnapshot(ticketRef, (doc) => {
-        if (doc.exists()) {
-            const ticket = doc.data();
+    // Ticket detaylarını dinle (hata kontrolü eklendi)
+    onSnapshot(ticketRef, (docSnapshot) => {
+        if (docSnapshot.exists()) {
+            const ticket = docSnapshot.data();
             subjectHeader.textContent = ticket.subject;
             statusSpan.textContent = ticket.status === 'open' ? 'Açık' : 'Kapalı';
             statusSpan.className = `status-badge status-${ticket.status}`;
             replyFormContainer.style.display = ticket.status === 'closed' ? 'none' : 'block';
+        } else {
+            console.warn("Talep belgesi bulunamadı:", ticketId);
+            showAlert("Bu destek talebi bulunamadı.", false);
+            setTimeout(() => { window.location.replace("support.html"); }, 2000);
         }
+    }, (error) => { // Hata geri çağrısı eklendi
+        console.error("Talep detayları yüklenirken hata oluştu:", error);
+        showAlert("Talep detayları yüklenirken bir hata oluştu: " + error.message, false);
     });
 
     const repliesQuery = query(collection(db, "tickets", ticketId, "replies"), orderBy("sentAt", "asc"));
+    // Cevapları dinle (hata kontrolü eklendi)
     onSnapshot(repliesQuery, (snapshot) => {
         let repliesHtml = '';
-        snapshot.forEach(doc => {
-            const reply = doc.data();
-            const sentAt = reply.sentAt ? reply.sentAt.toDate().toLocaleString('tr-TR') : '';
-            const senderClass = reply.senderType === 'admin' ? 'reply-admin' : 'reply-user';
-            repliesHtml += `
-                <div class="reply-bubble ${senderClass}">
-                    <p>${reply.message}</p><span class="reply-timestamp">${sentAt}</span>
-                </div>`;
-        });
+        if (snapshot.empty) {
+            repliesHtml = '<p class="empty-state">Henüz bir mesaj bulunmuyor.</p>';
+        } else {
+            snapshot.forEach(doc => {
+                const reply = doc.data();
+                const sentAt = reply.sentAt ? reply.sentAt.toDate().toLocaleString('tr-TR') : '';
+                const senderClass = reply.senderType === 'admin' ? 'reply-admin' : 'reply-user';
+                repliesHtml += `
+                    <div class="reply-bubble ${senderClass}">
+                        <p>${reply.message}</p><span class="reply-timestamp">${sentAt}</span>
+                    </div>`;
+            });
+        }
         repliesContainer.innerHTML = repliesHtml;
         repliesContainer.scrollTop = repliesContainer.scrollHeight;
+    }, (error) => { // Hata geri çağrısı eklendi
+        console.error("Talep cevapları yüklenirken hata oluştu:", error);
+        repliesContainer.innerHTML = `<p class="empty-state" style="color:var(--spark-danger);">Cevaplar yüklenemedi: ${error.message}</p>`;
     });
 
     replyForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const message = document.getElementById('replyMessage').value.trim();
         if (!message) return;
+
+        // Butonu geçici olarak devre dışı bırak
+        const replyBtn = replyForm.querySelector('button[type="submit"]');
+        replyBtn.disabled = true;
+        replyBtn.textContent = "Gönderiliyor...";
+
         try {
             await addDoc(collection(db, "tickets", ticketId, "replies"), { message, senderId: user.uid, senderType: 'user', sentAt: serverTimestamp() });
             await updateDoc(ticketRef, { lastUpdatedAt: serverTimestamp() });
             replyForm.reset();
         } catch (error) {
+            console.error("Cevap gönderilirken hata oluştu:", error);
             showAlert("Cevap gönderilirken hata oluştu: " + error.message, false);
+        } finally {
+            // Butonu tekrar etkinleştir
+            const replyBtn = replyForm.querySelector('button[type="submit"]');
+            replyBtn.disabled = false;
+            replyBtn.textContent = "Gönder";
         }
     });
 
     closeTicketBtn.addEventListener('click', async () => {
         if (confirm("Bu talebi kapatmak istediğinize emin misiniz?")) {
+            // Butonu geçici olarak devre dışı bırak
+            closeTicketBtn.disabled = true;
+            closeTicketBtn.textContent = "Kapatılıyor...";
             try {
                 await updateDoc(ticketRef, { status: 'closed', lastUpdatedAt: serverTimestamp() });
                 showAlert("Talep başarıyla kapatıldı.", true);
             } catch (error) {
+                console.error("Talep kapatılırken bir hata oluştu:", error);
                 showAlert("Talep kapatılırken bir hata oluştu: " + error.message, false);
+            } finally {
+                // Butonu tekrar etkinleştir
+                closeTicketBtn.disabled = false;
+                closeTicketBtn.textContent = "Talebi Kapat";
             }
         }
     });

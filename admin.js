@@ -192,12 +192,34 @@ function initAdminPanel(user) {
         const text = document.getElementById('taskText').value;
         const category = document.getElementById('taskCategory').value;
         const reward = Number(document.getElementById('taskReward').value);
+        // NEW: Get taskLink and taskFileCount
+        const taskLink = document.getElementById('taskLink').value.trim();
+        const taskFileCount = Number(document.getElementById('taskFileCount').value);
         const description = document.getElementById('taskDescription').value;
-        if (!text || !category || !reward || !description) return;
+        
+        if (!text || !category || !reward || !description || !taskFileCount) {
+             showAlert("Lütfen tüm alanları doldurun!", false);
+             return;
+        }
+        if (taskFileCount < 1) {
+            showAlert("Gereken Kanıt Dosyası Sayısı en az 1 olmalıdır!", false);
+            return;
+        }
+
         try {
-            await addDoc(collection(db, "tasks"), { text, category, reward, description, createdAt: serverTimestamp() });
+            await addDoc(collection(db, "tasks"), { 
+                text, 
+                category, 
+                reward, 
+                description, 
+                link: taskLink, // NEW
+                fileCount: taskFileCount, // NEW
+                createdAt: serverTimestamp() 
+            });
             showAlert("Görev eklendi!", true);
             addTaskForm.reset();
+            // Reset taskFileCount to 1 after adding
+            document.getElementById('taskFileCount').value = 1;
         } catch (error) {
             showAlert("Görev ekleme hatası: " + error.message, false);
         }
@@ -207,7 +229,10 @@ function initAdminPanel(user) {
         let tasksHtml = snapshot.empty ? `<p class="empty-state">Henüz görev yok.</p>` : '';
         snapshot.forEach(doc => {
             const task = { id: doc.id, ...doc.data() };
-            tasksHtml += `<div class="task-list-item"><span>${task.text} (${task.reward} ₺)</span><button class="btn-delete" data-id="${task.id}">Sil</button></div>`;
+            // Display link and file count in the admin panel if desired
+            const taskLinkDisplay = task.link ? `<a href="${task.link}" target="_blank" style="margin-left: 10px; color: var(--spark-primary);">Link</a>` : '';
+            const fileCountDisplay = task.fileCount ? `(${task.fileCount} Dosya)` : '';
+            tasksHtml += `<div class="task-list-item"><span>${task.text} (${task.reward} ₺) ${fileCountDisplay} ${taskLinkDisplay}</span><button class="btn-delete" data-id="${task.id}">Sil</button></div>`;
         });
         existingTasksList.innerHTML = tasksHtml;
     });
@@ -230,7 +255,29 @@ function initAdminPanel(user) {
             const sub = { id: docSnapshot.id, ...docSnapshot.data() };
             const taskDoc = await getDoc(doc(db, "tasks", sub.taskId));
             const task = taskDoc.exists() ? taskDoc.data() : { text: 'Bilinmeyen Görev', reward: 0 };
-            submissionsList.innerHTML += `<div class="spark-card submission-card"><h3>${task.text}</h3><p><strong>Kullanıcı:</strong> ${sub.userEmail}</p><img src="${sub.fileURL}" class="submission-image" onclick="window.open(this.src, '_blank')"><div class="submission-actions"><button class="spark-button small-button btn-approve" data-submission-id="${sub.id}" data-user-id="${sub.userId}" data-reward="${task.reward}">Onayla</button><button class="spark-button small-button btn-reject" data-submission-id="${sub.id}">Reddet</button></div></div>`;
+            
+            // NEW: Handle multiple fileURLs
+            let submissionImagesHtml = '';
+            if (Array.isArray(sub.fileURLs) && sub.fileURLs.length > 0) {
+                sub.fileURLs.forEach((url, index) => {
+                    submissionImagesHtml += `<img src="${url}" class="submission-image" onclick="window.open(this.src, '_blank')" alt="Kanıt ${index + 1}">`;
+                });
+            } else if (sub.fileURL) { // Fallback for old single fileURL if any
+                 submissionImagesHtml += `<img src="${sub.fileURL}" class="submission-image" onclick="window.open(this.src, '_blank')" alt="Kanıt">`;
+            } else {
+                 submissionImagesHtml += `<p>Görsel kanıt yok.</p>`;
+            }
+
+            submissionsList.innerHTML += `
+                <div class="spark-card submission-card">
+                    <h3>${task.text}</h3>
+                    <p><strong>Kullanıcı:</strong> ${sub.userEmail}</p>
+                    <div class="submission-images-container">${submissionImagesHtml}</div>
+                    <div class="submission-actions">
+                        <button class="spark-button small-button btn-approve" data-submission-id="${sub.id}" data-user-id="${sub.userId}" data-reward="${task.reward}">Onayla</button>
+                        <button class="spark-button small-button btn-reject" data-submission-id="${sub.id}">Reddet</button>
+                    </div>
+                </div>`;
         }
     });
 
@@ -242,16 +289,28 @@ function initAdminPanel(user) {
                 await runTransaction(db, async (t) => {
                     const userRef = doc(db, "users", target.dataset.userId);
                     const userDoc = await t.get(userRef);
+                    if (!userDoc.exists()) throw "Kullanıcı bulunamadı!";
                     t.update(userRef, { balance: userDoc.data().balance + Number(target.dataset.reward) });
                     t.update(doc(db, "submissions", target.dataset.submissionId), { status: 'approved' });
                 });
-            } catch (error) { target.disabled = false; }
+                showAlert("Gönderim onaylandı ve bakiye eklendi!", true);
+            } catch (error) { 
+                showAlert("Onaylama hatası: " + error.message, false);
+                target.disabled = false; 
+            }
         }
         if (target.matches('.btn-reject')) {
             target.disabled = true;
             const reason = prompt("Reddetme nedenini giriniz:");
-            if (reason) await updateDoc(doc(db, "submissions", target.dataset.submissionId), { status: 'rejected', rejectionReason: reason });
-            else target.disabled = false;
+            if (reason) {
+                try {
+                    await updateDoc(doc(db, "submissions", target.dataset.submissionId), { status: 'rejected', rejectionReason: reason });
+                    showAlert("Gönderim reddedildi!", false);
+                } catch (error) {
+                    showAlert("Reddetme hatası: " + error.message, false);
+                }
+            }
+            target.disabled = false;
         }
     });
 
@@ -267,15 +326,28 @@ function initAdminPanel(user) {
     adminWithdrawalRequestsList.addEventListener('click', async (e) => {
         const target = e.target;
         if (target.matches('.btn-approve-withdrawal')) {
-            await updateDoc(doc(db, "withdrawalRequests", target.dataset.id), { status: 'approved' });
+            try {
+                await updateDoc(doc(db, "withdrawalRequests", target.dataset.id), { status: 'approved' });
+                showAlert("Çekme talebi ödendi olarak işaretlendi!", true);
+            } catch (error) {
+                showAlert("Ödeme işaretleme hatası: " + error.message, false);
+            }
         }
         if (target.matches('.btn-reject-withdrawal')) {
-            await runTransaction(db, async (t) => {
-                const userRef = doc(db, "users", target.dataset.userId);
-                const userDoc = await t.get(userRef);
-                t.update(userRef, { balance: userDoc.data().balance + Number(target.dataset.amount) });
-                t.update(doc(db, "withdrawalRequests", target.dataset.id), { status: 'rejected' });
-            });
+            if (confirm("Bu çekme talebini reddedip bakiyeyi iade etmek istediğinize emin misiniz?")) {
+                try {
+                    await runTransaction(db, async (t) => {
+                        const userRef = doc(db, "users", target.dataset.userId);
+                        const userDoc = await t.get(userRef);
+                        if (!userDoc.exists()) throw "Kullanıcı bulunamadı!";
+                        t.update(userRef, { balance: userDoc.data().balance + Number(target.dataset.amount) });
+                        t.update(doc(db, "withdrawalRequests", target.dataset.id), { status: 'rejected' });
+                    });
+                    showAlert("Çekme talebi reddedildi ve bakiye iade edildi!", false);
+                } catch (error) {
+                    showAlert("Reddetme hatası: " + error.message, false);
+                }
+            }
         }
     });
 
@@ -304,11 +376,13 @@ function initAdminPanel(user) {
                 const ticketRef = doc(db, "tickets", ticketId);
                 await addDoc(collection(ticketRef, "replies"), { message: replyMessage, senderType: 'admin', sentAt: serverTimestamp() });
                 await updateDoc(ticketRef, { lastUpdatedAt: serverTimestamp() });
+                showAlert("Cevap gönderildi!", true);
             }
         }
         if (target.matches('.btn-close-ticket')) {
             if (confirm("Talebi kapatmak istediğinize emin misiniz?")) {
                 await updateDoc(doc(db, "tickets", ticketId), { status: 'closed', lastUpdatedAt: serverTimestamp() });
+                showAlert("Talep kapatıldı!", true);
             }
         }
     });
