@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Destek Merkezi</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body id="page-support">
+  <div id="loader">Yükleniyor...</div>
+  <div id="main-content" style="display: none;">
+    <div class="container">
+      <header class="spark-header"><h1>Destek Merkezi</h1></header>
+      <div class="page-wrapper">
+        <div class="spark-card">
+          <h3>Yeni Destek Talebi Oluştur</h3>
+          <div id="alertBox"></div>
+          <form id="createTicketForm">
+            <div class="input-group spark">
+              <input type="text" id="ticketSubject" required>
+              <label>Konu</label>
+            </div>
+            <div class="input-group spark">
+              <textarea id="ticketMessage" required rows="4"></textarea>
+              <label>Sorununuz</label>
+            </div>
+            <button type="submit" class="spark-button">Talep Oluştur</button>
+          </form>
+        </div>
+
+        <div class="spark-card">
+          <h3>Önceki Taleplerim</h3>
+          <div id="previousTicketsList">
+            <p class="empty-state">Henüz bir destek talebiniz bulunmuyor.</p>
+          </div>
+        </div>
+      </div>
+      <div class="bottom-nav spark-nav">
+        <a href="index.html" class="tab-btn">Görevler</a>
+        <a href="my-tasks.html" class="tab-btn">Görevlerim</a>
+        <a href="profile.html" class="tab-btn active">Profil</a>
+      </div>
+    </div>
+  </div>
+  <script src="main.js" type="module"></script>
+</body>
+</html>

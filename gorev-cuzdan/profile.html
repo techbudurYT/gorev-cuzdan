@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profil</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body id="page-profile">
+    <div id="loader">Yükleniyor...</div>
+    <div id="main-content" style="display: none;">
+        <div class="container">
+            <header class="spark-header"><h1>Profil & İstatistikler</h1></header>
+            <div class="page-wrapper">
+                <div class="spark-card profile-dashboard">
+                    <div class="stat-card">
+                        <div class="stat-value" id="usernameDisplay">...</div>
+                        <div class="stat-label">Kullanıcı Adı</div>
+                    </div>
+                    <hr>
+                    <div class="stat-card">
+                        <div class="stat-value" id="balanceDisplay">0 ₺</div>
+                        <div class="stat-label">Mevcut Bakiye</div>
+                    </div>
+                    <hr>
+                    <div class="stat-card">
+                        <div class="stat-value" id="task-counts">0 / 0</div>
+                        <div class="stat-label">Tamamlanan Görevler</div>
+                    </div>
+                </div>
+                <div class="profile-actions-buttons">
+                    <a href="wallet.html" class="spark-button wallet-button">Cüzdanım</a>
+                    <a href="support.html" class="spark-button support-button">Destek Merkezi</a> 
+                    <button id="logoutBtn" class="spark-button logout-button">ÇIKIŞ YAP</button>
+                </div>
+            </div>
+            <div class="bottom-nav spark-nav">
+                <a href="index.html" class="tab-btn">Görevler</a>
+                <a href="my-tasks.html" class="tab-btn">Görevlerim</a>
+                <span class="tab-btn active">Profil</span>
+            </div>
+        </div>
+    </div>
+    <script src="main.js" type="module"></script>
+</body>
+</html>

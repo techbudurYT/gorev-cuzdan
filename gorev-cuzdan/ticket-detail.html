@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Talep Detayı</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body id="page-ticket-detail">
+  <div id="loader">Yükleniyor...</div>
+  <div id="main-content" style="display: none;">
+    <div class="container">
+      <header class="spark-header">
+        <h1 id="ticketSubjectHeader">Talep Detayı</h1>
+      </header>
+      <div class="page-wrapper">
+        <div class="spark-card">
+            <div class="ticket-meta">
+                <strong>Durum:</strong> <span id="ticketStatus" class="status-badge">Yükleniyor...</span>
+            </div>
+            <hr>
+            <div id="ticketRepliesContainer">
+                <!-- Cevaplar buraya yüklenecek -->
+            </div>
+        </div>
+
+        <div class="spark-card" id="replyFormContainer">
+          <h3>Cevap Yaz</h3>
+          <div id="alertBox"></div>
+          <form id="replyTicketForm">
+            <div class="input-group spark">
+              <textarea id="replyMessage" required rows="3"></textarea>
+              <label>Cevabınız</label>
+            </div>
+            <button type="submit" class="spark-button">Gönder</button>
+          </form>
+           <button id="closeTicketBtn" class="spark-button logout-button" style="margin-top: 15px;">Talebi Kapat</button>
+        </div>
+      </div>
+      <div class="bottom-nav spark-nav">
+        <a href="index.html" class="tab-btn">Görevler</a>
+        <a href="my-tasks.html" class="tab-btn">Görevlerim</a>
+        <a href="profile.html" class="tab-btn active">Profil</a>
+      </div>
+    </div>
+  </div>
+  <script src="main.js" type="module"></script>
+</body>
+</html>
