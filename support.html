@@ -38,7 +38,65 @@
       <div class="bottom-nav spark-nav">
         <a href="index.html" class="tab-btn">Görevler</a>
         <a href="my-tasks.html" class="tab-btn">Görevlerim</a>
-        <a href="profile.html" class="tab-btn active">Profil</a>
+        <a href="bonus.html" class="tab-btn">Bonus</a>
+        <a href="wallet.html" class="tab-btn">Cüzdan</a>
+        <a href="profile.html" class="tab-btn active">Profil</a> <!-- Destek, Profilin bir alt menüsü gibi olduğundan Profil aktif kalabilir -->
+      </div>
+    </div>
+  </div>
+  <script src="main.js" type="module"></script>
+</body>
+</html>```
+
+---
+
+### **3. Diğer HTML Dosyalarının Doğru Halleri**
+
+Sistemdeki tutarlılığı sağlamak için diğer tüm HTML dosyalarının da tam ve doğru hallerini aşağıya ekliyorum. Lütfen bunları da projenizdekilerle değiştirin.
+
+<details>
+<summary><b>index.html (Tam Hali)</b></summary>
+
+```html
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GörevCüzdan</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body id="page-index">
+  <div id="loader">Yükleniyor...</div>
+  <div id="main-content" style="display: none;">
+    <div class="container">
+      <header class="spark-header"><h1>GörevCüzdan</h1></header>
+      <div class="page-wrapper">
+        <div class="spark-card balance-card">
+          <p>Toplam Bakiye</p>
+          <div class="balance-amount" id="balanceDisplay">0 ₺</div>
+        </div>
+        
+        <div class="category-filters-container">
+            <div class="category-filters">
+                <button class="filter-btn active" data-category="all">Tümü</button>
+                <button class="filter-btn" data-category="youtube">YouTube</button>
+                <button class="filter-btn" data-category="instagram">Instagram</button>
+                <button class="filter-btn" data-category="telegram">Telegram</button>
+                <button class="filter-btn" data-category="google-maps">Google Maps</button>
+                <button class="filter-btn" data-category="other">Diğer</button>
+            </div>
+        </div>
+
+        <h3 class="section-title">Mevcut Görevler</h3>
+        <ul id="taskList" class="task-list"></ul>
+      </div>
+      <div class="bottom-nav spark-nav">
+        <span class="tab-btn active">Görevler</span>
+        <a href="my-tasks.html" class="tab-btn">Görevlerim</a>
+        <a href="bonus.html" class="tab-btn">Bonus</a>
+        <a href="wallet.html" class="tab-btn">Cüzdan</a>
+        <a href="profile.html" class="tab-btn">Profil</a>
       </div>
     </div>
   </div>

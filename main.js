@@ -3,7 +3,7 @@ import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWith
 import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, query, where, orderBy, getDocs, runTransaction, addDoc, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
 const firebaseConfig = {
-    apiKey: "AIzaSyBN85bxThpJYifWAvsS0uqPD0C9D55uPpM", // Burayı KENDİ API ANAHTARINIZLA DEĞİŞTİRİN!
+    apiKey: "AIzaSyBN85bxThpJYifWAvsS0uqPD0C9D55uPpM", // KENDİ API ANAHTARINIZI GİRİN!
     authDomain: "gorev-cuzdan.firebaseapp.com",
     projectId: "gorev-cuzdan",
     storageBucket: "gorev-cuzdan.appspot.com",
@@ -74,6 +74,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     case 'page-wallet': await loadWalletPageData(user); break;
                     case 'page-support': await loadSupportPageData(user); break;
                     case 'page-ticket-detail': await loadTicketDetailPageData(user); break;
+                    case 'page-bonus': await loadBonusPageData(user); break;
                 }
                 hideLoader();
             }
@@ -139,13 +140,10 @@ async function loadIndexPageData(user) {
 
     onSnapshot(doc(db, "users", user.uid), (docSnapshot) => {
         if (docSnapshot.exists()) {
-            balanceDisplay.textContent = `${docSnapshot.data().balance} ₺`;
+            balanceDisplay.textContent = `${(docSnapshot.data().balance || 0).toFixed(2)} ₺`;
         } else {
-            balanceDisplay.textContent = `0 ₺`;
+            balanceDisplay.textContent = `0.00 ₺`;
         }
-    }, (error) => {
-        console.error("Bakiye yüklenirken hata:", error);
-        balanceDisplay.textContent = `Hata ₺`;
     });
 
     try {
@@ -205,8 +203,68 @@ async function loadIndexPageData(user) {
 
     } catch(error) {
         console.error("Görevler yüklenirken hata oluştu:", error);
-        taskList.innerHTML = `<p class="empty-state" style="color:var(--spark-danger);">Görevler yüklenemedi: ${error.message}</p>`;
+        taskList.innerHTML = `<p class="empty-state" style="color:var(--spark-danger);">Görevler yüklenemedi.</p>`;
     }
+}
+
+async function loadBonusPageData(user) {
+    const bonusBtn = document.getElementById("claimBonusBtn");
+    const bonusStatusText = document.getElementById("bonusStatusText");
+    const userRef = doc(db, 'users', user.uid);
+
+    onSnapshot(userRef, (docSnapshot) => {
+        if (!docSnapshot.exists()) return;
+
+        const userData = docSnapshot.data();
+        const lastClaimTimestamp = userData.lastBonusClaimed;
+
+        if (lastClaimTimestamp) {
+            const lastClaimDate = lastClaimTimestamp.toDate();
+            const now = new Date();
+            const diffHours = (now - lastClaimDate) / (1000 * 60 * 60);
+
+            if (diffHours >= 24) {
+                bonusBtn.disabled = false;
+                bonusBtn.textContent = "Bonusunu Al (+0.50 ₺)";
+                bonusStatusText.textContent = "Günün bonusu seni bekliyor!";
+            } else {
+                bonusBtn.disabled = true;
+                const nextClaimDate = new Date(lastClaimDate.getTime() + 24 * 60 * 60 * 1000);
+                bonusBtn.textContent = `Bonus Alındı`;
+                bonusStatusText.textContent = `Sonraki bonusun ${nextClaimDate.toLocaleTimeString('tr-TR')} tarihinde aktif olacak.`;
+            }
+        } else {
+            bonusBtn.disabled = false;
+            bonusBtn.textContent = "Bonusunu Al (+0.50 ₺)";
+            bonusStatusText.textContent = "İlk bonusunu alarak kazanmaya başla!";
+        }
+    });
+
+    bonusBtn.addEventListener('click', async () => {
+        bonusBtn.disabled = true;
+        
+        try {
+            await runTransaction(db, async (transaction) => {
+                const userDoc = await transaction.get(userRef);
+                if (!userDoc.exists()) throw "Kullanıcı bulunamadı!";
+                
+                const userData = userDoc.data();
+                const lastClaim = userData.lastBonusClaimed;
+                let isEligible = !lastClaim || ((new Date() - lastClaim.toDate()) / (1000 * 60 * 60) >= 24);
+
+                if (isEligible) {
+                    const newBalance = (userData.balance || 0) + 0.5;
+                    transaction.update(userRef, { balance: newBalance, lastBonusClaimed: serverTimestamp() });
+                    showAlert("Bonus başarıyla eklendi!", true);
+                } else {
+                    showAlert("Günlük bonusunu zaten aldınız.", false);
+                }
+            });
+        } catch (error) {
+            console.error("Bonus alma hatası:", error);
+            showAlert("Bonus alınırken bir hata oluştu.", false);
+        }
+    });
 }
 
 async function loadProfilePageData(user) {
@@ -215,27 +273,17 @@ async function loadProfilePageData(user) {
     const taskCountsDisplay = document.getElementById("task-counts");
     const logoutBtn = document.getElementById("logoutBtn");
 
-    onSnapshot(doc(db, 'users', user.uid), async (docSnapshot) => {
+    onSnapshot(doc(db, 'users', user.uid), (docSnapshot) => {
         if(docSnapshot.exists()) {
             const userData = docSnapshot.data();
             usernameDisplay.textContent = userData.username || 'N/A';
-            balanceDisplay.textContent = `${userData.balance} ₺`;
+            balanceDisplay.textContent = `${(userData.balance || 0).toFixed(2)} ₺`;
         } else {
-            console.warn("Kullanıcı belgesi bulunamadı:", user.uid);
-            try {
-                await setDoc(doc(db, "users", user.uid), {
-                    username: user.email ? user.email.split('@')[0] : 'Kullanıcı',
-                    email: user.email || 'Bilinmiyor',
-                    balance: 0,
-                    isAdmin: false
-                });
-                showAlert("Profil bilgileriniz eksikti, varsayılan değerlerle oluşturuldu.", true);
-            } catch (error) {
-                console.error("Varsayılan kullanıcı belgesi oluşturulurken hata:", error);
-            }
+             console.warn("Kullanıcı belgesi bulunamadı. Varsayılan oluşturuluyor...");
+            setDoc(doc(db, "users", user.uid), {
+                username: user.email.split('@')[0], email: user.email, balance: 0, isAdmin: false
+            });
         }
-    }, (error) => {
-        console.error("Profil bilgileri yüklenirken hata:", error);
     });
     
     try {
@@ -247,74 +295,67 @@ async function loadProfilePageData(user) {
         }
     } catch (error) {
         console.error("Görev sayıları alınırken hata:", error);
-        if(taskCountsDisplay) taskCountsDisplay.textContent = "Hata";
     }
 
     logoutBtn.addEventListener("click", (e) => {
         e.preventDefault(); 
-        signOut(auth).then(() => {
-            window.location.replace("login.html"); 
-        }).catch((error) => {
-            showAlert("Çıkış yaparken bir hata oluştu.", false);
-        });
+        signOut(auth).then(() => window.location.replace("login.html"));
     });
 }
 
 async function loadMyTasksPageData(user) {
     const submissionsList = document.getElementById('submissionsList');
+
     submissionsList.addEventListener('click', (e) => {
         if (e.target.classList.contains('btn-show-reason')) {
-            const reason = e.target.dataset.reason;
-            alert(`Görev Reddedilme Nedeni:\n\n${reason}`);
+            alert(`Görev Reddedilme Nedeni:\n\n${e.target.dataset.reason}`);
         }
     });
 
     try {
         const submissionsQuery = query(collection(db, 'submissions'), where('userId', '==', user.uid), orderBy('submittedAt', 'desc'));
-        const snapshot = await getDocs(submissionsQuery);
-
-        if (snapshot.empty) {
-            submissionsList.innerHTML = `<p class="empty-state">Henüz görev göndermediniz.</p>`;
-            return;
-        }
-
-        submissionsList.innerHTML = '';
-        for(const docSnapshot of snapshot.docs) { 
-            const submission = { id: docSnapshot.id, ...docSnapshot.data() };
-            const taskDoc = await getDoc(doc(db, "tasks", submission.taskId));
-            const task = taskDoc.exists() ? taskDoc.data() : { text: 'Görev Silinmiş', reward: 0 };
-            
-            let statusText = '', statusClass = '', reasonButtonHtml = '';
-            switch(submission.status) {
-              case 'pending': statusText = 'Onay Bekliyor'; statusClass = 'status-pending'; break;
-              case 'approved': statusText = 'Onaylandı'; statusClass = 'status-approved'; break;
-              case 'rejected': 
-                statusText = 'Reddedildi'; 
-                statusClass = 'status-rejected'; 
-                if (submission.rejectionReason) {
-                    const encodedReason = submission.rejectionReason.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-                    reasonButtonHtml = `<button class="spark-button btn-show-reason" data-reason="${encodedReason}">İptal Nedeni</button>`;
-                }
-                break;
-              default: statusText = 'Bilinmiyor'; statusClass = ''; break; 
+        onSnapshot(submissionsQuery, async (snapshot) => {
+            if (snapshot.empty) {
+                submissionsList.innerHTML = `<p class="empty-state">Henüz görev göndermediniz.</p>`;
+                return;
             }
-            const submissionDate = submission.submittedAt ? submission.submittedAt.toDate().toLocaleDateString('tr-TR') : 'Bilinmiyor';
 
-            submissionsList.innerHTML += `
-              <div class="spark-card submission-card">
-                <div class="submission-header">
-                  <h3>${task.text}</h3>
-                  <span class="submission-status ${statusClass}">${statusText}</span>
-                </div>
-                <div class="submission-details">
-                    <p>Gönderim Tarihi: ${submissionDate}</p>
-                    <p>Ödül: +${task.reward} ₺</p>
-                </div>
-                <img src="${submission.fileURL}" alt="Görev kanıtı" class="submission-image" onclick="window.open(this.src, '_blank')">
-                <div class="submission-actions">${reasonButtonHtml}</div>
-              </div>`;
-        }
-    } catch(error) {
+            submissionsList.innerHTML = '';
+            for (const docSnapshot of snapshot.docs) {
+                const submission = { id: docSnapshot.id, ...docSnapshot.data() };
+                const taskDoc = await getDoc(doc(db, "tasks", submission.taskId));
+                const task = taskDoc.exists() ? taskDoc.data() : { text: 'Görev Silinmiş', reward: 0 };
+
+                let statusText = '', statusClass = '', reasonButtonHtml = '';
+                switch (submission.status) {
+                    case 'pending': statusText = 'Onay Bekliyor'; statusClass = 'status-pending'; break;
+                    case 'approved': statusText = 'Onaylandı'; statusClass = 'status-approved'; break;
+                    case 'rejected':
+                        statusText = 'Reddedildi'; statusClass = 'status-rejected';
+                        if (submission.rejectionReason) {
+                            const encodedReason = submission.rejectionReason.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+                            reasonButtonHtml = `<button class="spark-button small-button btn-show-reason" data-reason="${encodedReason}">İptal Nedeni</button>`;
+                        }
+                        break;
+                    default: statusText = 'Bilinmiyor'; statusClass = ''; break;
+                }
+                const submissionDate = submission.submittedAt ? submission.submittedAt.toDate().toLocaleDateString('tr-TR') : 'Bilinmiyor';
+
+                submissionsList.innerHTML += `
+                  <div class="spark-card submission-card">
+                    <div class="submission-header">
+                      <h3>${task.text}</h3>
+                      <span class="submission-status ${statusClass}">${statusText}</span>
+                    </div>
+                    <div class="submission-details">
+                        <p>Gönderim Tarihi: ${submissionDate}</p>
+                        <p>Ödül: +${task.reward} ₺</p>
+                    </div>
+                    <div class="submission-actions">${reasonButtonHtml}</div>
+                  </div>`;
+            }
+        });
+    } catch (error) {
         console.error("Gönderimler yüklenirken hata oluştu:", error);
         submissionsList.innerHTML = `<p class="empty-state" style="color:var(--spark-danger);">Gönderimler yüklenemedi.</p>`;
     }
@@ -323,11 +364,7 @@ async function loadMyTasksPageData(user) {
 async function loadTaskDetailPageData(user) {
     const urlParams = new URLSearchParams(window.location.search);
     const taskId = urlParams.get('id');
-
-    if (!taskId) {
-        window.location.replace("index.html");
-        return;
-    }
+    if (!taskId) { window.location.replace("index.html"); return; }
 
     const taskTitle = document.getElementById('taskTitle');
     const taskReward = document.getElementById('taskReward');
@@ -347,14 +384,10 @@ async function loadTaskDetailPageData(user) {
             taskTitle.textContent = task.text;
             taskReward.textContent = `+${task.reward} ₺`;
             taskDescription.textContent = task.description;
-        } else {
-            window.location.replace("index.html");
-            return;
-        }
+        } else { window.location.replace("index.html"); }
     } catch(error) {
         console.error("Görev detayları yüklenirken hata:", error);
         window.location.replace("index.html");
-        return;
     }
 
     fileInput.addEventListener('change', (e) => {
@@ -383,37 +416,24 @@ async function loadTaskDetailPageData(user) {
         formData.append('image', fileToUpload);
 
         try {
-            const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
-                method: 'POST', body: formData,
-            });
+            const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, { method: 'POST', body: formData });
             const result = await response.json();
             if (result.success) {
-                const existingSubmissionQuery = query(collection(db, "submissions"), 
-                                                      where("userId", "==", user.uid), 
-                                                      where("taskId", "==", taskId));
-                const existingSubmissions = await getDocs(existingSubmissionQuery);
-
-                if (!existingSubmissions.empty) {
+                const q = query(collection(db, "submissions"), where("userId", "==", user.uid), where("taskId", "==", taskId));
+                if (!(await getDocs(q)).empty) {
                     showAlert('Bu görevi zaten gönderdiniz.', false);
-                    submitTaskBtn.disabled = false;
-                    submitTaskBtn.textContent = "Görevi Onaya Gönder";
-                    return;
+                } else {
+                    await addDoc(collection(db, "submissions"), {
+                        taskId, userId: user.uid, userEmail: user.email, fileURL: result.data.url,
+                        submittedAt: serverTimestamp(), status: 'pending'
+                    });
+                    showAlert('Göreviniz başarıyla onaya gönderildi!', true);
+                    setTimeout(() => { window.location.href = 'my-tasks.html'; }, 1500);
                 }
-                await addDoc(collection(db, "submissions"), {
-                    taskId: taskId,
-                    userId: user.uid,
-                    userEmail: user.email,
-                    fileURL: result.data.url,
-                    submittedAt: serverTimestamp(),
-                    status: 'pending'
-                });
-                showAlert('Göreviniz başarıyla onaya gönderildi!', true);
-                setTimeout(() => { window.location.href = 'my-tasks.html'; }, 1500);
-            } else {
-                throw new Error(result.error ? result.error.message : 'Resim yükleme başarısız.');
-            }
+            } else { throw new Error(result.error?.message || 'Resim yükleme başarısız.'); }
         } catch (error) {
             showAlert("Hata: " + error.message, false);
+        } finally {
             submitTaskBtn.disabled = false;
             submitTaskBtn.textContent = "Görevi Onaya Gönder";
         }
@@ -432,7 +452,7 @@ async function loadWalletPageData(user) {
     onSnapshot(doc(db, "users", user.uid), (docSnapshot) => {
         if (docSnapshot.exists()) {
             userBalance = docSnapshot.data().balance || 0;
-            currentBalanceDisplay.textContent = `${userBalance} ₺`;
+            currentBalanceDisplay.textContent = `${userBalance.toFixed(2)} ₺`;
             withdrawalAmountInput.setAttribute('max', userBalance);
         }
     });
@@ -448,8 +468,9 @@ async function loadWalletPageData(user) {
         if (!iban.match(/^TR[0-9]{24}$/)) return showAlert("Geçerli bir IBAN giriniz.", false);
         if (!phoneNumber.match(/^[0-9]{10}$/)) return showAlert("Geçerli bir 10 haneli telefon numarası giriniz.", false);
         
-        withdrawalForm.querySelector('button').disabled = true;
-        withdrawalForm.querySelector('button').textContent = "Talep Oluşturuluyor...";
+        const btn = withdrawalForm.querySelector('button');
+        btn.disabled = true;
+        btn.textContent = "Talep Oluşturuluyor...";
 
         try {
             await runTransaction(db, async (transaction) => {
@@ -460,13 +481,8 @@ async function loadWalletPageData(user) {
                 if (currentBalance < amount) throw new Error("Yetersiz bakiye.");
                 transaction.update(userRef, { balance: currentBalance - amount });
                 await addDoc(collection(db, "withdrawalRequests"), {
-                    userId: user.uid,
-                    userEmail: user.email,
-                    amount: amount,
-                    iban: iban,
-                    phoneNumber: phoneNumber,
-                    status: 'pending',
-                    createdAt: serverTimestamp()
+                    userId: user.uid, userEmail: user.email, amount, iban, phoneNumber,
+                    status: 'pending', createdAt: serverTimestamp()
                 });
             });
             showAlert("Çekme talebiniz oluşturuldu.", true);
@@ -474,8 +490,8 @@ async function loadWalletPageData(user) {
         } catch (error) {
             showAlert("Talep oluşturulamadı: " + error.message, false);
         } finally {
-            withdrawalForm.querySelector('button').disabled = false;
-            withdrawalForm.querySelector('button').textContent = "Çekme Talebi Oluştur";
+            btn.disabled = false;
+            btn.textContent = "Çekme Talebi Oluştur";
         }
     });
 
@@ -497,13 +513,8 @@ async function loadWalletPageData(user) {
             }
             previousWithdrawalsList.innerHTML += `
                 <div class="spark-card withdrawal-request-card">
-                    <div class="request-header">
-                        <h3>${request.amount} ₺</h3>
-                        <span class="request-status ${statusClass}">${statusText}</span>
-                    </div>
-                    <p>IBAN: ${request.iban}</p>
-                    <p>Telefon: ${request.phoneNumber}</p>
-                    <p>Talep Tarihi: ${requestDate}</p>
+                    <div class="request-header"><h3>${request.amount} ₺</h3><span class="request-status ${statusClass}">${statusText}</span></div>
+                    <p>IBAN: ${request.iban}</p><p>Telefon: ${request.phoneNumber}</p><p>Talep Tarihi: ${requestDate}</p>
                 </div>`;
         });
     });
@@ -521,23 +532,15 @@ async function loadSupportPageData(user) {
 
         try {
             const newTicketRef = await addDoc(collection(db, "tickets"), {
-                userId: user.uid,
-                userEmail: user.email,
-                subject: subject,
-                status: 'open',
-                createdAt: serverTimestamp(),
-                lastUpdatedAt: serverTimestamp()
+                userId: user.uid, userEmail: user.email, subject, status: 'open',
+                createdAt: serverTimestamp(), lastUpdatedAt: serverTimestamp()
             });
             await addDoc(collection(db, "tickets", newTicketRef.id, "replies"), {
-                message: message,
-                senderId: user.uid,
-                senderType: 'user',
-                sentAt: serverTimestamp()
+                message, senderId: user.uid, senderType: 'user', sentAt: serverTimestamp()
             });
             showAlert("Destek talebiniz başarıyla oluşturuldu!", true);
             createTicketForm.reset();
         } catch (error) {
-            console.error("Talep oluşturma hatası:", error);
             showAlert("Talep oluşturulurken bir hata oluştu: " + error.message, false);
         }
     });
@@ -554,13 +557,9 @@ async function loadSupportPageData(user) {
             const lastUpdate = ticket.lastUpdatedAt ? ticket.lastUpdatedAt.toDate().toLocaleString('tr-TR') : 'Bilinmiyor';
             ticketsHtml += `
                 <a href="ticket-detail.html?id=${ticket.id}" class="ticket-list-item">
-                    <div class="ticket-info">
-                        <strong>${ticket.subject}</strong>
-                        <p>Son Güncelleme: ${lastUpdate}</p>
-                    </div>
+                    <div class="ticket-info"><strong>${ticket.subject}</strong><p>Son Güncelleme: ${lastUpdate}</p></div>
                     <span class="status-badge status-${ticket.status}">${ticket.status === 'open' ? 'Açık' : 'Kapalı'}</span>
-                </a>
-            `;
+                </a>`;
         });
         previousTicketsList.innerHTML = ticketsHtml;
     });
@@ -569,10 +568,7 @@ async function loadSupportPageData(user) {
 async function loadTicketDetailPageData(user) {
     const urlParams = new URLSearchParams(window.location.search);
     const ticketId = urlParams.get('id');
-    if (!ticketId) {
-        window.location.replace("support.html");
-        return;
-    }
+    if (!ticketId) { window.location.replace("support.html"); return; }
 
     const subjectHeader = document.getElementById('ticketSubjectHeader');
     const statusSpan = document.getElementById('ticketStatus');
@@ -580,19 +576,15 @@ async function loadTicketDetailPageData(user) {
     const replyForm = document.getElementById('replyTicketForm');
     const replyFormContainer = document.getElementById('replyFormContainer');
     const closeTicketBtn = document.getElementById('closeTicketBtn');
-
     const ticketRef = doc(db, "tickets", ticketId);
+
     onSnapshot(ticketRef, (doc) => {
         if (doc.exists()) {
             const ticket = doc.data();
             subjectHeader.textContent = ticket.subject;
             statusSpan.textContent = ticket.status === 'open' ? 'Açık' : 'Kapalı';
             statusSpan.className = `status-badge status-${ticket.status}`;
-            if (ticket.status === 'closed') {
-                replyFormContainer.style.display = 'none';
-            } else {
-                replyFormContainer.style.display = 'block';
-            }
+            replyFormContainer.style.display = ticket.status === 'closed' ? 'none' : 'block';
         }
     });
 
@@ -605,10 +597,8 @@ async function loadTicketDetailPageData(user) {
             const senderClass = reply.senderType === 'admin' ? 'reply-admin' : 'reply-user';
             repliesHtml += `
                 <div class="reply-bubble ${senderClass}">
-                    <p>${reply.message}</p>
-                    <span class="reply-timestamp">${sentAt}</span>
-                </div>
-            `;
+                    <p>${reply.message}</p><span class="reply-timestamp">${sentAt}</span>
+                </div>`;
         });
         repliesContainer.innerHTML = repliesHtml;
         repliesContainer.scrollTop = repliesContainer.scrollHeight;
@@ -618,14 +608,8 @@ async function loadTicketDetailPageData(user) {
         e.preventDefault();
         const message = document.getElementById('replyMessage').value.trim();
         if (!message) return;
-
         try {
-            await addDoc(collection(db, "tickets", ticketId, "replies"), {
-                message: message,
-                senderId: user.uid,
-                senderType: 'user',
-                sentAt: serverTimestamp()
-            });
+            await addDoc(collection(db, "tickets", ticketId, "replies"), { message, senderId: user.uid, senderType: 'user', sentAt: serverTimestamp() });
             await updateDoc(ticketRef, { lastUpdatedAt: serverTimestamp() });
             replyForm.reset();
         } catch (error) {
@@ -636,10 +620,7 @@ async function loadTicketDetailPageData(user) {
     closeTicketBtn.addEventListener('click', async () => {
         if (confirm("Bu talebi kapatmak istediğinize emin misiniz?")) {
             try {
-                await updateDoc(ticketRef, {
-                    status: 'closed',
-                    lastUpdatedAt: serverTimestamp()
-                });
+                await updateDoc(ticketRef, { status: 'closed', lastUpdatedAt: serverTimestamp() });
                 showAlert("Talep başarıyla kapatıldı.", true);
             } catch (error) {
                 showAlert("Talep kapatılırken bir hata oluştu: " + error.message, false);

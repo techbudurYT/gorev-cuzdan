@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Günlük Bonus</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body id="page-bonus">
+    <div id="loader">Yükleniyor...</div>
+    <div id="main-content" style="display: none;">
+        <div class="container">
+            <header class="spark-header"><h1>Günlük Bonus</h1></header>
+            <div class="page-wrapper">
+                <div class="spark-card bonus-card">
+                    <div class="bonus-icon">🎁</div>
+                    <h3>Günün Bonusu Seni Bekliyor!</h3>
+                    <p id="bonusStatusText">Her 24 saatte bir gelerek 0.50 ₺ bonus kazanabilirsin.</p>
+                    <div id="alertBox"></div>
+                    <button id="claimBonusBtn" class="spark-button bonus-button" disabled>Kontrol Ediliyor...</button>
+                </div>
+            </div>
+            <div class="bottom-nav spark-nav">
+                <a href="index.html" class="tab-btn">Görevler</a>
+                <a href="my-tasks.html" class="tab-btn">Görevlerim</a>
+                <span class="tab-btn active">Bonus</span>
+                <a href="wallet.html" class="tab-btn">Cüzdan</a>
+                <a href="profile.html" class="tab-btn">Profil</a>
+            </div>
+        </div>
+    </div>
+    <script src="main.js" type="module"></script>
+</body>
+</html>
