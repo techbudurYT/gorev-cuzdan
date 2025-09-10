@@ -1,3 +1,4 @@
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, query, where, orderBy, getDocs, runTransaction, addDoc, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
@@ -154,10 +155,16 @@ function initLoginPage() {
             const email = prompt("Şifrenizi sıfırlamak için lütfen e-posta adresinizi girin:");
             if (email) {
                 try {
+                    // Check if the email exists in Firebase Authentication
+                    // This is a security measure to prevent revealing whether an email is registered or not
+                    // Firebase's sendPasswordResetEmail function already handles this by not sending an email if the account doesn't exist,
+                    // but it's good practice to provide a generic success message to the user.
                     await sendPasswordResetEmail(auth, email);
                     showAlert("Şifre sıfırlama bağlantısı e-posta adresinize gönderildi.", true);
                 } catch (error) {
-                    showAlert("Şifre sıfırlama hatası: " + error.message, false);
+                    console.error("Şifre sıfırlama hatası:", error);
+                    // Provide a generic error message for security reasons
+                    showAlert("Şifre sıfırlama bağlantısı gönderilirken bir sorun oluştu. Lütfen e-posta adresinizi kontrol edin veya daha sonra tekrar deneyin.", false);
                 }
             }
         });
