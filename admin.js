@@ -120,6 +120,10 @@ async function initAdminPanel(user) {
     const logoutBtn = document.getElementById('logoutAdmin');
     const adminTicketsList = document.getElementById('adminTicketsList');
     const clearTicketsBtn = document.getElementById('clearTicketsBtn');
+    const addAnnouncementForm = document.getElementById('addAnnouncementForm'); // Yeni duyuru formu
+    const announcementsAdminList = document.getElementById('announcementsAdminList'); // Duyuru listesi admin paneli
+    const addFaqForm = document.getElementById('addFaqForm'); // SSS ekleme formu
+    const faqAdminList = document.getElementById('faqAdminList'); // SSS listesi admin paneli
 
 
     let adminUsername = 'Admin';
@@ -566,6 +570,110 @@ async function initAdminPanel(user) {
             showAlert("Kapalı destek talepleri temizlendi.", true);
         } catch (error) {
             showAlert("Destek taleplerini temizleme hatası: " + error.message, false);
+        }
+    });
+
+    // YENİ ÖZELLİK: Duyuru Yönetimi
+    addAnnouncementForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const title = document.getElementById('announcementTitle').value.trim();
+        const content = document.getElementById('announcementContent').value.trim();
+
+        if (!title || !content) {
+            showAlert("Lütfen duyuru başlığı ve içeriği girin!", false);
+            return;
+        }
+
+        try {
+            await addDoc(collection(db, "announcements"), {
+                title,
+                content,
+                createdAt: serverTimestamp()
+            });
+            showAlert("Duyuru başarıyla eklendi!", true);
+            addAnnouncementForm.reset();
+        } catch (error) {
+            showAlert("Duyuru ekleme hatası: " + error.message, false);
+        }
+    });
+
+    onSnapshot(query(collection(db, "announcements"), orderBy("createdAt", "desc")), (snapshot) => {
+        let announcementsHtml = snapshot.empty ? `<p class="empty-state">Henüz duyuru yok.</p>` : '';
+        snapshot.forEach(doc => {
+            const announcement = { id: doc.id, ...doc.data() };
+            const date = announcement.createdAt ? announcement.createdAt.toDate().toLocaleDateString('tr-TR') : 'Bilinmiyor';
+            announcementsHtml += `
+                <div class="task-list-item">
+                    <span>${announcement.title} - ${date}</span>
+                    <button class="spark-button small-button btn-delete-announcement" data-id="${announcement.id}">Sil</button>
+                </div>`;
+        });
+        announcementsAdminList.innerHTML = announcementsHtml;
+    });
+
+    announcementsAdminList.addEventListener('click', async (e) => {
+        if (e.target.classList.contains('btn-delete-announcement')) {
+            if (confirm("Bu duyuruyu silmek istediğinize emin misiniz?")) {
+                try {
+                    await deleteDoc(doc(db, "announcements", e.target.dataset.id));
+                    showAlert("Duyuru silindi!", true);
+                } catch (error) {
+                    showAlert("Duyuru silme hatası: " + error.message, false);
+                }
+            }
+        }
+    });
+
+    // YENİ ÖZELLİK: SSS Yönetimi
+    addFaqForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const question = document.getElementById('faqQuestion').value.trim();
+        const answer = document.getElementById('faqAnswer').value.trim();
+        const order = Number(document.getElementById('faqOrder').value);
+
+        if (!question || !answer || isNaN(order)) {
+            showAlert("Lütfen tüm SSS alanlarını doldurun ve geçerli bir sıra numarası girin!", false);
+            return;
+        }
+
+        try {
+            await addDoc(collection(db, "faqs"), {
+                question,
+                answer,
+                order,
+                createdAt: serverTimestamp()
+            });
+            showAlert("SSS başarıyla eklendi!", true);
+            addFaqForm.reset();
+            document.getElementById('faqOrder').value = (await getDocs(collection(db, "faqs"))).size + 1; // Otomatik sıra numarası
+        } catch (error) {
+            showAlert("SSS ekleme hatası: " + error.message, false);
+        }
+    });
+
+    onSnapshot(query(collection(db, "faqs"), orderBy("order", "asc")), (snapshot) => {
+        let faqsHtml = snapshot.empty ? `<p class="empty-state">Henüz Sıkça Sorulan Soru yok.</p>` : '';
+        snapshot.forEach(doc => {
+            const faq = { id: doc.id, ...doc.data() };
+            faqsHtml += `
+                <div class="task-list-item">
+                    <span>${faq.order}. ${faq.question}</span>
+                    <button class="spark-button small-button btn-delete-faq" data-id="${faq.id}">Sil</button>
+                </div>`;
+        });
+        faqAdminList.innerHTML = faqsHtml;
+    });
+
+    faqAdminList.addEventListener('click', async (e) => {
+        if (e.target.classList.contains('btn-delete-faq')) {
+            if (confirm("Bu SSS'yi silmek istediğinize emin misiniz?")) {
+                try {
+                    await deleteDoc(doc(db, "faqs", e.target.dataset.id));
+                    showAlert("SSS silindi!", true);
+                } catch (error) {
+                    showAlert("SSS silme hatası: " + error.message, false);
+                }
+            }
         }
     });
 }

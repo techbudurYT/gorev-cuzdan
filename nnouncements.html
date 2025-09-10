@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Günlük Bonus</title>
+    <title>Duyurular</title>
     <link rel="stylesheet" href="style.css">
 </head>
-<body id="page-bonus">
+<body id="page-announcements">
     <div id="loader"></div>
     <div class="app-layout" style="display: none;" id="main-content">
         <nav class="sidebar">
@@ -14,32 +14,31 @@
             <div class="sidebar-nav">
                 <a href="index.html" class="tab-btn">Görevler</a>
                 <a href="my-tasks.html" class="tab-btn">Görevlerim</a>
-                <a href="bonus.html" class="tab-btn active">Bonus</a>
+                <a href="bonus.html" class="tab-btn">Bonus</a>
                 <a href="wallet.html" class="tab-btn">Cüzdan</a>
                 <a href="profile.html" class="tab-btn">Profil</a>
                 <a href="referral.html" class="tab-btn">Referans</a>
+                <a href="announcements.html" class="tab-btn active">Duyurular</a>
             </div>
         </nav>
         <main class="main-content-wrapper">
             <div class="container">
-                <header class="spark-header"><h1>Günlük Bonus</h1></header>
+                <header class="spark-header"><h1>Duyurular</h1></header>
                 <div class="page-wrapper">
-                    <div class="spark-card bonus-card" style="text-align: center;">
-                        <div class="bonus-icon" style="font-size: 4rem;">🎁</div>
-                        <h3>Günün Bonusu Seni Bekliyor!</h3>
-                        <p id="bonusStatusText">Her 24 saatte bir gelerek 0.50 ₺ bonus kazanabilirsin.</p>
-                        <div id="alertBox"></div>
-                        <button id="claimBonusBtn" class="spark-button" disabled style="max-width: 300px; margin: 15px auto 0;">Kontrol Ediliyor...</button>
+                    <div id="announcementsList">
+                        <!-- Duyurular buraya yüklenecek -->
+                        <p class="empty-state">Duyurular yükleniyor...</p>
                     </div>
                 </div>
             </div>
             <nav class="bottom-nav">
                 <a href="index.html" class="tab-btn">Görevler</a>
                 <a href="my-tasks.html" class="tab-btn">Görevlerim</a>
-                <a href="bonus.html" class="tab-btn active">Bonus</a>
+                <a href="bonus.html" class="tab-btn">Bonus</a>
                 <a href="wallet.html" class="tab-btn">Cüzdan</a>
                 <a href="profile.html" class="tab-btn">Profil</a>
                 <a href="referral.html" class="tab-btn">Referans</a>
+                <a href="announcements.html" class="tab-btn active">Duyurular</a>
             </nav>
         </main>
     </div>

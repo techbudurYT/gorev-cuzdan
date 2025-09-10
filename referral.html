@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Referans Sistemi</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body id="page-referral">
+    <div id="loader"></div>
+    <div class="app-layout" style="display: none;" id="main-content">
+        <nav class="sidebar">
+            <h2 class="sidebar-header">GörevCüzdan</h2>
+            <div class="sidebar-nav">
+                <a href="index.html" class="tab-btn">Görevler</a>
+                <a href="my-tasks.html" class="tab-btn">Görevlerim</a>
+                <a href="bonus.html" class="tab-btn">Bonus</a>
+                <a href="wallet.html" class="tab-btn">Cüzdan</a>
+                <a href="profile.html" class="tab-btn">Profil</a>
+                <a href="referral.html" class="tab-btn active">Referans</a>
+            </div>
+        </nav>
+        <main class="main-content-wrapper">
+            <div class="container">
+                <header class="spark-header"><h1>Referans Sistemi</h1></header>
+                <div class="page-wrapper">
+                    <div class="spark-card">
+                        <h3>Referans Kodunuz</h3>
+                        <p style="color: var(--c-text-secondary); margin-bottom: 15px;">Arkadaşlarınızı davet edin ve her başarılı kayıt için bonus kazanın!</p>
+                        <div class="input-group spark">
+                            <input type="text" id="referralCodeDisplay" readonly>
+                            <label>Referans Kodunuz</label>
+                        </div>
+                        <div class="input-group spark" style="margin-top: 15px;">
+                            <input type="text" id="referralLinkDisplay" readonly>
+                            <label>Referans Bağlantınız</label>
+                        </div>
+                        <button id="copyCodeBtn" class="spark-button">Bağlantıyı Kopyala</button>
+                        <div id="alertBox" style="margin-top: 15px;"></div>
+                    </div>
+
+                    <div class="spark-card">
+                        <h3>Referans İstatistikleriniz</h3>
+                        <p>Toplam Davet Edilen Kişi: <strong id="totalReferrals">0</strong></p>
+                        <p>Toplam Referans Kazancı: <strong id="totalReferralEarnings">0.00 ₺</strong></p>
+                    </div>
+
+                    <div class="spark-card">
+                        <h3>Davet Ettikleriniz</h3>
+                        <div id="referredUsersList">
+                            <p class="empty-state">Henüz referans olduğunuz bir kullanıcı bulunmuyor.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <nav class="bottom-nav">
+                <a href="index.html" class="tab-btn">Görevler</a>
+                <a href="my-tasks.html" class="tab-btn">Görevlerim</a>
+                <a href="bonus.html" class="tab-btn">Bonus</a>
+                <a href="wallet.html" class="tab-btn">Cüzdan</a>
+                <a href="profile.html" class="tab-btn">Profil</a>
+                <a href="referral.html" class="tab-btn active">Referans</a>
+            </nav>
+        </main>
+    </div>
+    <script src="main.js" type="module"></script>
+</body>
+</html>

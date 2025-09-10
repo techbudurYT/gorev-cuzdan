@@ -34,6 +34,10 @@
                                 <input type="password" id="regPassword" required>
                                 <label>Şifre</label>
                             </div>
+                            <div class="input-group spark">
+                                <input type="text" id="regReferralCode">
+                                <label>Referans Kodu (İsteğe Bağlı)</label>
+                            </div>
                             <button type="submit" class="spark-button">KAYIT OL</button>
                         </form>
                         
@@ -44,5 +48,17 @@
         </div>
     </div>
     <script src="main.js" type="module"></script>
+    <script>
+        // URL'den referans kodunu al ve inputa yaz
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const refCode = urlParams.get('ref');
+            if (refCode) {
+                document.getElementById('regReferralCode').value = refCode;
+                // Label'ın yukarı kayması için inputa 'valid' class'ı ekle
+                document.getElementById('regReferralCode').classList.add('valid'); 
+            }
+        });
+    </script>
 </body>
 </html>

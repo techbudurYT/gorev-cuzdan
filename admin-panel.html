@@ -83,6 +83,58 @@
                     </div>
                 </div>
 
+                <!-- Yeni Duyuru Ekleme Bölümü -->
+                <div class="spark-card">
+                    <h3>Yeni Duyuru Ekle</h3>
+                    <form id="addAnnouncementForm">
+                        <div class="input-group spark">
+                            <input type="text" id="announcementTitle" required>
+                            <label>Duyuru Başlığı</label>
+                        </div>
+                        <div class="input-group spark">
+                            <textarea id="announcementContent" required rows="4"></textarea>
+                            <label>Duyuru İçeriği</label>
+                        </div>
+                        <button type="submit" class="spark-button">Duyuruyu Ekle</button>
+                    </form>
+                </div>
+
+                <!-- Duyuruları Yönetme Bölümü -->
+                <div class="spark-card">
+                    <h3>Mevcut Duyurular</h3>
+                    <div id="announcementsAdminList">
+                        <p class="empty-state">Henüz duyuru yok.</p>
+                    </div>
+                </div>
+
+                <!-- Yeni SSS Ekleme Bölümü -->
+                <div class="spark-card">
+                    <h3>Yeni Sıkça Sorulan Soru Ekle</h3>
+                    <form id="addFaqForm">
+                        <div class="input-group spark">
+                            <input type="text" id="faqQuestion" required>
+                            <label>Soru</label>
+                        </div>
+                        <div class="input-group spark">
+                            <textarea id="faqAnswer" required rows="3"></textarea>
+                            <label>Cevap</label>
+                        </div>
+                        <div class="input-group spark">
+                            <input type="number" id="faqOrder" required min="1" value="1">
+                            <label>Sıra Numarası</label>
+                        </div>
+                        <button type="submit" class="spark-button">SSS Ekle</button>
+                    </form>
+                </div>
+
+                <!-- SSS Yönetimi Bölümü -->
+                <div class="spark-card">
+                    <h3>Mevcut Sıkça Sorulan Sorular</h3>
+                    <div id="faqAdminList">
+                        <p class="empty-state">Henüz Sıkça Sorulan Soru yok.</p>
+                    </div>
+                </div>
+
                 <div class="spark-card">
                     <h3>Mevcut Görevler</h3>
                     <div id="existingTasksList"></div>

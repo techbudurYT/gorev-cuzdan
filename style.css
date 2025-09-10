@@ -1,4 +1,3 @@
-
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
 
 :root {
@@ -357,6 +356,56 @@ body.auth-page #main-content {
 .task-action .spark-button { padding: 10px 22px; font-size: 0.9em; min-width: 95px; margin-top: 0;}
 .spark-button.completed, .spark-button.disabled-stock { background: var(--c-bg-medium); }
 
+/* --- Duyuru Kartı --- */
+.announcement-card {
+    background: linear-gradient(135deg, rgba(36, 34, 49, 0.7), rgba(36, 34, 49, 0.4));
+    backdrop-filter: blur(10px);
+    border-radius: var(--border-radius);
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid rgba(0, 246, 255, 0.2); /* Hafif ikincil renk çerçevesi */
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    animation: fade-in-up 0.5s ease forwards;
+    opacity: 0;
+}
+
+.announcement-card h4 {
+    color: var(--c-secondary); /* İkincil renkte başlık */
+    font-size: 1.2em;
+    margin-bottom: 10px;
+    border-bottom: 1px solid rgba(0, 246, 255, 0.1);
+    padding-bottom: 8px;
+}
+
+.announcement-card p {
+    color: var(--c-text-primary);
+    font-size: 0.95em;
+    margin-bottom: 10px;
+}
+
+.announcement-card .announcement-date {
+    font-size: 0.8em;
+    color: var(--c-text-secondary);
+    text-align: right;
+    display: block;
+    margin-top: 10px;
+}
+
+.announcement-card .announcement-link {
+    display: block;
+    text-align: right;
+    margin-top: 15px;
+}
+.announcement-card .announcement-link a {
+    color: var(--c-primary);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color var(--transition-fast);
+}
+.announcement-card .announcement-link a:hover {
+    color: var(--c-secondary);
+}
+
 /* --- C. Görevlerim Sayfası --- */
 .submission-status { padding: 5px 12px; border-radius: 20px; font-size: 0.8em; font-weight: bold; }
 .status-pending { background-color: rgba(255, 206, 84, 0.2); color: var(--c-warning); }
@@ -709,6 +758,39 @@ body.auth-page #main-content {
   font-size: 0.8em;
   font-weight: bold;
 }
+
+/* Duyurular Sayfası */
+#announcementsList .announcement-item {
+    background: linear-gradient(135deg, rgba(36, 34, 49, 0.6), rgba(36, 34, 49, 0.3));
+    backdrop-filter: blur(10px);
+    border-radius: var(--border-radius);
+    padding: 20px;
+    margin-bottom: 15px;
+    border: 1px solid rgba(160, 157, 185, 0.2);
+}
+
+#announcementsList .announcement-item h3 {
+    color: var(--c-primary);
+    font-size: 1.3em;
+    margin-bottom: 10px;
+    border-bottom: 1px solid rgba(160, 157, 185, 0.1);
+    padding-bottom: 8px;
+}
+
+#announcementsList .announcement-item p {
+    color: var(--c-text-primary);
+    font-size: 0.95em;
+    margin-bottom: 10px;
+}
+
+#announcementsList .announcement-item .announcement-date {
+    font-size: 0.8em;
+    color: var(--c-text-secondary);
+    text-align: right;
+    display: block;
+    margin-top: 10px;
+}
+
 
 /* --- Responsive Tasarım --- */
 

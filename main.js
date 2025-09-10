@@ -1,4 +1,3 @@
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, query, where, orderBy, getDocs, runTransaction, addDoc, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
@@ -75,7 +74,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     username: user.email.split('@')[0], 
                     email: user.email, 
                     balance: 0, 
-                    isAdmin: false 
+                    isAdmin: false,
+                    referralCode: generateReferralCode(), // Yeni referans kodu oluştur
+                    referredBy: null // Başlangıçta boş
                 }, { merge: true }); // Use merge: true to avoid overwriting existing data if it was partially created
             }
 
@@ -91,6 +92,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     case 'page-support': await loadSupportPageData(user); break;
                     case 'page-ticket-detail': await loadTicketDetailPageData(user); break;
                     case 'page-bonus': await loadBonusPageData(user); break;
+                    case 'page-referral': await loadReferralPageData(user); break; // Yeni referans sayfası
+                    case 'page-announcements': await loadAnnouncementsPageData(); break; // Yeni duyurular sayfası
                 }
                 hideLoader();
             }
@@ -107,6 +110,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (pageId === 'page-register') initRegisterPage();
 });
 
+function generateReferralCode() {
+    return Math.random().toString(36).substring(2, 8).toUpperCase();
+}
+
 function initRegisterPage() {
     const registerForm = document.getElementById("registerForm");
     registerForm.addEventListener("submit", async (e) => {
@@ -114,6 +121,7 @@ function initRegisterPage() {
         const username = document.getElementById("regUsername").value.trim();
         const email = document.getElementById("regEmail").value.trim();
         const password = document.getElementById("regPassword").value;
+        const referralCodeInput = document.getElementById("regReferralCode")?.value.trim() || '';
 
         if (username.length < 3) return showAlert("Kullanıcı adı en az 3 karakter olmalıdır.", false);
         if (password.length < 6) return showAlert("Şifre en az 6 karakter olmalıdır.", false);
@@ -121,9 +129,41 @@ function initRegisterPage() {
         try {
             showLoader();
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-            await setDoc(doc(db, "users", userCredential.user.uid), {
-                username, email, balance: 0, isAdmin: false 
+            const newUserUid = userCredential.user.uid;
+            
+            let referredBy = null;
+            if (referralCodeInput) {
+                const referrerQuery = query(collection(db, "users"), where("referralCode", "==", referralCodeInput));
+                const referrerSnapshot = await getDocs(referrerQuery);
+                if (!referrerSnapshot.empty) {
+                    referredBy = referrerSnapshot.docs[0].id;
+                } else {
+                    showAlert("Geçersiz referans kodu. Kayıt başarıyla tamamlandı ancak referans kodu uygulanamadı.", false);
+                }
+            }
+
+            await setDoc(doc(db, "users", newUserUid), {
+                username, 
+                email, 
+                balance: 0, 
+                isAdmin: false,
+                referralCode: generateReferralCode(), // Her yeni kullanıcıya referans kodu ver
+                referredBy: referredBy,
+                createdAt: serverTimestamp()
             });
+
+            if (referredBy) {
+                // Referans verene bonus
+                const referrerRef = doc(db, "users", referredBy);
+                await runTransaction(db, async (transaction) => {
+                    const referrerDoc = await transaction.get(referrerRef);
+                    if (referrerDoc.exists()) {
+                        const referrerBalance = referrerDoc.data().balance || 0;
+                        transaction.update(referrerRef, { balance: referrerBalance + 1.0 }); // Referans bonusu 1.0 ₺
+                    }
+                });
+            }
+
             showAlert("Kayıt başarılı! Giriş yapılıyor...", true);
             setTimeout(() => window.location.replace("index.html"), 1500);
         } catch (error) {
@@ -175,6 +215,13 @@ async function loadIndexPageData(user) {
     const taskList = document.getElementById("taskList");
     const balanceDisplay = document.getElementById("balanceDisplay");
     const filterButtons = document.querySelectorAll(".filter-btn");
+    const showMoreTasksBtn = document.getElementById("showMoreTasksBtn");
+    const announcementsContainer = document.getElementById("announcementsContainer");
+
+    let allTasks = [];
+    let submittedTaskIds = [];
+    const tasksPerLoad = 4;
+    let currentTaskDisplayCount = tasksPerLoad;
 
     onSnapshot(doc(db, "users", user.uid), (docSnapshot) => {
         if (docSnapshot.exists()) {
@@ -184,71 +231,116 @@ async function loadIndexPageData(user) {
         }
     });
 
-    try {
-        const tasksQuery = query(collection(db, "tasks"), orderBy("createdAt", "desc"));
-        const tasksSnapshot = await getDocs(tasksQuery);
-        const allTasks = tasksSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const fetchTasksAndSubmissions = async () => {
+        try {
+            const tasksQuery = query(collection(db, "tasks"), orderBy("createdAt", "desc"));
+            const tasksSnapshot = await getDocs(tasksQuery);
+            allTasks = tasksSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        const submissionsQuery = query(collection(db, "submissions"), 
-                                        where("userId", "==", user.uid),
-                                        where("status", "in", ["pending", "approved"]));
-        const submissionsSnapshot = await getDocs(submissionsQuery);
-        const submittedTaskIds = submissionsSnapshot.docs.map(doc => doc.data().taskId);
+            const submissionsQuery = query(collection(db, "submissions"), 
+                                            where("userId", "==", user.uid),
+                                            where("status", "in", ["pending", "approved"]));
+            const submissionsSnapshot = await getDocs(submissionsQuery);
+            submittedTaskIds = submissionsSnapshot.docs.map(doc => doc.data().taskId);
+            
+            renderTasks(document.querySelector('.filter-btn.active')?.dataset.category || 'all');
+        } catch (error) {
+            console.error("Görevler veya gönderimler yüklenirken hata oluştu:", error);
+            taskList.innerHTML = `<li class="empty-state" style="color:var(--c-danger);">Görevler yüklenemedi.</li>`;
+        }
+    };
 
-        const renderTasks = (filterCategory) => {
-            taskList.innerHTML = "";
-            const filteredTasks = (filterCategory === 'all' 
-                ? allTasks 
-                : allTasks.filter(task => task.category === filterCategory))
-                .filter(task => (task.stock || 0) > 0); 
+    const renderTasks = (filterCategory) => {
+        taskList.innerHTML = "";
+        const filteredTasks = (filterCategory === 'all' 
+            ? allTasks 
+            : allTasks.filter(task => task.category === filterCategory))
+            .filter(task => (task.stock || 0) > 0); 
 
-            if (filteredTasks.length === 0) {
-                taskList.innerHTML = `<li class="empty-state">Bu kategoride aktif görev bulunmamaktadır.</li>`;
-                return;
+        if (filteredTasks.length === 0) {
+            taskList.innerHTML = `<li class="empty-state">Bu kategoride aktif görev bulunmamaktadır.</li>`;
+            showMoreTasksBtn.style.display = 'none';
+            return;
+        }
+
+        const tasksToDisplay = filteredTasks.slice(0, currentTaskDisplayCount);
+
+        tasksToDisplay.forEach((task, index) => {
+            const isSubmitted = submittedTaskIds.includes(task.id);
+            const categoryInfo = categoryData[task.category] || categoryData["other"];
+            const li = document.createElement("li");
+            li.className = "spark-card task-card";
+            li.style.animationDelay = `${index * 0.05}s`;
+
+            let actionButtonsHtml = '';
+            if (isSubmitted) {
+                actionButtonsHtml += `<button class='spark-button completed' disabled>Gönderildi</button>`;
+            } else if ((task.stock || 0) <= 0) { 
+                actionButtonsHtml += `<button class='spark-button disabled-stock' disabled>Stok Yok</button>`;
+            } 
+            else {
+                actionButtonsHtml += `<a href="task-detail.html?id=${task.id}" class="spark-button task-link-button">Yap</a>`;
             }
-
-            filteredTasks.forEach((task, index) => {
-                const isSubmitted = submittedTaskIds.includes(task.id);
-                const categoryInfo = categoryData[task.category] || categoryData["other"];
-                const li = document.createElement("li");
-                li.className = "spark-card task-card";
-                li.style.animationDelay = `${index * 0.05}s`;
-
-                let actionButtonsHtml = '';
-                if (isSubmitted) {
-                    actionButtonsHtml += `<button class='spark-button completed' disabled>Gönderildi</button>`;
-                } else if ((task.stock || 0) <= 0) { 
-                    actionButtonsHtml += `<button class='spark-button disabled-stock' disabled>Stok Yok</button>`;
-                } 
-                else {
-                    actionButtonsHtml += `<a href="task-detail.html?id=${task.id}" class="spark-button task-link-button">Yap</a>`;
-                }
-                
-                li.innerHTML = `
-                    <div class="task-logo"><img src="${categoryInfo.logo}" alt="${categoryInfo.name} logo"></div>
-                    <div class="task-info">
-                        <div class="task-title">${task.text}</div>
-                        <div class="task-reward">+${task.reward} ₺</div>
-                    </div>
-                    <div class="task-action">${actionButtonsHtml}</div>`;
-                taskList.appendChild(li);
-            });
-        };
-
-        filterButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                document.querySelector('.filter-btn.active')?.classList.remove('active');
-                button.classList.add('active');
-                const category = button.dataset.category;
-                renderTasks(category);
-            });
+            
+            li.innerHTML = `
+                <div class="task-logo"><img src="${categoryInfo.logo}" alt="${categoryInfo.name} logo"></div>
+                <div class="task-info">
+                    <div class="task-title">${task.text}</div>
+                    <div class="task-reward">+${task.reward} ₺</div>
+                </div>
+                <div class="task-action">${actionButtonsHtml}</div>`;
+            taskList.appendChild(li);
         });
 
-        renderTasks('all');
+        if (filteredTasks.length > currentTaskDisplayCount) {
+            showMoreTasksBtn.style.display = 'block';
+        } else {
+            showMoreTasksBtn.style.display = 'none';
+        }
+    };
 
-    } catch(error) {
-        console.error("Görevler yüklenirken hata oluştu:", error);
-        taskList.innerHTML = `<li class="empty-state" style="color:var(--c-danger);">Görevler yüklenemedi.</li>`;
+    filterButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            document.querySelector('.filter-btn.active')?.classList.remove('active');
+            button.classList.add('active');
+            currentTaskDisplayCount = tasksPerLoad; // Reset display count on filter change
+            renderTasks(button.dataset.category);
+        });
+    });
+
+    showMoreTasksBtn.addEventListener('click', () => {
+        currentTaskDisplayCount += tasksPerLoad;
+        renderTasks(document.querySelector('.filter-btn.active')?.dataset.category || 'all');
+    });
+
+    await fetchTasksAndSubmissions(); // Initial load
+
+    // Load recent announcements
+    try {
+        const announcementsQuery = query(collection(db, "announcements"), orderBy("createdAt", "desc"), limit(2));
+        const announcementsSnapshot = await getDocs(announcementsQuery);
+        if (!announcementsSnapshot.empty) {
+            announcementsContainer.innerHTML = '<h3>Son Duyurular</h3>';
+            announcementsSnapshot.forEach(doc => {
+                const announcement = doc.data();
+                const date = announcement.createdAt ? announcement.createdAt.toDate().toLocaleDateString('tr-TR') : 'Bilinmiyor';
+                announcementsContainer.innerHTML += `
+                    <div class="spark-card announcement-card">
+                        <h4>${announcement.title}</h4>
+                        <p>${announcement.content}</p>
+                        <span class="announcement-date">${date}</span>
+                    </div>
+                `;
+            });
+            announcementsContainer.innerHTML += `
+                <div class="announcement-link">
+                    <a href="announcements.html" class="spark-button small-button">Tüm Duyurular</a>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error("Duyurular yüklenirken hata oluştu:", error);
+        announcementsContainer.innerHTML = `<div class="empty-state" style="color:var(--c-danger);">Duyurular yüklenemedi.</div>`;
     }
 }
 
@@ -686,6 +778,7 @@ async function loadWalletPageData(user) {
 async function loadSupportPageData(user) {
     const createTicketForm = document.getElementById('createTicketForm');
     const previousTicketsList = document.getElementById('previousTicketsList');
+    const faqList = document.getElementById('faqList'); // SSS bölümü için
 
     // Fetch user's username for senderName
     let username = user.email; // Default to email
@@ -743,7 +836,7 @@ async function loadSupportPageData(user) {
                 return; 
             }
 
-            const lastUpdate = ticket.lastUpdatedAt ? ticket.lastUpdatedAt.toDate().toLocaleString('tr-TR') : 'Bilinmiyor';
+            const lastUpdate = ticket.lastUpdatedAt ? ticket.lastUpdatedAt.toDate().toLocaleDateString('tr-TR') : 'Bilinmiyor';
             let statusClass = '';
             let statusText = '';
             switch(ticket.status) {
@@ -767,6 +860,29 @@ async function loadSupportPageData(user) {
         console.error("Destek talepleri yüklenirken hata oluştu:", error);
         previousTicketsList.innerHTML = `<div class="empty-state" style="color:var(--c-danger);">Destek talepleri yüklenemedi: ${error.message}</div>`;
     });
+
+    // SSS yükleme
+    try {
+        const faqsQuery = query(collection(db, "faqs"), orderBy("order", "asc")); // 'order' alanı ile sıralama
+        const faqsSnapshot = await getDocs(faqsQuery);
+        if (!faqsSnapshot.empty) {
+            faqList.innerHTML = '';
+            faqsSnapshot.forEach(doc => {
+                const faq = doc.data();
+                faqList.innerHTML += `
+                    <div class="spark-card" style="margin-top: 15px;">
+                        <h4>${faq.question}</h4>
+                        <p>${faq.answer}</p>
+                    </div>
+                `;
+            });
+        } else {
+            faqList.innerHTML = '<div class="empty-state">Henüz sıkça sorulan soru bulunmuyor.</div>';
+        }
+    } catch (error) {
+        console.error("SSS yüklenirken hata:", error);
+        faqList.innerHTML = `<div class="empty-state" style="color:var(--c-danger);">SSS yüklenemedi.</div>`;
+    }
 }
 
 async function loadTicketDetailPageData(user) {
@@ -954,4 +1070,101 @@ async function loadTicketDetailPageData(user) {
             }
         }
     });
+}
+
+// YENİ ÖZELLİK: Referans Sistemi Sayfası Yükleme
+async function loadReferralPageData(user) {
+    const referralCodeDisplay = document.getElementById('referralCodeDisplay');
+    const referralLinkDisplay = document.getElementById('referralLinkDisplay');
+    const copyCodeBtn = document.getElementById('copyCodeBtn');
+    const referredUsersList = document.getElementById('referredUsersList');
+    const totalReferralsDisplay = document.getElementById('totalReferrals');
+    const totalReferralEarningsDisplay = document.getElementById('totalReferralEarnings');
+
+    let currentUserData;
+
+    onSnapshot(doc(db, "users", user.uid), async (docSnapshot) => {
+        if (docSnapshot.exists()) {
+            currentUserData = docSnapshot.data();
+            const referralCode = currentUserData.referralCode || generateReferralCode();
+            if (!currentUserData.referralCode) {
+                await updateDoc(doc(db, "users", user.uid), { referralCode: referralCode });
+            }
+            
+            referralCodeDisplay.textContent = referralCode;
+            referralLinkDisplay.value = `${window.location.origin}/register.html?ref=${referralCode}`; // Kayıt sayfasına yönlendiren link
+        }
+    });
+
+    copyCodeBtn.addEventListener('click', async () => {
+        try {
+            await navigator.clipboard.writeText(referralLinkDisplay.value);
+            showAlert('Referans bağlantısı panoya kopyalandı!', true);
+        } catch (err) {
+            console.error('Panoya kopyalama başarısız oldu:', err);
+            showAlert('Referans bağlantısı kopyalanamadı.', false);
+        }
+    });
+
+    // Referans edilen kullanıcıları ve kazançları listele
+    const referredUsersQuery = query(collection(db, "users"), where("referredBy", "==", user.uid), orderBy("createdAt", "desc"));
+    onSnapshot(referredUsersQuery, (snapshot) => {
+        if (snapshot.empty) {
+            referredUsersList.innerHTML = `<div class="empty-state">Henüz referans olduğunuz bir kullanıcı bulunmuyor.</div>`;
+            totalReferralsDisplay.textContent = '0';
+            totalReferralEarningsDisplay.textContent = '0.00 ₺';
+            return;
+        }
+
+        let totalEarnings = 0;
+        let usersHtml = '';
+        snapshot.forEach(doc => {
+            const referredUser = doc.data();
+            const joinDate = referredUser.createdAt ? referredUser.createdAt.toDate().toLocaleDateString('tr-TR') : 'Bilinmiyor';
+            // Her referans için 1.0 ₺ bonus verdiğimizi varsayıyoruz
+            totalEarnings += 1.0; 
+            usersHtml += `
+                <div class="spark-card" style="padding: 15px; margin-top: 15px;">
+                    <strong>${referredUser.username}</strong> (${referredUser.email})<br>
+                    <small>Katılma Tarihi: ${joinDate}</small><br>
+                    <small>Kazanılan: +1.00 ₺</small>
+                </div>
+            `;
+        });
+        referredUsersList.innerHTML = usersHtml;
+        totalReferralsDisplay.textContent = snapshot.size.toString();
+        totalReferralEarningsDisplay.textContent = `${totalEarnings.toFixed(2)} ₺`;
+    });
+}
+
+// YENİ ÖZELLİK: Duyurular Sayfası Yükleme
+async function loadAnnouncementsPageData() {
+    const announcementsList = document.getElementById('announcementsList');
+
+    try {
+        const announcementsQuery = query(collection(db, "announcements"), orderBy("createdAt", "desc"));
+        const announcementsSnapshot = await getDocs(announcementsQuery);
+
+        if (announcementsSnapshot.empty) {
+            announcementsList.innerHTML = `<div class="empty-state">Henüz bir duyuru bulunmamaktadır.</div>`;
+            return;
+        }
+
+        announcementsList.innerHTML = '';
+        announcementsSnapshot.forEach(doc => {
+            const announcement = doc.data();
+            const date = announcement.createdAt ? announcement.createdAt.toDate().toLocaleDateString('tr-TR') : 'Bilinmiyor';
+            announcementsList.innerHTML += `
+                <div class="spark-card announcement-item">
+                    <h3>${announcement.title}</h3>
+                    <p>${announcement.content}</p>
+                    <span class="announcement-date">${date}</span>
+                </div>
+            `;
+        });
+
+    } catch (error) {
+        console.error("Duyurular yüklenirken hata oluştu:", error);
+        announcementsList.innerHTML = `<div class="empty-state" style="color:var(--c-danger);">Duyurular yüklenemedi.</div>`;
+    }
 }
