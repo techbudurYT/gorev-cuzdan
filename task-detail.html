@@ -14,29 +14,31 @@
       <div class="page-wrapper">
         <div class="spark-card task-detail-container">
           <h2 id="taskTitle" style="color:var(--spark-primary);">Yükleniyor...</h2>
-          <div id="taskReward" class="task-reward" style="margin-bottom: 15px;"></div>
+          <div id="taskReward" class="task-reward" style="margin-bottom: 15px; font-size: 1.2em;"></div>
           <p id="taskDescription" style="color:var(--spark-secondary);"></p>
-          <p id="taskStockDisplay" style="color: var(--spark-secondary); font-size: 0.9em; margin-top: 10px;"></p> <!-- NEW: Stok sayısı gösterimi -->
+          <p id="taskStockDisplay" style="color: var(--spark-secondary); font-size: 0.9em; margin-top: 10px;"></p>
         </div>
         
         <div class="spark-card upload-section">
           <h3>Görev Kanıtı Yükle (<span id="requiredFileCount">1</span> Adet)</h3>
-          <p>Lütfen görevi tamamladığınıza dair ekran görüntüsü(leri) yükleyin (JPG, PNG).</p>
+          <p style="color: var(--spark-secondary); margin-bottom: 15px;">Lütfen görevi tamamladığınıza dair ekran görüntüsü(leri) yükleyin (JPG, PNG).</p>
           <div id="alertBox"></div>
+          
+          <!-- Göreve Git Linki için yer -->
+          <div id="taskLinkContainer" style="display: none;"></div>
           
           <div id="multipleFileUploadContainer">
             <!-- Dynamic file inputs will be rendered here by main.js -->
           </div>
           
-          <!-- MOVED: Göreve Git Linki için yer -->
-          <div id="taskLinkContainer" style="margin-top: 25px; margin-bottom: 25px; display: none;"></div>
-          
           <button id="submitTask" class="spark-button submit-task-button">Görevi Onaya Gönder</button>
         </div>
       </div>
-      <div class="bottom-nav spark-nav">
-        <a href="index.html" class="tab-btn">Görevler</a>
+       <div class="bottom-nav spark-nav">
+        <a href="index.html" class="tab-btn active">Görevler</a>
         <a href="my-tasks.html" class="tab-btn">Görevlerim</a>
+        <a href="bonus.html" class="tab-btn">Bonus</a>
+        <a href="wallet.html" class="tab-btn">Cüzdan</a>
         <a href="profile.html" class="tab-btn">Profil</a>
       </div>
     </div>
