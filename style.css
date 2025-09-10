@@ -658,6 +658,57 @@ body.auth-page #main-content {
     margin-top: 10px;
 }
 
+/* Support Page Specific Styles */
+#previousTicketsList {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.ticket-list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+  padding: 15px 20px;
+  background: linear-gradient(135deg, rgba(36, 34, 49, 0.6), rgba(36, 34, 49, 0.3));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: var(--border-radius);
+  border: 1px solid rgba(160, 157, 185, 0.2);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast);
+  text-decoration: none; /* Remove underline from link */
+  color: var(--c-text-primary); /* Ensure text color */
+}
+
+.ticket-list-item:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  border-color: rgba(159, 85, 255, 0.4);
+}
+
+.ticket-list-item .ticket-info {
+  flex-grow: 1;
+}
+
+.ticket-list-item .ticket-info strong {
+  display: block;
+  font-size: 1.1em;
+  margin-bottom: 5px;
+}
+
+.ticket-list-item .ticket-info p {
+  font-size: 0.85em;
+  color: var(--c-text-secondary);
+}
+
+.ticket-list-item .status-badge {
+  flex-shrink: 0;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 0.8em;
+  font-weight: bold;
+}
 
 /* --- Responsive Tasarım --- */
 
