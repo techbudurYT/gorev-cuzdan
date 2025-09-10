@@ -122,15 +122,28 @@ function initRegisterPage() {
     // URL'den referans kodunu al ve inputa yaz
     const urlParams = new URLSearchParams(window.location.search);
     const refCodeFromUrl = urlParams.get('ref');
-    if (refCodeFromUrl && regReferralCodeInput) {
-        regReferralCodeInput.value = refCodeFromUrl;
-        // Label'ın yukarı kayması için inputa 'valid' class'ı ekle
-        regReferralCodeInput.classList.add('valid');
-        // İlgili input-group'un label'ına da focus sınıfı ekleyerek stilin uygulanmasını sağla
-        const label = regReferralCodeInput.nextElementSibling;
-        if (label && label.tagName === 'LABEL') {
-            label.classList.add('focused'); // 'focused' sınıfını style.css'e eklemeniz gerekebilir
+    if (regReferralCodeInput) { // regReferralCodeInput null olmadığından emin ol
+        if (refCodeFromUrl) {
+            regReferralCodeInput.value = refCodeFromUrl;
+            // Label'ın yukarı kayması için inputa 'valid' class'ı ekle
+            regReferralCodeInput.classList.add('valid');
+            const label = regReferralCodeInput.nextElementSibling;
+            if (label && label.tagName === 'LABEL') {
+                label.classList.add('focused'); 
+            }
         }
+
+        // input alanı boşaltılırsa veya bir değer girilirse focused sınıfını yönet
+        regReferralCodeInput.addEventListener('input', () => {
+            const label = regReferralCodeInput.nextElementSibling;
+            if (label && label.tagName === 'LABEL') {
+                if (regReferralCodeInput.value.trim() !== '') {
+                    label.classList.add('focused');
+                } else {
+                    label.classList.remove('focused');
+                }
+            }
+        });
     }
 
 
@@ -139,7 +152,7 @@ function initRegisterPage() {
         const username = document.getElementById("regUsername").value.trim();
         const email = document.getElementById("regEmail").value.trim();
         const password = document.getElementById("regPassword").value;
-        const referralCodeInput = regReferralCodeInput.value.trim();
+        const referralCodeInput = regReferralCodeInput ? regReferralCodeInput.value.trim() : '';
 
         if (username.length < 3) return showAlert("Kullanıcı adı en az 3 karakter olmalıdır.", false);
         if (password.length < 6) return showAlert("Şifre en az 6 karakter olmalıdır.", false);
@@ -1108,11 +1121,9 @@ async function loadReferralPageData(user) {
     const totalReferralsDisplay = document.getElementById('totalReferrals');
     const totalReferralEarningsDisplay = document.getElementById('totalReferralEarnings');
 
-    let currentUserData;
-
     onSnapshot(doc(db, "users", user.uid), async (docSnapshot) => {
         if (docSnapshot.exists()) {
-            currentUserData = docSnapshot.data();
+            const currentUserData = docSnapshot.data();
             const referralCode = currentUserData.referralCode; // Zaten mevcut olan kodu al
             
             if (referralCodeDisplay) {
