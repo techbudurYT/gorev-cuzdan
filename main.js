@@ -1,6 +1,8 @@
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, query, where, orderBy, getDocs, runTransaction, addDoc, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-storage.js"; // Storage ekledik
 
 const firebaseConfig = {
     apiKey: "AIzaSyBN85bxThpJYifWAvsS0uqPD0C9D55uPpM", // KENDİ API ANAHTARINIZI GİRİN!
@@ -14,6 +16,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+const storage = getStorage(app); // Storage'ı başlattık
 
 const categoryData = {
     "youtube": { name: "YouTube", logo: "img/logos/youtube.png" },
@@ -144,6 +147,22 @@ function initLoginPage() {
             showAlert("Hatalı e-posta veya şifre!", false);
         }
     });
+
+    const forgotPasswordLink = document.getElementById('forgotPasswordLink');
+    if (forgotPasswordLink) {
+        forgotPasswordLink.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const email = prompt("Şifrenizi sıfırlamak için lütfen e-posta adresinizi girin:");
+            if (email) {
+                try {
+                    await sendPasswordResetEmail(auth, email);
+                    showAlert("Şifre sıfırlama bağlantısı e-posta adresinize gönderildi.", true);
+                } catch (error) {
+                    showAlert("Şifre sıfırlama hatası: " + error.message, false);
+                }
+            }
+        });
+    }
 }
 
 async function loadIndexPageData(user) {
@@ -399,7 +418,6 @@ async function loadTaskDetailPageData(user) {
     const multipleFileUploadContainer = document.getElementById('multipleFileUploadContainer'); 
     const submitTaskBtn = document.getElementById('submitTask');
     const taskStockDisplay = document.getElementById('taskStockDisplay'); 
-    const IMGBB_API_KEY = "84a7c0a54294a6e8ea2ffc9bab240719"; 
     
     let filesToUpload = []; 
     const allowedTypes = ['image/jpeg', 'image/png'];
@@ -509,36 +527,12 @@ async function loadTaskDetailPageData(user) {
         let uploadedFileURLs = [];
         try {
             for (const file of filesToUpload) {
-                console.log("Yüklenmeye çalışılan dosya:", file); 
-                console.log("Dosya File türünde mi?", file instanceof File); 
-
-                if (!(file instanceof File)) {
-                    throw new Error("Geçersiz bir dosya yükleme denemesi yapıldı. Lütfen geçerli bir resim dosyası seçtiğinizden emin olun.");
-                }
-
-                const formData = new FormData();
-                formData.append('image', file);
-                const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, { method: 'POST', body: formData });
-                const result = await response.json();
-                
-                if (result.success && result.data && typeof result.data.url === 'string') {
-                    uploadedFileURLs.push(String(result.data.url)); 
-                } else {
-                    console.error("ImgBB yükleme hata yanıtı:", result); 
-                    throw new Error(result.error?.message || 'Resim yükleme başarısız oldu veya geçersiz URL döndürdü.');
-                }
+                const storageRef = ref(storage, `proofs/${user.uid}/${taskId}-${Date.now()}-${file.name}`);
+                const snapshot = await uploadBytes(storageRef, file);
+                const downloadURL = await getDownloadURL(snapshot.ref);
+                uploadedFileURLs.push(downloadURL);
             }
             
-            console.log("--- Firebase'e Gönderilmeden Önceki Son Kontroller ---");
-            console.log("uploadedFileURLs'in tipi:", typeof uploadedFileURLs, "ve Array mi?", Array.isArray(uploadedFileURLs));
-            if (Array.isArray(uploadedFileURLs)) {
-                uploadedFileURLs.forEach((item, index) => {
-                    console.log(`uploadedFileURLs[${index}] tipi:`, typeof item, `değeri: ${item}`);
-                });
-            }
-            console.log("--- Bitti ---");
-
-
             await runTransaction(db, async (transaction) => {
                 const taskRef = doc(db, "tasks", taskId);
                 
@@ -562,14 +556,12 @@ async function loadTaskDetailPageData(user) {
                 const newStock = currentStock - 1;
                 transaction.update(taskRef, { stock: newStock }); 
 
-                const validFileURLs = uploadedFileURLs.map(url => String(url));
-
                 const newSubmissionRef = doc(collection(db, "submissions")); 
                 transaction.set(newSubmissionRef, { 
                     taskId, 
                     userId: user.uid, 
                     userEmail: user.email, 
-                    fileURLs: validFileURLs, 
+                    fileURLs: uploadedFileURLs, 
                     submittedAt: serverTimestamp(), 
                     status: 'pending'
                 });
@@ -777,6 +769,13 @@ async function loadTicketDetailPageData(user) {
     const replyFormContainer = document.getElementById('replyFormContainer');
     const closeTicketBtn = document.getElementById('closeTicketBtn');
     const ticketRef = doc(db, "tickets", ticketId);
+    const replyMessageInput = document.getElementById('replyMessage');
+    const replyFileInput = document.getElementById('replyFile');
+    const replyFileNameSpan = document.getElementById('replyFileName');
+    const replyImagePreviewDiv = document.getElementById('replyImagePreview');
+
+    let selectedFile = null;
+    const allowedTypes = ['image/jpeg', 'image/png'];
 
     // Fetch user's username for replies
     let username = user.email; // Default to email
@@ -784,6 +783,30 @@ async function loadTicketDetailPageData(user) {
     if (userDocSnapshot.exists() && userDocSnapshot.data().username) {
         username = userDocSnapshot.data().username;
     }
+
+    // Dosya seçme event listener
+    replyFileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            if (!allowedTypes.includes(file.type)) {
+                showAlert('Lütfen sadece JPG veya PNG formatında bir resim dosyası seçin.', false);
+                e.target.value = ''; // Inputu temizle
+                selectedFile = null;
+                replyFileNameSpan.textContent = "Dosya seçilmedi";
+                replyImagePreviewDiv.innerHTML = "";
+                return;
+            }
+            selectedFile = file;
+            replyFileNameSpan.textContent = file.name;
+            const reader = new FileReader();
+            reader.onload = e => replyImagePreviewDiv.innerHTML = `<img src="${e.target.result}" alt="Önizleme">`;
+            reader.readAsDataURL(file);
+        } else {
+            selectedFile = null;
+            replyFileNameSpan.textContent = "Dosya seçilmedi";
+            replyImagePreviewDiv.innerHTML = "";
+        }
+    });
 
     onSnapshot(ticketRef, (docSnapshot) => {
         if (docSnapshot.exists()) {
@@ -833,10 +856,17 @@ async function loadTicketDetailPageData(user) {
                 const sentAt = reply.sentAt ? reply.sentAt.toDate().toLocaleTimeString('tr-TR') : '';
                 const senderClass = reply.senderType === 'admin' ? 'reply-admin' : 'reply-user';
                 const senderDisplay = reply.senderType === 'admin' ? `<span class="sender-name">${reply.senderName || 'Admin'}</span>` : '';
+                
+                let fileAttachmentHtml = '';
+                if (reply.fileURL) {
+                    fileAttachmentHtml = `<div style="margin-top: 10px;"><img src="${reply.fileURL}" alt="Ek" style="max-width: 150px; max-height: 150px; border-radius: 8px; cursor: pointer;" onclick="window.open(this.src, '_blank')"></div>`;
+                }
+
                 repliesHtml += `
                     <div class="reply-bubble ${senderClass}">
                         ${senderDisplay}
                         <p>${reply.message}</p>
+                        ${fileAttachmentHtml}
                         <span class="reply-timestamp">${sentAt}</span>
                     </div>`;
             });
@@ -850,20 +880,28 @@ async function loadTicketDetailPageData(user) {
 
     replyForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const message = document.getElementById('replyMessage').value.trim();
-        if (!message) return;
+        const message = replyMessageInput.value.trim();
+        if (!message && !selectedFile) return showAlert("Lütfen bir mesaj yazın veya bir dosya seçin.", false);
 
         const replyBtn = replyForm.querySelector('button[type="submit"]');
         replyBtn.disabled = true;
         replyBtn.textContent = "Gönderiliyor...";
 
         try {
+            let fileURL = null;
+            if (selectedFile) {
+                const storageRef = ref(storage, `ticket_attachments/${user.uid}/${ticketId}-${Date.now()}-${selectedFile.name}`);
+                const snapshot = await uploadBytes(storageRef, selectedFile);
+                fileURL = await getDownloadURL(snapshot.ref);
+            }
+
             await addDoc(collection(db, "tickets", ticketId, "replies"), { 
                 message, 
                 senderId: user.uid, 
                 senderType: 'user', 
                 senderName: username, // Use fetched username
-                sentAt: serverTimestamp() 
+                sentAt: serverTimestamp(),
+                fileURL: fileURL 
             });
             await updateDoc(ticketRef, { 
                 lastUpdatedAt: serverTimestamp(), 
@@ -871,7 +909,12 @@ async function loadTicketDetailPageData(user) {
                 lastMessage: message, // Update last message on ticket document
                 lastMessageSenderType: 'user' // Update sender type
             }); 
-            replyForm.reset();
+            replyMessageInput.value = '';
+            replyFileInput.value = ''; // Clear file input
+            selectedFile = null;
+            replyFileNameSpan.textContent = "Dosya seçilmedi";
+            replyImagePreviewDiv.innerHTML = "";
+            showAlert("Cevap gönderildi!", true);
         } catch (error) {
             console.error("Cevap gönderilirken hata oluştu:", error);
             showAlert("Cevap gönderilirken hata oluştu: " + error.message, false);

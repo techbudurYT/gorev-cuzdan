@@ -1,4 +1,3 @@
-
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
 
 :root {
@@ -582,6 +581,66 @@ body.auth-page .app-layout { padding: 20px; align-items: center; justify-content
     background-color: rgba(36, 34, 49, 0.5); /* darker bg for archived */
     color: var(--c-text-secondary);
     opacity: 0.8;
+}
+
+/* File Upload input group için stil */
+.file-upload-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap; /* Mobil uyumluluk için */
+    margin-top: 15px;
+    margin-bottom: 15px; /* Varsayılan 30px'ten daha az */
+}
+
+.file-upload-group label.spark-button {
+    margin-top: 0; /* Varsayılan butonu margin-top'ını sıfırla */
+    flex-shrink: 0; /* Küçülmesini engelle */
+}
+
+.file-name-display {
+    color: var(--c-text-secondary);
+    font-size: 0.9em;
+    flex-grow: 1; /* Mevcut alanı kapla */
+    min-width: 100px; /* Küçük ekranlarda en az bu kadar yer kapla */
+}
+
+.upload-preview img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    margin-top: 10px;
+    border: 1px solid rgba(160, 157, 185, 0.2);
+}
+
+/* Çoklu dosya yükleme için kapsayıcı stilleri */
+#multipleFileUploadContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 20px; /* Her bir dosya yükleme öğesi arasına boşluk */
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
+
+.file-upload-item {
+    background: rgba(36, 34, 49, 0.4);
+    border: 1px solid rgba(160, 157, 185, 0.15);
+    border-radius: var(--border-radius);
+    padding: 15px;
+}
+
+.file-upload-item .file-upload {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.file-upload-item .file-upload label.spark-button {
+    margin-top: 0;
+}
+.file-upload-item .upload-preview {
+    margin-top: 10px;
 }
 
 
