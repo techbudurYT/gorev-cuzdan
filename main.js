@@ -49,8 +49,8 @@ function showLoader() {
 function hideLoader() {
     const loader = document.getElementById('loader');
     const mainContent = document.getElementById('main-content');
+    if (loader) mainContent.style.display = 'flex'; // Use flex for app-layout
     if (loader) loader.style.display = 'none';
-    if (mainContent) mainContent.style.display = 'flex';
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -76,7 +76,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     balance: 0, 
                     isAdmin: false,
                     referralCode: generateReferralCode(), // Yeni referans kodu oluştur
-                    referredBy: null // Başlangıçta boş
+                    referredBy: null, // Başlangıçta boş
+                    createdAt: serverTimestamp() // Oluşturulma tarihi
                 }, { merge: true }); // Use merge: true to avoid overwriting existing data if it was partially created
             }
 
@@ -116,12 +117,29 @@ function generateReferralCode() {
 
 function initRegisterPage() {
     const registerForm = document.getElementById("registerForm");
+    const regReferralCodeInput = document.getElementById("regReferralCode");
+
+    // URL'den referans kodunu al ve inputa yaz
+    const urlParams = new URLSearchParams(window.location.search);
+    const refCodeFromUrl = urlParams.get('ref');
+    if (refCodeFromUrl && regReferralCodeInput) {
+        regReferralCodeInput.value = refCodeFromUrl;
+        // Label'ın yukarı kayması için inputa 'valid' class'ı ekle
+        regReferralCodeInput.classList.add('valid');
+        // İlgili input-group'un label'ına da focus sınıfı ekleyerek stilin uygulanmasını sağla
+        const label = regReferralCodeInput.nextElementSibling;
+        if (label && label.tagName === 'LABEL') {
+            label.classList.add('focused'); // 'focused' sınıfını style.css'e eklemeniz gerekebilir
+        }
+    }
+
+
     registerForm.addEventListener("submit", async (e) => {
         e.preventDefault();
         const username = document.getElementById("regUsername").value.trim();
         const email = document.getElementById("regEmail").value.trim();
         const password = document.getElementById("regPassword").value;
-        const referralCodeInput = document.getElementById("regReferralCode")?.value.trim() || '';
+        const referralCodeInput = regReferralCodeInput.value.trim();
 
         if (username.length < 3) return showAlert("Kullanıcı adı en az 3 karakter olmalıdır.", false);
         if (password.length < 6) return showAlert("Şifre en az 6 karakter olmalıdır.", false);
@@ -138,7 +156,8 @@ function initRegisterPage() {
                 if (!referrerSnapshot.empty) {
                     referredBy = referrerSnapshot.docs[0].id;
                 } else {
-                    showAlert("Geçersiz referans kodu. Kayıt başarıyla tamamlandı ancak referans kodu uygulanamadı.", false);
+                    // Eğer referans kodu geçersizse bile kayıt olmalı, sadece bonus verilmemeli.
+                    showAlert("Geçersiz referans kodu. Kayıt başarıyla tamamlandı ancak referans bonusu uygulanamadı.", false);
                 }
             }
 
@@ -157,18 +176,24 @@ function initRegisterPage() {
                 const referrerRef = doc(db, "users", referredBy);
                 await runTransaction(db, async (transaction) => {
                     const referrerDoc = await transaction.get(referrerRef);
-                    if (referrerDoc.exists()) {
-                        const referrerBalance = referrerDoc.data().balance || 0;
-                        transaction.update(referrerRef, { balance: referrerBalance + 1.0 }); // Referans bonusu 1.0 ₺
+                    if (!referrerDoc.exists()) {
+                         // Bu durum normalde olmamalı eğer referredBy doğru atanmışsa
+                        console.error("Referans veren kullanıcı bulunamadı!");
+                        return;
                     }
+                    const referrerBalance = referrerDoc.data().balance || 0;
+                    transaction.update(referrerRef, { balance: referrerBalance + 1.0 }); // Referans bonusu 1.0 ₺
                 });
+                showAlert("Kayıt başarılı! Referans bonusu uygulandı. Giriş yapılıyor...", true);
+            } else {
+                showAlert("Kayıt başarılı! Giriş yapılıyor...", true);
             }
 
-            showAlert("Kayıt başarılı! Giriş yapılıyor...", true);
             setTimeout(() => window.location.replace("index.html"), 1500);
         } catch (error) {
             hideLoader();
-            showAlert(error.code === 'auth/email-already-in-use' ? "Bu e-posta zaten kayıtlı." : "Bir hata oluştu.", false);
+            console.error("Kayıt işlemi sırasında hata:", error);
+            showAlert(error.code === 'auth/email-already-in-use' ? "Bu e-posta zaten kayıtlı." : "Bir hata oluştu: " + error.message, false);
         }
     });
 }
@@ -337,6 +362,8 @@ async function loadIndexPageData(user) {
                     <a href="announcements.html" class="spark-button small-button">Tüm Duyurular</a>
                 </div>
             `;
+        } else {
+            announcementsContainer.innerHTML = `<div class="empty-state" style="color:var(--c-text-secondary);">Henüz duyuru bulunmamaktadır.</div>`;
         }
     } catch (error) {
         console.error("Duyurular yüklenirken hata oluştu:", error);
@@ -1086,23 +1113,39 @@ async function loadReferralPageData(user) {
     onSnapshot(doc(db, "users", user.uid), async (docSnapshot) => {
         if (docSnapshot.exists()) {
             currentUserData = docSnapshot.data();
-            const referralCode = currentUserData.referralCode || generateReferralCode();
-            if (!currentUserData.referralCode) {
-                await updateDoc(doc(db, "users", user.uid), { referralCode: referralCode });
+            const referralCode = currentUserData.referralCode; // Zaten mevcut olan kodu al
+            
+            if (referralCodeDisplay) {
+                referralCodeDisplay.value = referralCode || 'Yükleniyor...'; // Kodu inputa yaz
+                if (referralCode) referralCodeDisplay.nextElementSibling?.classList.add('focused');
+            }
+            if (referralLinkDisplay) {
+                referralLinkDisplay.value = `${window.location.origin}/register.html?ref=${referralCode}`; // Linki inputa yaz
+                if (referralCode) referralLinkDisplay.nextElementSibling?.classList.add('focused');
             }
             
-            referralCodeDisplay.textContent = referralCode;
-            referralLinkDisplay.value = `${window.location.origin}/register.html?ref=${referralCode}`; // Kayıt sayfasına yönlendiren link
+            // Eğer referralCode yoksa, oluştur ve güncelle (Bu, çok nadir bir senaryo olmalı)
+            if (!referralCode && user.uid) {
+                const newCode = generateReferralCode();
+                await updateDoc(doc(db, "users", user.uid), { referralCode: newCode });
+                if (referralCodeDisplay) referralCodeDisplay.value = newCode;
+                if (referralLinkDisplay) referralLinkDisplay.value = `${window.location.origin}/register.html?ref=${newCode}`;
+            }
+
         }
     });
 
     copyCodeBtn.addEventListener('click', async () => {
-        try {
-            await navigator.clipboard.writeText(referralLinkDisplay.value);
-            showAlert('Referans bağlantısı panoya kopyalandı!', true);
-        } catch (err) {
-            console.error('Panoya kopyalama başarısız oldu:', err);
-            showAlert('Referans bağlantısı kopyalanamadı.', false);
+        if (referralLinkDisplay && referralLinkDisplay.value) {
+            try {
+                await navigator.clipboard.writeText(referralLinkDisplay.value);
+                showAlert('Referans bağlantısı panoya kopyalandı!', true);
+            } catch (err) {
+                console.error('Panoya kopyalama başarısız oldu:', err);
+                showAlert('Referans bağlantısı kopyalanamadı.', false);
+            }
+        } else {
+            showAlert('Referans bağlantısı henüz hazır değil.', false);
         }
     });
 
@@ -1110,9 +1153,9 @@ async function loadReferralPageData(user) {
     const referredUsersQuery = query(collection(db, "users"), where("referredBy", "==", user.uid), orderBy("createdAt", "desc"));
     onSnapshot(referredUsersQuery, (snapshot) => {
         if (snapshot.empty) {
-            referredUsersList.innerHTML = `<div class="empty-state">Henüz referans olduğunuz bir kullanıcı bulunmuyor.</div>`;
-            totalReferralsDisplay.textContent = '0';
-            totalReferralEarningsDisplay.textContent = '0.00 ₺';
+            if (referredUsersList) referredUsersList.innerHTML = `<div class="empty-state">Henüz referans olduğunuz bir kullanıcı bulunmuyor.</div>`;
+            if (totalReferralsDisplay) totalReferralsDisplay.textContent = '0';
+            if (totalReferralEarningsDisplay) totalReferralEarningsDisplay.textContent = '0.00 ₺';
             return;
         }
 
@@ -1131,9 +1174,9 @@ async function loadReferralPageData(user) {
                 </div>
             `;
         });
-        referredUsersList.innerHTML = usersHtml;
-        totalReferralsDisplay.textContent = snapshot.size.toString();
-        totalReferralEarningsDisplay.textContent = `${totalEarnings.toFixed(2)} ₺`;
+        if (referredUsersList) referredUsersList.innerHTML = usersHtml;
+        if (totalReferralsDisplay) totalReferralsDisplay.textContent = snapshot.size.toString();
+        if (totalReferralEarningsDisplay) totalReferralEarningsDisplay.textContent = `${totalEarnings.toFixed(2)} ₺`;
     });
 }
 

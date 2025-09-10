@@ -254,8 +254,13 @@ h3 {
   box-shadow: 0 0 10px rgba(159, 85, 255, 0.3);
 }
 /* Ensure label floats up if input has value (for pre-filled or non-empty) */
-.input-group.spark input:focus ~ label, .input-group.spark input:valid ~ label, .input-group.spark input:not(:placeholder-shown) ~ label,
-.input-group.spark textarea:focus ~ label, .input-group.spark textarea:valid ~ label, .input-group.spark textarea:not(:placeholder-shown) ~ label {
+.input-group.spark input:focus ~ label, 
+.input-group.spark input:valid ~ label, 
+.input-group.spark input:not(:placeholder-shown) ~ label,
+.input-group.spark textarea:focus ~ label, 
+.input-group.spark textarea:valid ~ label, 
+.input-group.spark textarea:not(:placeholder-shown) ~ label,
+.input-group.spark label.focused { /* Yeni eklenen focused sınıfı */
   top: -10px; font-size: 0.8em; color: var(--c-primary); background: var(--c-bg-light);
   padding: 0 5px; /* Add padding for better visual */
 }
