@@ -523,7 +523,7 @@ body.auth-page #main-content {
     border-radius: var(--border-radius);
     background: linear-gradient(135deg, rgba(36, 34, 49, 0.6), rgba(36, 34, 49, 0.3));
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: wrap; /* Ensure it wraps on smaller screens */
     align-items: center;
     gap: 10px; /* Adjust gap for better spacing */
 }
@@ -703,24 +703,29 @@ body.auth-page #main-content {
   
   /* Admin ticket items on larger screens */
   .ticket-admin-item {
-    flex-wrap: nowrap; /* Prevent wrapping on desktop */
+    align-items: flex-start; /* Align to top if wrapping */
   }
   .ticket-admin-item .ticket-info {
-    flex-basis: 35%; /* Give more space for info */
-    min-width: 0; /* Override min-width for flex-basis to work */
-    margin-bottom: 0;
+    flex-grow: 1; /* Let it grow */
+    flex-shrink: 1; /* Let it shrink */
+    min-width: 250px; /* Ensure a minimum width for info */
+    margin-bottom: 0; /* Override mobile margin if any */
   }
   .ticket-admin-item .ticket-status-admin {
-    flex-basis: 15%; /* Keep status concise */
-    margin-bottom: 0;
-    text-align: center; /* Center status on desktop */
+    flex-shrink: 0; /* Prevent shrinking too much */
+    min-width: 120px; /* Ensure minimum width */
+    max-width: 180px; /* Prevent it from becoming too wide */
+    text-align: center;
     margin-right: 15px;
+    margin-bottom: 0;
   }
   .ticket-admin-item .ticket-actions-admin {
-    flex-basis: auto; /* Auto size based on buttons */
     justify-content: flex-end; /* Align actions to the right */
+    flex-wrap: wrap; /* Allow buttons to wrap within this container */
+    gap: 8px; /* Space between buttons */
     margin-bottom: 0;
-    margin-left: auto;
-    flex-wrap: nowrap;
+    margin-left: auto; /* Push to right */
+    flex-shrink: 0; /* Don't let it shrink unless necessary */
+    min-width: 150px; /* Ensure minimum width for actions to be visible */
   }
 }

@@ -119,8 +119,6 @@ async function initAdminPanel(user) {
     const loadMoreUsersBtn = document.getElementById('loadMoreUsersBtn');
     const logoutBtn = document.getElementById('logoutAdmin');
     const adminTicketsList = document.getElementById('adminTicketsList');
-    const clearSubmissionsBtn = document.getElementById('clearSubmissionsBtn');
-    const clearWithdrawalsBtn = document.getElementById('clearWithdrawalsBtn');
     const clearTicketsBtn = document.getElementById('clearTicketsBtn');
 
 
@@ -368,26 +366,6 @@ async function initAdminPanel(user) {
         }
     });
 
-    clearSubmissionsBtn.addEventListener('click', async () => {
-        if (!confirm("Bekleyen tüm gönderimleri temizlemek istediğinize emin misiniz? Bu işlem onları listeden kaldıracaktır.")) {
-            return;
-        }
-        try {
-            const pendingSubmissionsQuery = query(collection(db, "submissions"), where("status", "==", "pending"));
-            const snapshot = await getDocs(pendingSubmissionsQuery);
-            const batch = writeBatch(db);
-            snapshot.forEach(docSnapshot => {
-                // Sadece listeden kaldırmak için silme işlemi yapıyoruz.
-                // Eğer veritabanından tamamen silmek istemiyorsanız, status'ü 'cleared' gibi bir değere güncelleyebilirsiniz.
-                batch.delete(docSnapshot.ref); 
-            });
-            await batch.commit();
-            showAlert("Bekleyen gönderimler temizlendi.", true);
-        } catch (error) {
-            showAlert("Gönderimleri temizleme hatası: " + error.message, false);
-        }
-    });
-
 
     // --- Withdrawal Requests Management ---
     onSnapshot(query(collection(db, "withdrawalRequests"), where("status", "==", "pending"), orderBy("createdAt", "desc")), (snapshot) => {
@@ -434,25 +412,6 @@ async function initAdminPanel(user) {
                     showAlert("Reddetme hatası: " + error.message, false);
                 }
             }
-        }
-    });
-
-    clearWithdrawalsBtn.addEventListener('click', async () => {
-        if (!confirm("Bekleyen tüm çekme taleplerini temizlemek istediğinize emin misiniz? Bu işlem onları listeden kaldıracaktır.")) {
-            return;
-        }
-        try {
-            const pendingWithdrawalsQuery = query(collection(db, "withdrawalRequests"), where("status", "==", "pending"));
-            const snapshot = await getDocs(pendingWithdrawalsQuery);
-            const batch = writeBatch(db);
-            snapshot.forEach(docSnapshot => {
-                // Sadece listeden kaldırmak için silme işlemi yapıyoruz.
-                batch.delete(docSnapshot.ref);
-            });
-            await batch.commit();
-            showAlert("Bekleyen çekme talepleri temizlendi.", true);
-        } catch (error) {
-            showAlert("Çekme taleplerini temizleme hatası: " + error.message, false);
         }
     });
 
@@ -601,7 +560,6 @@ async function initAdminPanel(user) {
             const batch = writeBatch(db);
             snapshot.forEach(docSnapshot => {
                 // Sadece listeden kaldırmak için status'ü "cleared" olarak güncelliyoruz.
-                // Eğer tamamen silmek isterseniz batch.delete(docSnapshot.ref) kullanın.
                 batch.update(docSnapshot.ref, { status: 'cleared' });
             });
             await batch.commit();
