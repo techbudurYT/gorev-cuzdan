@@ -1,4 +1,3 @@
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, query, where, orderBy, getDocs, runTransaction, addDoc, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
@@ -731,6 +730,12 @@ async function loadSupportPageData(user) {
         let ticketsHtml = '';
         snapshot.forEach(doc => {
             const ticket = { id: doc.id, ...doc.data() };
+            
+            // "cleared" durumundaki ticket'ları kullanıcı tarafında gösterme
+            if (ticket.status === 'cleared') {
+                return; 
+            }
+
             const lastUpdate = ticket.lastUpdatedAt ? ticket.lastUpdatedAt.toDate().toLocaleString('tr-TR') : 'Bilinmiyor';
             let statusClass = '';
             let statusText = '';
@@ -818,6 +823,7 @@ async function loadTicketDetailPageData(user) {
                 case 'open': statusText = 'Açık'; statusClass = 'status-pending'; break;
                 case 'closed': statusText = 'Kapalı'; statusClass = 'status-rejected'; break;
                 case 'archived': statusText = 'Arşivlendi'; statusClass = 'status-archived'; break;
+                case 'cleared': statusText = 'Temizlendi'; statusClass = 'status-archived'; break; // 'cleared' durumu için
                 default: statusText = 'Bilinmiyor'; statusClass = ''; break;
             }
             if (ticket.assignedToName) {
@@ -826,8 +832,8 @@ async function loadTicketDetailPageData(user) {
             statusSpan.textContent = statusText;
             statusSpan.className = `status-badge ${statusClass}`;
             
-            // Hide reply form and close button if ticket is closed or archived
-            if (ticket.status === 'closed' || ticket.status === 'archived') {
+            // Hide reply form and close button if ticket is closed, archived or cleared
+            if (ticket.status === 'closed' || ticket.status === 'archived' || ticket.status === 'cleared') {
                 replyFormContainer.style.display = 'none';
                 closeTicketBtn.style.display = 'none';
             } else {
@@ -859,7 +865,7 @@ async function loadTicketDetailPageData(user) {
                 
                 let fileAttachmentHtml = '';
                 if (reply.fileURL) {
-                    fileAttachmentHtml = `<div style="margin-top: 10px;"><img src="${reply.fileURL}" alt="Ek" style="max-width: 150px; max-height: 150px; border-radius: 8px; cursor: pointer;" onclick="window.open(this.src, '_blank')"></div>`;
+                    fileAttachmentHtml = `<div style="margin-top: 10px;"><img src="${reply.fileURL}" class="uploaded-image-preview" onclick="window.open(this.src, '_blank')" alt="Ek"></div>`;
                 }
 
                 repliesHtml += `

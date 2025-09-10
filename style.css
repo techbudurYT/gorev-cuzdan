@@ -1,3 +1,4 @@
+
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
 
 :root {
@@ -140,21 +141,23 @@ body::before {
   width: 100%;
   max-width: 900px; /* Okunabilliği artırır */
   margin: 0 auto;
+  padding: 0 15px; /* Add horizontal padding */
   padding-bottom: 90px; /* Mobil nav için boşluk */
 }
 
 .page-wrapper {
-  padding: 20px;
+  padding: 20px 0; /* Adjust vertical padding, remove horizontal as container handles it */
 }
 
 header.spark-header {
-  padding: 1.2rem 1rem;
+  padding: 1.2rem 0; /* Adjust vertical padding, remove horizontal */
   text-align: center;
   font-size: 1.2em;
   background: rgba(26, 24, 35, 0.7);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid rgba(159, 85, 255, 0.2);
   flex-shrink: 0;
+  margin-bottom: 20px; /* Add margin to separate from content */
 }
 
 /* --- Alt Navigasyon - Sadece Mobil --- */
@@ -285,7 +288,19 @@ h3 {
    ------------------------------------------------------------------- */
 
 /* --- A. Giriş ve Kayıt Sayfaları --- */
-body.auth-page .app-layout { padding: 20px; align-items: center; justify-content: center; }
+body.auth-page {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px;
+}
+body.auth-page #main-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+}
 .auth-container-wide {
   width: 100%; max-width: 950px; display: flex;
   background: linear-gradient(135deg, rgba(26, 24, 35, 0.6), rgba(26, 24, 35, 0.3));
@@ -310,7 +325,7 @@ body.auth-page .app-layout { padding: 20px; align-items: center; justify-content
 .balance-card p { text-align: center; color: var(--c-text-secondary); font-size: 1.2em; }
 
 .category-filters-container { overflow-x: auto; scrollbar-width: none; margin: 25px 0 0; padding-bottom: 15px; }
-.category-filters { display: flex; gap: 12px; }
+.category-filters { display: flex; gap: 12px; padding: 0 15px; /* Add padding here for filters */ }
 .filter-btn {
   flex-shrink: 0; padding: 10px 22px; border: 1px solid rgba(160, 157, 185, 0.3);
   background-color: transparent; color: var(--c-text-secondary); border-radius: 25px;
@@ -671,8 +686,9 @@ body.auth-page .app-layout { padding: 20px; align-items: center; justify-content
   .sidebar { display: flex; }
   .main-content-wrapper { padding-left: var(--sidebar-width); }
   .container { padding-bottom: 40px; }
-  .page-wrapper { padding: 40px; }
-  .bottom-nav, header.spark-header { display: none; }
+  .page-wrapper { padding: 40px 0; } /* Adjust vertical padding */
+  header.spark-header { margin-bottom: 40px; } /* Adjust margin for desktop */
+  .bottom-nav { display: none; } /* Hide bottom nav on desktop */
 
   .auth-panel { width: 50%; }
   .auth-decorative-panel { 

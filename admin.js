@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const userDoc = await getDoc(doc(db, "users", user.uid));
                     if (userDoc.exists() && userDoc.data().isAdmin) {
                         if (loader) loader.style.display = 'none';
-                        if (mainContent) mainContent.style.display = 'block';
+                        if (mainContent) mainContent.style.display = 'flex'; // Use flex for app-layout
                         initAdminPanel(user);
                     } else {
                         await auth.signOut();
@@ -64,6 +64,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     } else if (pageId === 'page-admin-login') {
         const loginForm = document.getElementById('adminLoginForm');
+        
+        // Hide loader and show content initially for login page
+        if (loader) loader.style.display = 'none';
+        if (mainContent) mainContent.style.display = 'flex';
+
         loginForm.addEventListener('submit', async function(e) {
             e.preventDefault();
             const email = document.getElementById('adminEmail').value;
@@ -364,7 +369,7 @@ async function initAdminPanel(user) {
     });
 
     clearSubmissionsBtn.addEventListener('click', async () => {
-        if (!confirm("Bekleyen tüm gönderimleri temizlemek istediğinize emin misiniz? Bu işlem, onları arşivlenmiş olarak işaretleyecektir.")) {
+        if (!confirm("Bekleyen tüm gönderimleri temizlemek istediğinize emin misiniz? Bu işlem onları listeden kaldıracaktır.")) {
             return;
         }
         try {
@@ -372,10 +377,12 @@ async function initAdminPanel(user) {
             const snapshot = await getDocs(pendingSubmissionsQuery);
             const batch = writeBatch(db);
             snapshot.forEach(docSnapshot => {
-                batch.update(docSnapshot.ref, { status: 'archived' });
+                // Sadece listeden kaldırmak için silme işlemi yapıyoruz.
+                // Eğer veritabanından tamamen silmek istemiyorsanız, status'ü 'cleared' gibi bir değere güncelleyebilirsiniz.
+                batch.delete(docSnapshot.ref); 
             });
             await batch.commit();
-            showAlert("Bekleyen gönderimler temizlendi (arşivlendi).", true);
+            showAlert("Bekleyen gönderimler temizlendi.", true);
         } catch (error) {
             showAlert("Gönderimleri temizleme hatası: " + error.message, false);
         }
@@ -431,7 +438,7 @@ async function initAdminPanel(user) {
     });
 
     clearWithdrawalsBtn.addEventListener('click', async () => {
-        if (!confirm("Bekleyen tüm çekme taleplerini temizlemek istediğinize emin misiniz? Bu işlem, onları arşivlenmiş olarak işaretleyecektir.")) {
+        if (!confirm("Bekleyen tüm çekme taleplerini temizlemek istediğinize emin misiniz? Bu işlem onları listeden kaldıracaktır.")) {
             return;
         }
         try {
@@ -439,10 +446,11 @@ async function initAdminPanel(user) {
             const snapshot = await getDocs(pendingWithdrawalsQuery);
             const batch = writeBatch(db);
             snapshot.forEach(docSnapshot => {
-                batch.update(docSnapshot.ref, { status: 'archived' });
+                // Sadece listeden kaldırmak için silme işlemi yapıyoruz.
+                batch.delete(docSnapshot.ref);
             });
             await batch.commit();
-            showAlert("Bekleyen çekme talepleri temizlendi (arşivlendi).", true);
+            showAlert("Bekleyen çekme talepleri temizlendi.", true);
         } catch (error) {
             showAlert("Çekme taleplerini temizleme hatası: " + error.message, false);
         }
@@ -458,6 +466,12 @@ async function initAdminPanel(user) {
         let ticketsHtml = '';
         snapshot.forEach(docSnapshot => {
             const ticket = { id: docSnapshot.id, ...docSnapshot.data() };
+            
+            // "cleared" durumundaki ticket'ları gösterme
+            if (ticket.status === 'cleared') {
+                return; 
+            }
+
             const lastUpdate = ticket.lastUpdatedAt.toDate().toLocaleString('tr-TR');
             let actionButtons = '';
             let assignedStatus = '';
@@ -578,7 +592,7 @@ async function initAdminPanel(user) {
     });
 
     clearTicketsBtn.addEventListener('click', async () => {
-        if (!confirm("Kapalı tüm destek taleplerini temizlemek istediğinize emin misiniz? Bu işlem onları arşivlenmiş olarak işaretleyecektir.")) {
+        if (!confirm("Tüm kapalı destek taleplerini temizlemek istediğinize emin misiniz? Bu işlem onları listeden kaldıracaktır.")) {
             return;
         }
         try {
@@ -586,10 +600,12 @@ async function initAdminPanel(user) {
             const snapshot = await getDocs(closedTicketsQuery);
             const batch = writeBatch(db);
             snapshot.forEach(docSnapshot => {
-                batch.update(docSnapshot.ref, { status: 'archived' });
+                // Sadece listeden kaldırmak için status'ü "cleared" olarak güncelliyoruz.
+                // Eğer tamamen silmek isterseniz batch.delete(docSnapshot.ref) kullanın.
+                batch.update(docSnapshot.ref, { status: 'cleared' });
             });
             await batch.commit();
-            showAlert("Kapalı destek talepleri temizlendi (arşivlendi).", true);
+            showAlert("Kapalı destek talepleri temizlendi.", true);
         } catch (error) {
             showAlert("Destek taleplerini temizleme hatası: " + error.message, false);
         }
