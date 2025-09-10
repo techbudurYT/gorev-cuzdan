@@ -164,7 +164,7 @@ async function loadIndexPageData(user) {
             const filteredTasks = (filterCategory === 'all' 
                 ? allTasks 
                 : allTasks.filter(task => task.category === filterCategory))
-                .filter(task => (task.stock || 0) > 0); // NEW: Filter tasks with stock > 0
+                .filter(task => (task.stock || 0) > 0); 
 
             if (filteredTasks.length === 0) {
                 taskList.innerHTML = `<p class="empty-state">Bu kategoride aktif görev bulunmamaktadır.</p>`;
@@ -181,7 +181,7 @@ async function loadIndexPageData(user) {
                 let actionButtonsHtml = '';
                 if (isSubmitted) {
                     actionButtonsHtml += `<button class='spark-button completed' disabled>Gönderildi</button>`;
-                } else if ((task.stock || 0) <= 0) { // NEW: Check for stock
+                } else if ((task.stock || 0) <= 0) { 
                     actionButtonsHtml += `<button class='spark-button disabled-stock' disabled>Stok Yok</button>`;
                 } 
                 else {
@@ -506,8 +506,8 @@ async function loadTaskDetailPageData(user) {
         let uploadedFileURLs = [];
         try {
             for (const file of filesToUpload) {
-                console.log("Attempting to upload file:", file); // Debug: See the file object
-                console.log("Is file an instance of File?", file instanceof File); // Debug: Check type
+                console.log("Yüklenmeye çalışılan dosya:", file); 
+                console.log("Dosya File türünde mi?", file instanceof File); 
 
                 if (!(file instanceof File)) {
                     throw new Error("Geçersiz bir dosya yükleme denemesi yapıldı. Lütfen geçerli bir resim dosyası seçtiğinizden emin olun.");
@@ -517,45 +517,69 @@ async function loadTaskDetailPageData(user) {
                 formData.append('image', file);
                 const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, { method: 'POST', body: formData });
                 const result = await response.json();
-                if (result.success) {
-                    uploadedFileURLs.push(result.data.url);
+                
+                if (result.success && result.data && typeof result.data.url === 'string') {
+                    uploadedFileURLs.push(String(result.data.url)); 
                 } else {
-                    console.error("ImgBB upload error response:", result); // Log the full error response
-                    throw new Error(result.error?.message || 'Resim yükleme başarısız oldu.');
+                    console.error("ImgBB yükleme hata yanıtı:", result); 
+                    throw new Error(result.error?.message || 'Resim yükleme başarısız oldu veya geçersiz URL döndürdü.');
                 }
             }
+            
+            console.log("--- Firebase'e Gönderilmeden Önceki Son Kontroller ---");
+            console.log("uploadedFileURLs'in tipi:", typeof uploadedFileURLs, "ve Array mi?", Array.isArray(uploadedFileURLs));
+            if (Array.isArray(uploadedFileURLs)) {
+                uploadedFileURLs.forEach((item, index) => {
+                    console.log(`uploadedFileURLs[${index}] tipi:`, typeof item, `değeri: ${item}`);
+                });
+            }
+            console.log("--- Bitti ---");
+
 
             await runTransaction(db, async (transaction) => {
                 const taskRef = doc(db, "tasks", taskId);
                 
-                const userSubmissionsQuery = query(collection(db, "submissions"), where("userId", "==", user.uid), where("taskId", "==", taskId), where("status", "in", ["pending", "approved"]));
-                const userSubmissionsSnapshot = await transaction.get(userSubmissionsQuery);
-
-                if (!userSubmissionsSnapshot.empty) {
-                    throw new Error('Bu görevi zaten gönderdiniz.');
-                }
-
+                // Görevin mevcut stoğunu kontrol et ve güncelle
                 const latestTaskDoc = await transaction.get(taskRef);
                 if (!latestTaskDoc.exists() || (latestTaskDoc.data().stock || 0) <= 0) {
                     throw new Error("Görev bulunamadı veya stoğu kalmamıştır.");
+                }
+
+                // Kullanıcının bu görevi zaten gönderip göndermediğini kontrol et
+                const userSubmissionsQueryForCheck = query(collection(db, "submissions"), 
+                                                    where("userId", "==", user.uid), 
+                                                    where("taskId", "==", taskId), 
+                                                    where("status", "in", ["pending", "approved"]));
+                
+                // Firestore transaction içinde query çalıştırmak için getDocs kullanılır.
+                const userSubmissionsSnapshot = await getDocs(userSubmissionsQueryForCheck);
+
+                if (!userSubmissionsSnapshot.empty) {
+                    throw new Error('Bu görevi zaten gönderdiniz.');
                 }
 
                 const currentStock = latestTaskDoc.data().stock;
                 const newStock = currentStock - 1;
                 transaction.update(taskRef, { stock: newStock }); 
 
-                await transaction.set(doc(collection(db, "submissions")), { 
-                    taskId, userId: user.uid, userEmail: user.email, 
-                    fileURLs: uploadedFileURLs, 
-                    submittedAt: serverTimestamp(), status: 'pending'
+                // Yeni gönderimi ekle
+                const validFileURLs = uploadedFileURLs.map(url => String(url));
+
+                const newSubmissionRef = doc(collection(db, "submissions")); // Otomatik ID oluştur
+                transaction.set(newSubmissionRef, { 
+                    taskId, 
+                    userId: user.uid, 
+                    userEmail: user.email, 
+                    fileURLs: validFileURLs, 
+                    submittedAt: serverTimestamp(), 
+                    status: 'pending'
                 });
             });
-
             showAlert('Göreviniz başarıyla onaya gönderildi!', true);
             setTimeout(() => { window.location.href = 'my-tasks.html'; }, 1500);
 
         } catch (error) {
-            console.error("Görev gönderilirken genel hata:", error); // Log the full error object
+            console.error("Görev gönderilirken genel hata:", error); 
             showAlert("Hata: " + error.message, false);
             submitTaskBtn.disabled = false;
             submitTaskBtn.textContent = "Görevi Onaya Gönder";
@@ -563,6 +587,10 @@ async function loadTaskDetailPageData(user) {
             if (error.message.includes("stoğu kalmamıştır")) {
                 taskStockDisplay.textContent = `Mevcut Stok: 0`;
                 submitTaskBtn.textContent = "Stok Yok";
+                submitTaskBtn.disabled = true;
+            } else if (error.message.includes("zaten gönderdiniz")) {
+                // Eğer hata "Bu görevi zaten gönderdiniz." ise, butonu devre dışı bırak.
+                submitTaskBtn.textContent = "Gönderildi";
                 submitTaskBtn.disabled = true;
             }
         }
