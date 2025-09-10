@@ -194,12 +194,12 @@ function initRegisterPage() {
                     const referrerBalance = referrerDoc.data().balance || 0;
                     transaction.update(referrerRef, { balance: referrerBalance + 1.0 }); // Referans bonusu 1.0 ₺
                 });
-                showAlert("Kayıt başarılı! Referans bonusu uygulandı. Giriş yapılıyor...", true);
+                showAlert("Kayıt başarılı! Referans bonusu uygulandı.", true);
             } else {
-                showAlert("Kayıt başarılı! Giriş yapılıyor...", true);
+                showAlert("Kayıt başarılı!", true);
             }
 
-            setTimeout(() => window.location.replace("index.html"), 1500);
+            // setTimeout(() => window.location.replace("index.html"), 1500); // Yönlendirme kaldırıldı
         } catch (error) {
             hideLoader();
             console.error("Kayıt işlemi sırasında hata:", error);
@@ -1123,7 +1123,7 @@ async function loadReferralPageData(user) {
             const currentUserData = docSnapshot.data();
             let referralCode = currentUserData.referralCode; 
             
-            // Eğer referans kodu yoksa, oluştur ve güncelle
+            // Eğer referralCode yoksa, oluştur ve güncelle
             if (!referralCode && user.uid) {
                 referralCode = generateReferralCode();
                 await updateDoc(doc(db, "users", user.uid), { referralCode: referralCode });
@@ -1131,10 +1131,12 @@ async function loadReferralPageData(user) {
 
             if (referralCodeDisplay) {
                 referralCodeDisplay.value = referralCode || 'Kod Yok'; 
+                // Label'a focused sınıfını ekleyerek yukarıda kalmasını sağla
                 if (referralCode) referralCodeDisplay.nextElementSibling?.classList.add('focused');
             }
             if (referralLinkDisplay) {
                 referralLinkDisplay.value = `${window.location.origin}/register.html?ref=${referralCode}`; 
+                // Label'a focused sınıfını ekleyerek yukarıda kalmasını sağla
                 if (referralCode) referralLinkDisplay.nextElementSibling?.classList.add('focused');
             }
         }
