@@ -595,6 +595,18 @@ async function loadWalletPageData(user) {
             userBalance = docSnapshot.data().balance || 0;
             currentBalanceDisplay.textContent = `${userBalance.toFixed(2)} ₺`;
             withdrawalAmountInput.setAttribute('max', userBalance);
+
+            // Set initial values if they exist, to trigger :valid for labels
+            const userData = docSnapshot.data();
+            if (userData.iban) {
+                ibanInput.value = userData.iban;
+                // Manually trigger :valid state if needed, though CSS should handle it
+                // ibanInput.classList.add('has-value'); // Example for a custom class if :valid is insufficient
+            }
+            if (userData.phoneNumber) {
+                phoneNumberInput.value = userData.phoneNumber;
+                // phoneNumberInput.classList.add('has-value');
+            }
         }
     });
 
@@ -620,14 +632,14 @@ async function loadWalletPageData(user) {
                 if (!userDoc.exists()) throw new Error("Kullanıcı bulunamadı!");
                 const currentBalance = userDoc.data().balance || 0;
                 if (currentBalance < amount) throw new Error("Yetersiz bakiye.");
-                transaction.update(userRef, { balance: currentBalance - amount });
+                transaction.update(userRef, { balance: currentBalance - amount, iban, phoneNumber }); // Save IBAN and phone number to user doc
                 await addDoc(collection(db, "withdrawalRequests"), {
                     userId: user.uid, userEmail: user.email, amount, iban, phoneNumber,
                     status: 'pending', createdAt: serverTimestamp()
                 });
             });
             showAlert("Çekme talebiniz oluşturuldu.", true);
-            withdrawalForm.reset();
+            // withdrawalForm.reset(); // Don't reset IBAN and phone if saved
         } catch (error) {
             showAlert("Talep oluşturulamadı: " + error.message, false);
         } finally {
@@ -650,6 +662,7 @@ async function loadWalletPageData(user) {
                 case 'pending': statusText = 'Beklemede'; statusClass = 'status-pending'; break;
                 case 'approved': statusText = 'Onaylandı'; statusClass = 'status-approved'; break;
                 case 'rejected': statusText = 'Reddedildi'; statusClass = 'status-rejected'; break;
+                case 'archived': statusText = 'Arşivlendi'; statusClass = 'status-archived'; break;
                 default: statusText = 'Bilinmiyor'; statusClass = ''; break;
             }
             previousWithdrawalsList.innerHTML += `
@@ -671,6 +684,13 @@ async function loadSupportPageData(user) {
         const message = document.getElementById('ticketMessage').value.trim();
         if (!subject || !message) return showAlert("Lütfen tüm alanları doldurun.", false);
 
+        // Fetch user's username for senderName
+        let username = user.email; // Default to email
+        const userDoc = await getDoc(doc(db, "users", user.uid));
+        if (userDoc.exists() && userDoc.data().username) {
+            username = userDoc.data().username;
+        }
+
         try {
             const submitBtn = createTicketForm.querySelector('button[type="submit"]');
             submitBtn.disabled = true;
@@ -678,10 +698,12 @@ async function loadSupportPageData(user) {
 
             const newTicketRef = await addDoc(collection(db, "tickets"), {
                 userId: user.uid, userEmail: user.email, subject, status: 'open',
-                createdAt: serverTimestamp(), lastUpdatedAt: serverTimestamp()
+                createdAt: serverTimestamp(), lastUpdatedAt: serverTimestamp(),
+                assignedTo: null, // New field for admin assignment
+                assignedToName: null // New field for assigned admin's name
             });
             await addDoc(collection(db, "tickets", newTicketRef.id, "replies"), {
-                message, senderId: user.uid, senderType: 'user', sentAt: serverTimestamp()
+                message, senderId: user.uid, senderType: 'user', senderName: username, sentAt: serverTimestamp()
             });
             showAlert("Destek talebiniz başarıyla oluşturuldu!", true);
             createTicketForm.reset();
@@ -695,7 +717,7 @@ async function loadSupportPageData(user) {
         }
     });
 
-    const ticketsQuery = query(collection(db, "tickets"), where("userId", "==", user.uid), orderBy("lastUpdatedAt", "desc"));
+    const ticketsQuery = query(collection(db, "tickets"), where("userId", "==", user.uid), where("status", "!=", "archived"), orderBy("lastUpdatedAt", "desc"));
     onSnapshot(ticketsQuery, (snapshot) => {
         if (snapshot.empty) {
             previousTicketsList.innerHTML = `<div class="empty-state">Henüz bir destek talebiniz bulunmuyor.</div>`;
@@ -705,10 +727,22 @@ async function loadSupportPageData(user) {
         snapshot.forEach(doc => {
             const ticket = { id: doc.id, ...doc.data() };
             const lastUpdate = ticket.lastUpdatedAt ? ticket.lastUpdatedAt.toDate().toLocaleString('tr-TR') : 'Bilinmiyor';
+            let statusClass = '';
+            let statusText = '';
+            switch(ticket.status) {
+                case 'open': statusText = 'Açık'; statusClass = 'status-pending'; break;
+                case 'closed': statusText = 'Kapalı'; statusClass = 'status-rejected'; break; // Use rejected style for closed tickets
+                case 'archived': statusText = 'Arşivlendi'; statusClass = 'status-archived'; break;
+                default: statusText = 'Bilinmiyor'; statusClass = ''; break;
+            }
+            if (ticket.assignedToName) {
+                statusText += ` (${ticket.assignedToName})`;
+            }
+
             ticketsHtml += `
-                <a href="ticket-detail.html?id=${ticket.id}" class="ticket-list-item">
+                <a href="ticket-detail.html?id=${ticket.id}" class="spark-card ticket-list-item">
                     <div class="ticket-info"><strong>${ticket.subject}</strong><p>Son Güncelleme: ${lastUpdate}</p></div>
-                    <span class="status-badge status-${ticket.status}">${ticket.status === 'open' ? 'Açık' : 'Kapalı'}</span>
+                    <span class="status-badge ${statusClass}">${statusText}</span>
                 </a>`;
         });
         previousTicketsList.innerHTML = ticketsHtml;
@@ -731,13 +765,40 @@ async function loadTicketDetailPageData(user) {
     const closeTicketBtn = document.getElementById('closeTicketBtn');
     const ticketRef = doc(db, "tickets", ticketId);
 
+    // Fetch user's username for replies
+    let username = user.email; // Default to email
+    const userDoc = await getDoc(doc(db, "users", user.uid));
+    if (userDoc.exists() && userDoc.data().username) {
+        username = userDoc.data().username;
+    }
+
     onSnapshot(ticketRef, (docSnapshot) => {
         if (docSnapshot.exists()) {
             const ticket = docSnapshot.data();
             subjectHeader.textContent = ticket.subject;
-            statusSpan.textContent = ticket.status === 'open' ? 'Açık' : 'Kapalı';
-            statusSpan.className = `status-badge status-${ticket.status}`;
-            replyFormContainer.style.display = ticket.status === 'closed' ? 'none' : 'block';
+            let statusText = '';
+            let statusClass = '';
+            switch(ticket.status) {
+                case 'open': statusText = 'Açık'; statusClass = 'status-pending'; break;
+                case 'closed': statusText = 'Kapalı'; statusClass = 'status-rejected'; break;
+                case 'archived': statusText = 'Arşivlendi'; statusClass = 'status-archived'; break;
+                default: statusText = 'Bilinmiyor'; statusClass = ''; break;
+            }
+            if (ticket.assignedToName) {
+                statusText += ` (${ticket.assignedToName})`;
+            }
+            statusSpan.textContent = statusText;
+            statusSpan.className = `status-badge ${statusClass}`;
+            
+            // Hide reply form and close button if ticket is closed or archived
+            if (ticket.status === 'closed' || ticket.status === 'archived') {
+                replyFormContainer.style.display = 'none';
+                closeTicketBtn.style.display = 'none';
+            } else {
+                replyFormContainer.style.display = 'block';
+                closeTicketBtn.style.display = 'block';
+            }
+
         } else {
             console.warn("Talep belgesi bulunamadı:", ticketId);
             showAlert("Bu destek talebi bulunamadı.", false);
@@ -756,11 +817,14 @@ async function loadTicketDetailPageData(user) {
         } else {
             snapshot.forEach(doc => {
                 const reply = doc.data();
-                const sentAt = reply.sentAt ? reply.sentAt.toDate().toLocaleString('tr-TR') : '';
+                const sentAt = reply.sentAt ? reply.sentAt.toDate().toLocaleTimeString('tr-TR') : '';
                 const senderClass = reply.senderType === 'admin' ? 'reply-admin' : 'reply-user';
+                const senderDisplay = reply.senderType === 'admin' ? `<span class="sender-name">${reply.senderName || 'Admin'}</span>` : '';
                 repliesHtml += `
                     <div class="reply-bubble ${senderClass}">
-                        <p>${reply.message}</p><span class="reply-timestamp">${sentAt}</span>
+                        ${senderDisplay}
+                        <p>${reply.message}</p>
+                        <span class="reply-timestamp">${sentAt}</span>
                     </div>`;
             });
         }
@@ -781,8 +845,14 @@ async function loadTicketDetailPageData(user) {
         replyBtn.textContent = "Gönderiliyor...";
 
         try {
-            await addDoc(collection(db, "tickets", ticketId, "replies"), { message, senderId: user.uid, senderType: 'user', sentAt: serverTimestamp() });
-            await updateDoc(ticketRef, { lastUpdatedAt: serverTimestamp() });
+            await addDoc(collection(db, "tickets", ticketId, "replies"), { 
+                message, 
+                senderId: user.uid, 
+                senderType: 'user', 
+                senderName: username, // Use fetched username
+                sentAt: serverTimestamp() 
+            });
+            await updateDoc(ticketRef, { lastUpdatedAt: serverTimestamp(), status: 'open' }); // Ensure status is open if user replies
             replyForm.reset();
         } catch (error) {
             console.error("Cevap gönderilirken hata oluştu:", error);

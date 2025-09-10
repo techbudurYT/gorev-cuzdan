@@ -261,17 +261,20 @@ h3 {
   border-color: var(--c-primary);
   box-shadow: 0 0 10px rgba(159, 85, 255, 0.3);
 }
+/* Ensure label floats up if input has value (for pre-filled or non-empty) */
+.input-group.spark input:focus ~ label, .input-group.spark input:valid ~ label, .input-group.spark input:not(:placeholder-shown) ~ label,
+.input-group.spark textarea:focus ~ label, .input-group.spark textarea:valid ~ label, .input-group.spark textarea:not(:placeholder-shown) ~ label {
+  top: -10px; font-size: 0.8em; color: var(--c-primary); background: var(--c-bg-light);
+  padding: 0 5px; /* Add padding for better visual */
+}
 .input-group.spark label {
   position: absolute; top: 15px; left: 15px; color: var(--c-text-secondary);
   pointer-events: none; transition: all var(--transition-fast); padding: 0 5px;
 }
-.input-group.spark input:focus ~ label, .input-group.spark input:valid ~ label,
-.input-group.spark textarea:focus ~ label, .input-group.spark textarea:valid ~ label {
-  top: -10px; font-size: 0.8em; color: var(--c-primary); background: var(--c-bg-light);
-}
 .input-group.spark .static-label { /* For select elements where label doesn't move */
     top: -10px; font-size: 0.8em; color: var(--c-primary); background: var(--c-bg-light);
 }
+
 
 .alert {
   padding: 15px; border-radius: 12px; margin-bottom: 20px;
@@ -354,6 +357,8 @@ body.auth-page .app-layout { padding: 20px; align-items: center; justify-content
 .status-pending { background-color: rgba(255, 206, 84, 0.2); color: var(--c-warning); }
 .status-approved { background-color: rgba(0, 255, 133, 0.2); color: var(--c-success); }
 .status-rejected { background-color: rgba(160, 157, 185, 0.2); color: var(--c-text-secondary); }
+.status-archived { background-color: rgba(160, 157, 185, 0.1); color: var(--c-text-secondary); opacity: 0.7; }
+
 .submission-card .submission-header { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
 
 /* --- D. Profil Sayfası --- */
@@ -363,6 +368,62 @@ body.auth-page .app-layout { padding: 20px; align-items: center; justify-content
 .stat-label { color: var(--c-text-secondary); font-size: 1em; }
 .logout-button { background: linear-gradient(45deg, var(--c-danger), #b8233b); }
 .logout-button:hover:enabled { box-shadow: var(--shadow-danger); }
+
+/* --- Destek Talebi Sohbet Görünümü --- */
+.ticket-replies-container {
+    background: var(--c-bg-medium);
+    border-radius: var(--border-radius);
+    padding: 20px;
+    margin-top: 20px;
+    max-height: 500px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    border: 1px solid rgba(159, 85, 255, 0.2);
+}
+
+.reply-bubble {
+    padding: 12px 18px;
+    border-radius: 18px;
+    max-width: 80%;
+    position: relative;
+    word-wrap: break-word;
+    color: var(--c-text-primary);
+    font-size: 0.95em;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.reply-user {
+    align-self: flex-end;
+    background: linear-gradient(45deg, var(--c-primary), #6a11cb);
+    border-bottom-right-radius: 4px;
+}
+
+.reply-admin {
+    align-self: flex-start;
+    background: var(--c-bg-light);
+    border-bottom-left-radius: 4px;
+    border: 1px solid rgba(160, 157, 185, 0.2);
+}
+
+.reply-timestamp {
+    display: block;
+    font-size: 0.75em;
+    color: rgba(255, 255, 255, 0.6);
+    margin-top: 5px;
+    text-align: right;
+}
+
+.reply-admin .reply-timestamp {
+    text-align: left;
+}
+.reply-admin .sender-name {
+    font-weight: 600;
+    color: var(--c-secondary);
+    margin-bottom: 5px;
+    display: block;
+}
 
 /* --- Admin Panel Stilleri --- */
 .user-management-controls {
@@ -456,12 +517,16 @@ body.auth-page .app-layout { padding: 20px; align-items: center; justify-content
     align-items: center;
     padding: 15px 20px;
     margin-top: 15px;
+    flex-wrap: wrap; /* Mobil uyumluluk */
 }
 .ticket-admin-item .ticket-info {
     flex-grow: 1;
+    min-width: 150px;
+    margin-bottom: 10px;
 }
 .ticket-admin-item .ticket-info strong {
     color: var(--c-primary);
+    display: block;
 }
 .ticket-admin-item .ticket-info p {
     font-size: 0.9em;
@@ -471,21 +536,46 @@ body.auth-page .app-layout { padding: 20px; align-items: center; justify-content
 .ticket-admin-item .ticket-status-admin {
     flex-shrink: 0;
     margin-right: 15px;
+    margin-bottom: 10px;
 }
 .ticket-admin-item .ticket-actions-admin {
     display: flex;
     gap: 10px;
     flex-shrink: 0;
+    flex-wrap: wrap;
 }
 .ticket-admin-item .ticket-actions-admin .spark-button {
     margin-top: 0; /* spark-button'dan gelen margin-top'ı sıfırla */
 }
-
+/* Admin ticket reply area */
+.admin-reply-area {
+    margin-top: 20px;
+    border-top: 1px solid rgba(160, 157, 185, 0.2);
+    padding-top: 20px;
+}
+.admin-reply-area textarea {
+    min-height: 80px;
+}
+.admin-reply-area .spark-button {
+    margin-top: 10px;
+}
+.status-badge.status-assigned {
+    background-color: rgba(0, 246, 255, 0.2);
+    color: var(--c-secondary);
+}
 
 /* --- Responsive Tasarım --- */
 
 /* Mobil (Varsayılan) */
 .sidebar { display: none; }
+.ticket-admin-item .ticket-info,
+.ticket-admin-item .ticket-status-admin,
+.ticket-admin-item .ticket-actions-admin {
+    width: 100%;
+}
+.ticket-admin-item .ticket-actions-admin {
+    justify-content: flex-start;
+}
 
 /* Tablet ve Masaüstü */
 @media (min-width: 992px) {
@@ -505,4 +595,23 @@ body.auth-page .app-layout { padding: 20px; align-items: center; justify-content
   .auth-decorative-panel p { font-size: 1.2em; opacity: 0.9; }
 
   .profile-dashboard { grid-template-columns: repeat(3, 1fr); }
+  
+  /* Admin ticket items on larger screens */
+  .ticket-admin-item .ticket-info {
+    width: auto;
+    flex-basis: 40%;
+    margin-bottom: 0;
+  }
+  .ticket-admin-item .ticket-status-admin {
+    width: auto;
+    flex-basis: 15%;
+    margin-bottom: 0;
+    text-align: center;
+  }
+  .ticket-admin-item .ticket-actions-admin {
+    width: auto;
+    flex-basis: 45%;
+    justify-content: flex-end;
+    margin-bottom: 0;
+  }
 }

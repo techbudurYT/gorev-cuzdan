@@ -2,7 +2,7 @@
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
-import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, query, where, orderBy, getDocs, runTransaction, addDoc, deleteDoc, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, query, where, orderBy, getDocs, runTransaction, addDoc, deleteDoc, serverTimestamp, updateDoc, writeBatch } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyBN85bxThpJYifWAvsS0uqPD0C9D55uPpM", // Burayı KENDİ API ANAHTARINIZLA DEĞİŞTİRİN!
@@ -105,7 +105,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-function initAdminPanel(user) {
+async function initAdminPanel(user) {
     const addTaskForm = document.getElementById('addTaskForm');
     const existingTasksList = document.getElementById('existingTasksList');
     const submissionsList = document.getElementById('adminSubmissionsList');
@@ -113,8 +113,20 @@ function initAdminPanel(user) {
     const userSearchInput = document.getElementById('userSearchInput');
     const userSearchBtn = document.getElementById('userSearchBtn');
     const userListDiv = document.getElementById('userList');
+    const loadMoreUsersBtn = document.getElementById('loadMoreUsersBtn');
     const logoutBtn = document.getElementById('logoutAdmin');
     const adminTicketsList = document.getElementById('adminTicketsList');
+    const clearSubmissionsBtn = document.getElementById('clearSubmissionsBtn');
+    const clearWithdrawalsBtn = document.getElementById('clearWithdrawalsBtn');
+    const clearTicketsBtn = document.getElementById('clearTicketsBtn');
+
+
+    let adminUsername = 'Admin';
+    let currentAdminId = user.uid;
+    const adminUserDoc = await getDoc(doc(db, "users", currentAdminId));
+    if (adminUserDoc.exists() && adminUserDoc.data().username) {
+        adminUsername = adminUserDoc.data().username;
+    }
 
     logoutBtn.addEventListener('click', (e) => {
         e.preventDefault();
@@ -125,6 +137,9 @@ function initAdminPanel(user) {
         });
     });
 
+    // --- User Management ---
+    const usersPerPage = 3;
+    let displayCount = usersPerPage;
     let allUsers = []; 
     let unsubscribeUsers = null;
 
@@ -138,24 +153,45 @@ function initAdminPanel(user) {
     };
 
     const renderUsers = (searchTerm = '') => {
-        const filteredUsers = allUsers.filter(u => u.email.toLowerCase().includes(searchTerm.toLowerCase()) || u.username.toLowerCase().includes(searchTerm.toLowerCase()) || u.id.toLowerCase().includes(searchTerm.toLowerCase()));
+        const filteredUsers = allUsers.filter(u => 
+            u.email.toLowerCase().includes(searchTerm.toLowerCase()) || 
+            u.username.toLowerCase().includes(searchTerm.toLowerCase()) || 
+            u.id.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+        
         let usersHtml = '';
         if (filteredUsers.length === 0) {
             usersHtml = `<p class="empty-state">Kullanıcı bulunamadı.</p>`;
+            loadMoreUsersBtn.style.display = 'none';
         } else {
-            filteredUsers.forEach(u => {
+            const usersToDisplay = filteredUsers.slice(0, displayCount);
+            usersToDisplay.forEach(u => {
                 usersHtml += `
                     <div class="user-list-item spark-card" id="user-${u.id}">
                         <div class="user-info"><strong>${u.username}</strong> <span style="font-size:0.9em; color:var(--c-text-secondary);">(${u.email})</span><p>Bakiye: ${u.balance} ₺ | Admin: ${u.isAdmin ? 'Evet' : 'Hayır'}</p></div>
                         <div class="user-actions"><button class="spark-button small-button btn-edit-user" data-id="${u.id}">Düzenle</button><button class="spark-button small-button btn-delete-user" data-id="${u.id}">Sil</button></div>
                     </div>`;
             });
+            if (filteredUsers.length > displayCount) {
+                loadMoreUsersBtn.style.display = 'block';
+            } else {
+                loadMoreUsersBtn.style.display = 'none';
+            }
         }
         userListDiv.innerHTML = usersHtml;
     };
 
-    userSearchBtn.addEventListener('click', () => renderUsers(userSearchInput.value.trim()));
-    userSearchInput.addEventListener('keyup', (e) => { if (e.key === 'Enter') userSearchBtn.click(); });
+    userSearchBtn.addEventListener('click', () => {
+        displayCount = usersPerPage; // Reset display count on search
+        renderUsers(userSearchInput.value.trim());
+    });
+    userSearchInput.addEventListener('keyup', (e) => { 
+        if (e.key === 'Enter') userSearchBtn.click(); 
+    });
+    loadMoreUsersBtn.addEventListener('click', () => {
+        displayCount += usersPerPage;
+        renderUsers(userSearchInput.value.trim());
+    });
 
     userListDiv.addEventListener('click', async (e) => {
         if (e.target.matches('.btn-edit-user')) {
@@ -189,6 +225,7 @@ function initAdminPanel(user) {
     });
     loadUsers();
 
+    // --- Task Management ---
     addTaskForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const text = document.getElementById('taskText').value;
@@ -258,6 +295,7 @@ function initAdminPanel(user) {
         }
     });
 
+    // --- Submission Management ---
     onSnapshot(query(collection(db, "submissions"), where("status", "==", "pending"), orderBy("submittedAt", "desc")), async (snapshot) => {
         if (snapshot.empty) {
             submissionsList.innerHTML = `<p class="empty-state">Onay bekleyen gönderim yok.</p>`;
@@ -326,6 +364,26 @@ function initAdminPanel(user) {
         }
     });
 
+    clearSubmissionsBtn.addEventListener('click', async () => {
+        if (!confirm("Bekleyen tüm gönderimleri temizlemek istediğinize emin misiniz? Bu işlem, onları arşivlenmiş olarak işaretleyecektir.")) {
+            return;
+        }
+        try {
+            const pendingSubmissionsQuery = query(collection(db, "submissions"), where("status", "==", "pending"));
+            const snapshot = await getDocs(pendingSubmissionsQuery);
+            const batch = writeBatch(db);
+            snapshot.forEach(docSnapshot => {
+                batch.update(docSnapshot.ref, { status: 'archived' });
+            });
+            await batch.commit();
+            showAlert("Bekleyen gönderimler temizlendi (arşivlendi).", true);
+        } catch (error) {
+            showAlert("Gönderimleri temizleme hatası: " + error.message, false);
+        }
+    });
+
+
+    // --- Withdrawal Requests Management ---
     onSnapshot(query(collection(db, "withdrawalRequests"), where("status", "==", "pending"), orderBy("createdAt", "desc")), (snapshot) => {
         let requestsHtml = snapshot.empty ? `<p class="empty-state">Bekleyen çekme talebi yok.</p>` : '';
         snapshot.forEach(doc => {
@@ -373,18 +431,76 @@ function initAdminPanel(user) {
         }
     });
 
-    const ticketsQuery = query(collection(db, "tickets"), orderBy("lastUpdatedAt", "desc"));
+    clearWithdrawalsBtn.addEventListener('click', async () => {
+        if (!confirm("Bekleyen tüm çekme taleplerini temizlemek istediğinize emin misiniz? Bu işlem, onları arşivlenmiş olarak işaretleyecektir.")) {
+            return;
+        }
+        try {
+            const pendingWithdrawalsQuery = query(collection(db, "withdrawalRequests"), where("status", "==", "pending"));
+            const snapshot = await getDocs(pendingWithdrawalsQuery);
+            const batch = writeBatch(db);
+            snapshot.forEach(docSnapshot => {
+                batch.update(docSnapshot.ref, { status: 'archived' });
+            });
+            await batch.commit();
+            showAlert("Bekleyen çekme talepleri temizlendi (arşivlendi).", true);
+        } catch (error) {
+            showAlert("Çekme taleplerini temizleme hatası: " + error.message, false);
+        }
+    });
+
+    // --- Ticket Management ---
+    const ticketsQuery = query(collection(db, "tickets"), where("status", "!=", "archived"), orderBy("status", "asc"), orderBy("lastUpdatedAt", "desc"));
     onSnapshot(ticketsQuery, (snapshot) => {
         if (snapshot.empty) {
-            adminTicketsList.innerHTML = `<p class="empty-state">Henüz destek talebi yok.</p>`;
+            adminTicketsList.innerHTML = `<p class="empty-state">Henüz destek talebi bulunmamaktadır.</p>`;
             return;
         }
         let ticketsHtml = '';
-        snapshot.forEach(doc => {
-            const ticket = { id: doc.id, ...doc.data() };
+        snapshot.forEach(docSnapshot => {
+            const ticket = { id: docSnapshot.id, ...docSnapshot.data() };
             const lastUpdate = ticket.lastUpdatedAt.toDate().toLocaleString('tr-TR');
-            const actionButtons = ticket.status !== 'closed' ? `<button class="spark-button small-button btn-reply-ticket" data-id="${ticket.id}" style="background-color: var(--c-primary);">Cevapla</button><button class="spark-button small-button btn-close-ticket" data-id="${ticket.id}" style="background-color: var(--c-danger);">Kapat</button>` : `<p style="font-size: 0.9em; color: var(--c-text-secondary);">Talep kapatılmıştır.</p>`;
-            ticketsHtml += `<div class="spark-card ticket-admin-item"><div class="ticket-info"><strong>${ticket.subject}</strong><p style="font-size: 0.9em; color: var(--c-text-secondary);">Kullanıcı: ${ticket.userEmail}</p><p style="font-size: 0.85em; color: var(--c-text-secondary);">Son Güncelleme: ${lastUpdate}</p></div><div class="ticket-status-admin"><span class="status-badge status-${ticket.status}">${ticket.status === 'open' ? 'Açık' : 'Kapalı'}</span></div><div class="ticket-actions-admin">${actionButtons}</div></div>`;
+            let actionButtons = '';
+            let assignedStatus = '';
+
+            if (ticket.status === 'closed') {
+                assignedStatus = '<span class="status-badge status-rejected">Kapalı</span>';
+                actionButtons = `<button class="spark-button small-button btn-view-ticket" data-id="${ticket.id}">Görüntüle</button>`;
+            } else {
+                if (ticket.assignedTo === currentAdminId) {
+                    assignedStatus = `<span class="status-badge status-assigned">Size Atanmış</span>`;
+                    actionButtons = `
+                        <button class="spark-button small-button btn-reply-ticket" data-id="${ticket.id}" style="background-color: var(--c-primary);">Cevapla</button>
+                        <button class="spark-button small-button btn-unassign-ticket" data-id="${ticket.id}" style="background-color: var(--c-warning);">Vazgeç</button>
+                        <button class="spark-button small-button btn-close-ticket" data-id="${ticket.id}" style="background-color: var(--c-danger);">Kapat</button>
+                    `;
+                } else if (ticket.assignedTo) {
+                    assignedStatus = `<span class="status-badge status-pending">Atanmış: ${ticket.assignedToName || 'Bilinmiyor'}</span>`;
+                    actionButtons = `<button class="spark-button small-button btn-view-ticket" data-id="${ticket.id}">Görüntüle</button>`;
+                } else {
+                    assignedStatus = `<span class="status-badge status-pending">Açık</span>`;
+                    actionButtons = `
+                        <button class="spark-button small-button btn-assign-ticket" data-id="${ticket.id}" style="background-color: var(--c-secondary);">Üstlen</button>
+                        <button class="spark-button small-button btn-view-ticket" data-id="${ticket.id}">Görüntüle</button>
+                    `;
+                }
+            }
+            
+            ticketsHtml += `
+                <div class="spark-card ticket-admin-item">
+                    <div class="ticket-info">
+                        <strong>${ticket.subject}</strong>
+                        <p>Kullanıcı: ${ticket.userEmail}</p>
+                        <p>Son Güncelleme: ${lastUpdate}</p>
+                    </div>
+                    <div class="ticket-status-admin">${assignedStatus}</div>
+                    <div class="ticket-actions-admin">${actionButtons}</div>
+                    <div id="adminReplyArea-${ticket.id}" class="admin-reply-area" style="display: none; width: 100%;">
+                        <div id="alertBox-${ticket.id}"></div>
+                        <textarea id="adminReplyMessage-${ticket.id}" class="spark-input" rows="3" placeholder="Cevabınızı buraya yazın..."></textarea>
+                        <button class="spark-button small-button btn-send-admin-reply" data-id="${ticket.id}">Cevapla</button>
+                    </div>
+                </div>`;
         });
         adminTicketsList.innerHTML = ticketsHtml;
     });
@@ -392,20 +508,103 @@ function initAdminPanel(user) {
     adminTicketsList.addEventListener('click', async (e) => {
         const target = e.target;
         const ticketId = target.dataset.id;
+        
+        if (target.matches('.btn-assign-ticket')) {
+            try {
+                await updateDoc(doc(db, "tickets", ticketId), { 
+                    assignedTo: currentAdminId, 
+                    assignedToName: adminUsername,
+                    lastUpdatedAt: serverTimestamp() 
+                });
+                showAlert("Talep başarıyla size atandı!", true);
+            } catch (error) {
+                showAlert("Talep atama hatası: " + error.message, false);
+            }
+        }
+        if (target.matches('.btn-unassign-ticket')) {
+            if (!confirm("Talebi üstlenmekten vazgeçmek istediğinize emin misiniz?")) return;
+            try {
+                await updateDoc(doc(db, "tickets", ticketId), { 
+                    assignedTo: null, 
+                    assignedToName: null,
+                    lastUpdatedAt: serverTimestamp() 
+                });
+                showAlert("Talep üstlenmekten vazgeçildi.", true);
+            } catch (error) {
+                showAlert("Talep vazgeçme hatası: " + error.message, false);
+            }
+        }
         if (target.matches('.btn-reply-ticket')) {
-            const replyMessage = prompt("Cevabınızı giriniz:");
-            if (replyMessage) {
-                const ticketRef = doc(db, "tickets", ticketId);
-                await addDoc(collection(ticketRef, "replies"), { message: replyMessage, senderType: 'admin', sentAt: serverTimestamp() });
-                await updateDoc(ticketRef, { lastUpdatedAt: serverTimestamp() });
+            const replyArea = document.getElementById(`adminReplyArea-${ticketId}`);
+            if (replyArea) {
+                replyArea.style.display = replyArea.style.display === 'none' ? 'block' : 'none';
+            }
+        }
+        if (target.matches('.btn-send-admin-reply')) {
+            const messageInput = document.getElementById(`adminReplyMessage-${ticketId}`);
+            const message = messageInput.value.trim();
+            if (!message) {
+                showAlert("Lütfen bir cevap yazın.", false);
+                return;
+            }
+            try {
+                await addDoc(collection(db, "tickets", ticketId, "replies"), { 
+                    message, 
+                    senderId: currentAdminId, 
+                    senderType: 'admin', 
+                    senderName: adminUsername,
+                    sentAt: serverTimestamp() 
+                });
+                await updateDoc(doc(db, "tickets", ticketId), { 
+                    lastUpdatedAt: serverTimestamp(),
+                    status: 'open' // Ensure it's open if admin replies
+                });
                 showAlert("Cevap gönderildi!", true);
+                messageInput.value = '';
+                document.getElementById(`adminReplyArea-${ticketId}`).style.display = 'none'; // Hide form after sending
+            } catch (error) {
+                showAlert("Cevap gönderme hatası: " + error.message, false);
             }
         }
         if (target.matches('.btn-close-ticket')) {
             if (confirm("Talebi kapatmak istediğinize emin misiniz?")) {
-                await updateDoc(doc(db, "tickets", ticketId), { status: 'closed', lastUpdatedAt: serverTimestamp() });
-                showAlert("Talep kapatıldı!", true);
+                try {
+                    await updateDoc(doc(db, "tickets", ticketId), { status: 'closed', lastUpdatedAt: serverTimestamp() });
+                    showAlert("Talep kapatıldı!", true);
+                } catch (error) {
+                    showAlert("Kapatma hatası: " + error.message, false);
+                }
             }
+        }
+        if (target.matches('.btn-view-ticket')) {
+            // No direct view link in admin panel, replies are handled inline or should lead to a dedicated page if needed.
+            // For now, this button could toggle the reply area if the ticket is closed or assigned to someone else
+            const replyArea = document.getElementById(`adminReplyArea-${ticketId}`);
+            if (replyArea) {
+                replyArea.style.display = replyArea.style.display === 'none' ? 'block' : 'none';
+                if(replyArea.style.display === 'block') {
+                    // Optionally load replies here dynamically if needed
+                    // For this simple version, we assume the admin interacts with live view in the main adminTicketsList
+                }
+            }
+        }
+    });
+
+    clearTicketsBtn.addEventListener('click', async () => {
+        if (!confirm("Kapalı tüm destek taleplerini temizlemek istediğinize emin misiniz? Bu işlem onları arşivlenmiş olarak işaretleyecektir.")) {
+            return;
+        }
+        try {
+            const closedTicketsQuery = query(collection(db, "tickets"), where("status", "==", "closed"));
+            const snapshot = await getDocs(closedTicketsQuery);
+            const batch = writeBatch(db);
+            snapshot.forEach(docSnapshot => {
+                batch.update(docSnapshot.ref, { status: 'archived' });
+            });
+            await batch.commit();
+            showAlert("Kapalı destek talepleri temizlendi (arşivlendi).", true);
+        } catch (error) {
+            showAlert("Destek taleplerini temizleme hatası: " + error.message, false);
         }
     });
 }
