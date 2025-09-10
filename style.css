@@ -1,13 +1,4 @@
-/* ===================================================================
-   GörevCüzdan Stil Dosyası - Versiyon 6.0 (Tamamen Düzeltilmiş)
-   Yazar: Gemini
-   Açıklama: Tüm sayfalarda tutarlı layout, CSS hataları giderildi,
-             kullanıcı talepleri uygulandı. Eksiksiz ve optimize.
-   =================================================================== */
 
-/* -------------------------------------------------------------------
-   1. Font İmport ve Temel Değişkenler
-   ------------------------------------------------------------------- */
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
 
 :root {
@@ -512,70 +503,109 @@ body.auth-page .app-layout { padding: 20px; align-items: center; justify-content
 }
 
 .ticket-admin-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
     padding: 15px 20px;
     margin-top: 15px;
-    flex-wrap: wrap; /* Mobil uyumluluk */
+    border: 1px solid rgba(160, 157, 185, 0.2);
+    border-radius: var(--border-radius);
+    background: linear-gradient(135deg, rgba(36, 34, 49, 0.6), rgba(36, 34, 49, 0.3));
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px; /* Adjust gap for better spacing */
 }
+.ticket-admin-item:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    border-color: rgba(159, 85, 255, 0.4);
+}
+
 .ticket-admin-item .ticket-info {
     flex-grow: 1;
-    min-width: 150px;
-    margin-bottom: 10px;
+    min-width: 200px; /* Allow info to take more space */
 }
 .ticket-admin-item .ticket-info strong {
     color: var(--c-primary);
     display: block;
+    font-size: 1.1em;
+    margin-bottom: 5px;
 }
 .ticket-admin-item .ticket-info p {
     font-size: 0.9em;
     color: var(--c-text-secondary);
-    margin-top: 5px;
+    margin-top: 0;
+    line-height: 1.4;
 }
 .ticket-admin-item .ticket-status-admin {
     flex-shrink: 0;
     margin-right: 15px;
-    margin-bottom: 10px;
 }
 .ticket-admin-item .ticket-actions-admin {
     display: flex;
     gap: 10px;
     flex-shrink: 0;
-    flex-wrap: wrap;
+    flex-wrap: wrap; /* For small screens */
+    margin-left: auto; /* Push actions to the right */
 }
 .ticket-admin-item .ticket-actions-admin .spark-button {
     margin-top: 0; /* spark-button'dan gelen margin-top'ı sıfırla */
 }
-/* Admin ticket reply area */
-.admin-reply-area {
+
+/* Admin ticket conversation area - NEW/MODIFIED */
+.ticket-admin-conversation {
+    width: 100%; /* Take full width of parent spark-card */
     margin-top: 20px;
+    padding-top: 15px;
     border-top: 1px solid rgba(160, 157, 185, 0.2);
-    padding-top: 20px;
 }
-.admin-reply-area textarea {
-    min-height: 80px;
+.ticket-admin-conversation .ticket-replies-container {
+    max-height: 350px; /* Shorter than user side to fit admin page */
+    margin-top: 0; /* Override default margin-top from .ticket-replies-container */
+    margin-bottom: 15px;
 }
-.admin-reply-area .spark-button {
-    margin-top: 10px;
+.admin-reply-form .spark-button {
+    margin-top: 10px; /* Small gap for reply button */
+    max-width: fit-content;
 }
 .status-badge.status-assigned {
     background-color: rgba(0, 246, 255, 0.2);
     color: var(--c-secondary);
 }
+.status-badge.status-open { /* For tickets with status 'open' */
+    background-color: rgba(255, 206, 84, 0.2);
+    color: var(--c-warning);
+}
+.status-badge.status-closed { /* For tickets with status 'closed' (admin view) */
+    background-color: rgba(160, 157, 185, 0.2);
+    color: var(--c-text-secondary);
+}
+.status-badge.status-archived-admin { /* For tickets with status 'archived' (admin view) */
+    background-color: rgba(36, 34, 49, 0.5); /* darker bg for archived */
+    color: var(--c-text-secondary);
+    opacity: 0.8;
+}
+
 
 /* --- Responsive Tasarım --- */
 
 /* Mobil (Varsayılan) */
 .sidebar { display: none; }
+/* .ticket-admin-item styles need adjustment for better mobile flow */
 .ticket-admin-item .ticket-info,
 .ticket-admin-item .ticket-status-admin,
 .ticket-admin-item .ticket-actions-admin {
     width: 100%;
+    margin-bottom: 5px; /* Small margin for stacking */
 }
 .ticket-admin-item .ticket-actions-admin {
     justify-content: flex-start;
+    margin-left: 0; /* Remove auto-margin for stacking */
+    margin-top: 10px; /* Space from status */
 }
+.ticket-admin-item .ticket-status-admin {
+    text-align: left; /* Align status to left on mobile */
+    margin-right: 0;
+}
+
 
 /* Tablet ve Masaüstü */
 @media (min-width: 992px) {
@@ -597,21 +627,25 @@ body.auth-page .app-layout { padding: 20px; align-items: center; justify-content
   .profile-dashboard { grid-template-columns: repeat(3, 1fr); }
   
   /* Admin ticket items on larger screens */
+  .ticket-admin-item {
+    flex-wrap: nowrap; /* Prevent wrapping on desktop */
+  }
   .ticket-admin-item .ticket-info {
-    width: auto;
-    flex-basis: 40%;
+    flex-basis: 35%; /* Give more space for info */
+    min-width: 0; /* Override min-width for flex-basis to work */
     margin-bottom: 0;
   }
   .ticket-admin-item .ticket-status-admin {
-    width: auto;
-    flex-basis: 15%;
+    flex-basis: 15%; /* Keep status concise */
     margin-bottom: 0;
-    text-align: center;
+    text-align: center; /* Center status on desktop */
+    margin-right: 15px;
   }
   .ticket-admin-item .ticket-actions-admin {
-    width: auto;
-    flex-basis: 45%;
-    justify-content: flex-end;
+    flex-basis: auto; /* Auto size based on buttons */
+    justify-content: flex-end; /* Align actions to the right */
     margin-bottom: 0;
+    margin-left: auto;
+    flex-wrap: nowrap;
   }
 }

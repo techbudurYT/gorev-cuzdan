@@ -710,8 +710,10 @@ async function loadSupportPageData(user) {
             const newTicketRef = await addDoc(collection(db, "tickets"), {
                 userId: user.uid, userEmail: user.email, subject, status: 'open',
                 createdAt: serverTimestamp(), lastUpdatedAt: serverTimestamp(),
-                assignedTo: null, // New field for admin assignment
-                assignedToName: null // New field for assigned admin's name
+                assignedTo: null, 
+                assignedToName: null,
+                lastMessage: message, // Store the first message as lastMessage
+                lastMessageSenderType: 'user' // Sender of the last message
             });
             await addDoc(collection(db, "tickets", newTicketRef.id, "replies"), {
                 message, senderId: user.uid, senderType: 'user', senderName: username, sentAt: serverTimestamp()
@@ -863,7 +865,12 @@ async function loadTicketDetailPageData(user) {
                 senderName: username, // Use fetched username
                 sentAt: serverTimestamp() 
             });
-            await updateDoc(ticketRef, { lastUpdatedAt: serverTimestamp(), status: 'open' }); // Ensure status is open if user replies
+            await updateDoc(ticketRef, { 
+                lastUpdatedAt: serverTimestamp(), 
+                status: 'open', // Ensure status is open if user replies
+                lastMessage: message, // Update last message on ticket document
+                lastMessageSenderType: 'user' // Update sender type
+            }); 
             replyForm.reset();
         } catch (error) {
             console.error("Cevap gönderilirken hata oluştu:", error);
