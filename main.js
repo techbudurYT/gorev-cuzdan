@@ -42,7 +42,7 @@ function showAlert(message, isSuccess = false) {
 function showLoader() {
     const loader = document.getElementById('loader');
     const mainContent = document.getElementById('main-content');
-    if (loader) loader.style.display = 'block';
+    if (loader) loader.style.display = 'flex';
     if (mainContent) mainContent.style.display = 'none';
 }
 
@@ -50,7 +50,7 @@ function hideLoader() {
     const loader = document.getElementById('loader');
     const mainContent = document.getElementById('main-content');
     if (loader) loader.style.display = 'none';
-    if (mainContent) mainContent.style.display = 'block';
+    if (mainContent) mainContent.style.display = 'flex';
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -167,7 +167,7 @@ async function loadIndexPageData(user) {
                 .filter(task => (task.stock || 0) > 0); 
 
             if (filteredTasks.length === 0) {
-                taskList.innerHTML = `<p class="empty-state">Bu kategoride aktif görev bulunmamaktadır.</p>`;
+                taskList.innerHTML = `<li class="empty-state">Bu kategoride aktif görev bulunmamaktadır.</li>`;
                 return;
             }
 
@@ -212,7 +212,7 @@ async function loadIndexPageData(user) {
 
     } catch(error) {
         console.error("Görevler yüklenirken hata oluştu:", error);
-        taskList.innerHTML = `<p class="empty-state" style="color:var(--spark-danger);">Görevler yüklenemedi.</p>`;
+        taskList.innerHTML = `<li class="empty-state" style="color:var(--c-danger);">Görevler yüklenemedi.</li>`;
     }
 }
 
@@ -325,7 +325,7 @@ async function loadMyTasksPageData(user) {
         const submissionsQuery = query(collection(db, 'submissions'), where('userId', '==', user.uid), orderBy('submittedAt', 'desc'));
         onSnapshot(submissionsQuery, async (snapshot) => {
             if (snapshot.empty) {
-                submissionsList.innerHTML = `<p class="empty-state">Henüz görev göndermediniz.</p>`;
+                submissionsList.innerHTML = `<div class="empty-state">Henüz görev göndermediniz.</div>`;
                 return;
             }
 
@@ -379,7 +379,7 @@ async function loadMyTasksPageData(user) {
         });
     } catch (error) {
         console.error("Gönderimler yüklenirken hata oluştu:", error);
-        submissionsList.innerHTML = `<p class="empty-state" style="color:var(--spark-danger);">Gönderimler yüklenemedi.</p>`;
+        submissionsList.innerHTML = `<div class="empty-state" style="color:var(--c-danger);">Gönderimler yüklenemedi.</div>`;
     }
 }
 
@@ -539,19 +539,16 @@ async function loadTaskDetailPageData(user) {
             await runTransaction(db, async (transaction) => {
                 const taskRef = doc(db, "tasks", taskId);
                 
-                // Görevin mevcut stoğunu kontrol et ve güncelle
                 const latestTaskDoc = await transaction.get(taskRef);
                 if (!latestTaskDoc.exists() || (latestTaskDoc.data().stock || 0) <= 0) {
                     throw new Error("Görev bulunamadı veya stoğu kalmamıştır.");
                 }
 
-                // Kullanıcının bu görevi zaten gönderip göndermediğini kontrol et
                 const userSubmissionsQueryForCheck = query(collection(db, "submissions"), 
                                                     where("userId", "==", user.uid), 
                                                     where("taskId", "==", taskId), 
                                                     where("status", "in", ["pending", "approved"]));
                 
-                // Firestore transaction içinde query çalıştırmak için getDocs kullanılır.
                 const userSubmissionsSnapshot = await getDocs(userSubmissionsQueryForCheck);
 
                 if (!userSubmissionsSnapshot.empty) {
@@ -562,10 +559,9 @@ async function loadTaskDetailPageData(user) {
                 const newStock = currentStock - 1;
                 transaction.update(taskRef, { stock: newStock }); 
 
-                // Yeni gönderimi ekle
                 const validFileURLs = uploadedFileURLs.map(url => String(url));
 
-                const newSubmissionRef = doc(collection(db, "submissions")); // Otomatik ID oluştur
+                const newSubmissionRef = doc(collection(db, "submissions")); 
                 transaction.set(newSubmissionRef, { 
                     taskId, 
                     userId: user.uid, 
@@ -589,7 +585,6 @@ async function loadTaskDetailPageData(user) {
                 submitTaskBtn.textContent = "Stok Yok";
                 submitTaskBtn.disabled = true;
             } else if (error.message.includes("zaten gönderdiniz")) {
-                // Eğer hata "Bu görevi zaten gönderdiniz." ise, butonu devre dışı bırak.
                 submitTaskBtn.textContent = "Gönderildi";
                 submitTaskBtn.disabled = true;
             }
@@ -654,7 +649,7 @@ async function loadWalletPageData(user) {
 
     onSnapshot(query(collection(db, "withdrawalRequests"), where("userId", "==", user.uid), orderBy("createdAt", "desc")), (snapshot) => {
         if (snapshot.empty) {
-            previousWithdrawalsList.innerHTML = `<p class="empty-state">Henüz para çekme talebiniz bulunmamaktadır.</p>`;
+            previousWithdrawalsList.innerHTML = `<div class="empty-state">Henüz para çekme talebiniz bulunmamaktadır.</div>`;
             return;
         }
         previousWithdrawalsList.innerHTML = '';
@@ -677,7 +672,6 @@ async function loadWalletPageData(user) {
     });
 }
 
-// main.js - loadSupportPageData içinde
 async function loadSupportPageData(user) {
     const createTicketForm = document.getElementById('createTicketForm');
     const previousTicketsList = document.getElementById('previousTicketsList');
@@ -715,7 +709,7 @@ async function loadSupportPageData(user) {
     const ticketsQuery = query(collection(db, "tickets"), where("userId", "==", user.uid), orderBy("lastUpdatedAt", "desc"));
     onSnapshot(ticketsQuery, (snapshot) => {
         if (snapshot.empty) {
-            previousTicketsList.innerHTML = `<p class="empty-state">Henüz bir destek talebiniz bulunmuyor.</p>`;
+            previousTicketsList.innerHTML = `<div class="empty-state">Henüz bir destek talebiniz bulunmuyor.</div>`;
             return;
         }
         let ticketsHtml = '';
@@ -731,11 +725,10 @@ async function loadSupportPageData(user) {
         previousTicketsList.innerHTML = ticketsHtml;
     }, (error) => { 
         console.error("Destek talepleri yüklenirken hata oluştu:", error);
-        previousTicketsList.innerHTML = `<p class="empty-state" style="color:var(--spark-danger);">Destek talepleri yüklenemedi: ${error.message}</p>`;
+        previousTicketsList.innerHTML = `<div class="empty-state" style="color:var(--c-danger);">Destek talepleri yüklenemedi: ${error.message}</div>`;
     });
 }
 
-// main.js - loadTicketDetailPageData içinde
 async function loadTicketDetailPageData(user) {
     const urlParams = new URLSearchParams(window.location.search);
     const ticketId = urlParams.get('id');
@@ -770,7 +763,7 @@ async function loadTicketDetailPageData(user) {
     onSnapshot(repliesQuery, (snapshot) => {
         let repliesHtml = '';
         if (snapshot.empty) {
-            repliesHtml = '<p class="empty-state">Henüz bir mesaj bulunmuyor.</p>';
+            repliesHtml = '<div class="empty-state">Henüz bir mesaj bulunmuyor.</div>';
         } else {
             snapshot.forEach(doc => {
                 const reply = doc.data();
@@ -786,7 +779,7 @@ async function loadTicketDetailPageData(user) {
         repliesContainer.scrollTop = repliesContainer.scrollHeight;
     }, (error) => { 
         console.error("Talep cevapları yüklenirken hata oluştu:", error);
-        repliesContainer.innerHTML = `<p class="empty-state" style="color:var(--spark-danger);">Cevaplar yüklenemedi: ${error.message}</p>`;
+        repliesContainer.innerHTML = `<div class="empty-state" style="color:var(--c-danger);">Cevaplar yüklenemedi: ${error.message}</div>`;
     });
 
     replyForm.addEventListener('submit', async (e) => {
@@ -829,4 +822,3 @@ async function loadTicketDetailPageData(user) {
         }
     });
 }
-// --- END OF FILE main.js ---

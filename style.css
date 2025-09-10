@@ -1,7 +1,8 @@
 /* ===================================================================
-   GörevCüzdan Stil Dosyası - Yeniden Tasarım
+   GörevCüzdan Stil Dosyası - Versiyon 5.0 (Tam Entegrasyon)
    Yazar: Gemini
-   Versiyon: 4.0 (Modern, Duyarlı ve Animasyonlu Arayüz)
+   Açıklama: Masaüstü için tam ekran sidebar ve mobil için alt navigasyon
+             entegrasyonu ile eksiksiz, optimize edilmiş ve modern tasarım.
    =================================================================== */
 
 /* -------------------------------------------------------------------
@@ -30,7 +31,7 @@
   --transition-fast: 0.2s ease;
   --transition-medium: 0.4s ease;
   
-  --sidebar-width: 260px;
+  --sidebar-width: 250px;
 }
 
 /* -------------------------------------------------------------------
@@ -54,20 +55,19 @@ body {
   min-height: 100vh;
 }
 
-@keyframes background-pan {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
 body::before {
   content: '';
   position: fixed;
   top: 0; left: 0;
   width: 100%; height: 100%;
-  background: radial-gradient(circle at 10% 20%, rgba(159, 85, 255, 0.15), transparent 40%),
-              radial-gradient(circle at 80% 70%, rgba(0, 246, 255, 0.15), transparent 40%);
+  background: radial-gradient(circle at 10% 20%, rgba(159, 85, 255, 0.1), transparent 50%),
+              radial-gradient(circle at 80% 70%, rgba(0, 246, 255, 0.1), transparent 50%);
   z-index: -1;
-  animation: background-pan 30s ease infinite;
+  animation: background-pan 30s ease infinite alternate;
+}
+@keyframes background-pan {
+  from { background-position: 0% 0%; }
+  to { background-position: 100% 100%; }
 }
 
 @keyframes fade-in-up {
@@ -78,59 +78,54 @@ body::before {
 /* -------------------------------------------------------------------
    3. Ana Yapı ve Düzen (Layout)
    ------------------------------------------------------------------- */
-#main-content {
+.app-layout {
     display: flex;
     width: 100%;
     min-height: 100vh;
 }
 
-.container {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
 /* --- Kenar Çubuğu (Sidebar) - Sadece Masaüstü --- */
 .sidebar {
-    display: none; /* Mobilde gizli */
+    display: none; /* Mobilde gizli başlar */
     width: var(--sidebar-width);
     flex-shrink: 0;
     background: rgba(26, 24, 35, 0.7);
     backdrop-filter: blur(15px);
     -webkit-backdrop-filter: blur(15px);
     border-right: 1px solid rgba(159, 85, 255, 0.2);
-    padding: 30px;
-    display: flex;
-    flex-direction: column;
+    padding: 25px;
     height: 100vh;
     position: fixed;
     top: 0;
     left: 0;
+    display: flex;
+    flex-direction: column;
+    z-index: 1100;
 }
 
 .sidebar-header {
-    font-size: 1.8em;
+    font-size: 1.6em;
     font-weight: 700;
     text-align: center;
     margin-bottom: 40px;
-    color: var(--c-primary);
-    text-shadow: var(--shadow-primary);
+    background: -webkit-linear-gradient(45deg, var(--c-primary), var(--c-secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 10px rgba(159, 85, 255, 0.3));
 }
 
 .sidebar-nav {
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 12px;
 }
 .sidebar-nav a {
     text-decoration: none;
     color: var(--c-text-secondary);
     font-weight: 500;
-    font-size: 1.1em;
     padding: 15px 20px;
     border-radius: 12px;
     transition: all var(--transition-fast);
-    position: relative;
 }
 .sidebar-nav a:hover {
     background: rgba(159, 85, 255, 0.1);
@@ -143,80 +138,84 @@ body::before {
     box-shadow: var(--shadow-primary);
 }
 
-/* --- Alt Navigasyon - Sadece Mobil --- */
-.bottom-nav.spark-nav {
-  position: fixed;
-  bottom: 0; left: 0; right: 0;
-  display: flex;
-  justify-content: space-around;
-  padding: 10px 0;
-  background: rgba(26, 24, 35, 0.7);
-  backdrop-filter: blur(15px);
-  -webkit-backdrop-filter: blur(15px);
-  border-top: 1px solid rgba(159, 85, 255, 0.2);
-  z-index: 1000;
+/* --- Ana İçerik Alanı --- */
+.main-content-wrapper {
+    flex-grow: 1;
+    width: 100%;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
 }
-.bottom-nav a {
-  flex: 1; text-align: center; text-decoration: none; color: var(--c-text-secondary);
-  font-weight: 500; position: relative; padding: 10px 0; transition: color var(--transition-fast);
-}
-.bottom-nav a:hover { color: var(--c-primary); }
-.bottom-nav .active { color: var(--c-primary); font-weight: 600; }
-.bottom-nav .active::after {
-  content: ''; position: absolute; bottom: 0; left: 50%;
-  transform: translateX(-50%); width: 5px; height: 5px; background: var(--c-secondary);
-  border-radius: 50%; box-shadow: var(--shadow-secondary);
+
+.container {
+  width: 100%;
+  max-width: 900px; /* Geniş ekranlarda okunabilirliği artırır */
+  margin: 0 auto;
+  padding-bottom: 90px; /* Mobil nav için boşluk */
 }
 
 .page-wrapper {
-  flex-grow: 1;
-  padding: 25px;
-  width: 100%;
+  padding: 20px;
 }
 
 header.spark-header {
-  display: none; /* Masaüstü sidebar varken başlık gereksiz */
   padding: 1.2rem 1rem;
   text-align: center;
   font-size: 1.2em;
   background: rgba(26, 24, 35, 0.7);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid rgba(159, 85, 255, 0.2);
+  flex-shrink: 0;
 }
 
+/* --- Alt Navigasyon - Sadece Mobil --- */
+.bottom-nav {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  display: flex;
+  justify-content: space-around;
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  background: rgba(26, 24, 35, 0.7);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border-top: 1px solid rgba(159, 85, 255, 0.2);
+  z-index: 1000;
+}
+.bottom-nav .tab-btn {
+  flex: 1; text-align: center; text-decoration: none; color: var(--c-text-secondary);
+  font-weight: 500; position: relative; padding: 15px 0; transition: color var(--transition-fast);
+}
+.bottom-nav .tab-btn.active { color: var(--c-primary); font-weight: 600; }
+.bottom-nav .tab-btn.active::after {
+  content: ''; position: absolute; bottom: 5px; left: 50%;
+  transform: translateX(-50%); width: 5px; height: 5px; background: var(--c-secondary);
+  border-radius: 50%; box-shadow: var(--shadow-secondary);
+}
+
+/* --- Yükleyici --- */
 #loader {
   position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
   font-size: 1.5rem; color: var(--c-primary); z-index: 9999; background: var(--c-bg-dark);
-  flex-direction: column; gap: 15px;
 }
 #loader::after {
-    content: '';
-    width: 50px;
-    height: 50px;
-    border: 3px solid var(--c-text-secondary);
+    content: ''; width: 50px; height: 50px;
+    border: 4px solid var(--c-text-secondary);
     border-top-color: var(--c-primary);
     border-radius: 50%;
     animation: spin 1s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.empty-state {
-  text-align: center; padding: 50px 20px; color: var(--c-text-secondary);
-  background: rgba(36, 34, 49, 0.5); border-radius: var(--border-radius);
-  border: 1px dashed rgba(160, 157, 185, 0.3);
-  margin-top: 20px;
-}
-
 /* -------------------------------------------------------------------
-   4. Kart (Card) Bileşeni
+   4. Genel Bileşenler (Kart, Buton, Form)
    ------------------------------------------------------------------- */
 .spark-card {
   background: linear-gradient(135deg, rgba(36, 34, 49, 0.6), rgba(36, 34, 49, 0.3));
   backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
   border-radius: var(--border-radius);
-  padding: 30px; margin-top: 25px;
+  padding: 25px; margin-top: 25px;
   border: 1px solid rgba(160, 157, 185, 0.2);
-  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast);
   animation: fade-in-up 0.5s ease forwards;
   opacity: 0;
 }
@@ -234,13 +233,9 @@ h3 {
   padding-bottom: 15px;
 }
 
-/* -------------------------------------------------------------------
-   5. Form Elemanları ve Butonlar
-   ------------------------------------------------------------------- */
 .spark-button {
   width: 100%; padding: 16px; border: none; border-radius: 12px;
-  font-size: 1.1em; font-weight: bold; cursor: pointer;
-  letter-spacing: 1px;
+  font-size: 1.1em; font-weight: bold; cursor: pointer; letter-spacing: 1px;
   transition: all var(--transition-fast);
   background: linear-gradient(45deg, var(--c-primary), #6a11cb);
   color: #fff; text-align: center; text-decoration: none; display: inline-block;
@@ -261,20 +256,17 @@ h3 {
   color: var(--c-text-primary); font-size: 1em; outline: none;
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
-.input-group.spark input:focus, .input-group.spark textarea:focus, .input-group.spark select:focus {
+.input-group.spark input:focus, .input-group.spark textarea:focus {
   border-color: var(--c-primary);
   box-shadow: 0 0 10px rgba(159, 85, 255, 0.3);
 }
 .input-group.spark label {
   position: absolute; top: 15px; left: 15px; color: var(--c-text-secondary);
-  pointer-events: none; transition: all var(--transition-fast);
-  padding: 0 5px;
+  pointer-events: none; transition: all var(--transition-fast); padding: 0 5px;
 }
 .input-group.spark input:focus ~ label, .input-group.spark input:valid ~ label,
-.input-group.spark textarea:focus ~ label, .input-group.spark textarea:valid ~ label,
-.input-group.spark label.static-label {
-  top: -10px; font-size: 0.8em; color: var(--c-primary);
-  background: var(--c-bg-light);
+.input-group.spark textarea:focus ~ label, .input-group.spark textarea:valid ~ label {
+  top: -10px; font-size: 0.8em; color: var(--c-primary); background: var(--c-bg-light);
 }
 
 .alert {
@@ -285,32 +277,35 @@ h3 {
 .alert-error { background-color: rgba(255, 74, 107, 0.1); color: var(--c-danger); border-color: var(--c-danger); }
 .alert-success { background-color: rgba(0, 255, 133, 0.1); color: var(--c-success); border-color: var(--c-success); }
 
+.empty-state {
+  text-align: center; padding: 50px 20px; color: var(--c-text-secondary);
+  background: rgba(36, 34, 49, 0.5); border-radius: var(--border-radius);
+  border: 1px dashed rgba(160, 157, 185, 0.3); margin-top: 20px;
+}
 
 /* -------------------------------------------------------------------
-   6. Sayfa Özelinde Stiller
+   5. Sayfa Özelinde Stiller
    ------------------------------------------------------------------- */
 
 /* --- A. Giriş ve Kayıt Sayfaları --- */
-body.auth-page { padding-bottom: 0; }
-body.auth-page #main-content { justify-content: center; align-items: center; padding: 20px; }
+body.auth-page .app-layout { padding: 20px; align-items: center; justify-content: center; }
 .auth-container-wide {
   width: 100%; max-width: 950px; display: flex;
   background: linear-gradient(135deg, rgba(26, 24, 35, 0.6), rgba(26, 24, 35, 0.3));
   backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
   border-radius: var(--border-radius); border: 1px solid rgba(159, 85, 255, 0.2);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-  overflow: hidden; min-height: 600px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4); overflow: hidden; min-height: 600px;
 }
-.auth-panel { padding: 40px; }
+.auth-panel { padding: 40px; width: 100%; }
 .auth-decorative-panel { display: none; }
-.auth-form-panel { width: 100%; display: flex; flex-direction: column; justify-content: center; }
-.auth-form-panel h2 { text-align: center; margin-bottom: 30px; font-size: 2em;}
+.auth-form-panel { display: flex; flex-direction: column; justify-content: center; }
+.auth-form-panel h2 { text-align: center; margin-bottom: 30px; font-size: 2em; }
 .auth-switch-text { text-align: center; margin-top: 25px; color: var(--c-text-secondary); }
 .auth-switch-text a { color: var(--c-secondary); text-decoration: none; font-weight: 600; }
 
 /* --- B. Ana Sayfa (Görevler) --- */
 .balance-card .balance-amount {
-  font-size: 3.5em; font-weight: 700; color: #fff; text-align: center; margin-top: 10px;
+  font-size: 3em; font-weight: 700; color: #fff; text-align: center; margin-top: 10px;
   background: -webkit-linear-gradient(45deg, var(--c-primary), var(--c-secondary));
   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
   filter: drop-shadow(0 0 15px rgba(159, 85, 255, 0.4));
@@ -331,78 +326,54 @@ body.auth-page #main-content { justify-content: center; align-items: center; pad
 }
 
 #taskList { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 15px;}
-.task-card {
-    display: flex; align-items: center; gap: 20px; padding: 20px;
-    margin-top: 0;
-}
+.task-card { display: flex; align-items: center; gap: 20px; padding: 20px; margin-top: 0; }
 .task-logo {
     flex-shrink: 0; width: 50px; height: 50px; background: rgba(13, 12, 18, 0.5);
     border-radius: 12px; display: flex; align-items: center; justify-content: center; padding: 10px;
 }
-.task-logo img { width: 100%; height: 100%; object-fit: contain; } 
 .task-info { flex-grow: 1; }
 .task-title { font-weight: 600; font-size: 1.1em;}
 .task-reward { color: var(--c-success); font-weight: 600; }
 .task-action .spark-button { padding: 10px 22px; font-size: 0.9em; min-width: 95px; }
-.spark-button.completed, .spark-button.disabled-stock {
-    background: var(--c-bg-medium); color: var(--c-text-secondary);
-    cursor: not-allowed; opacity: 0.8; box-shadow: none;
-}
-.spark-button.task-link-button {
-    background: linear-gradient(45deg, var(--c-secondary), #00b8d4);
-}
-.spark-button.task-link-button:hover:enabled {
-    box-shadow: var(--shadow-secondary);
-}
+.spark-button.completed, .spark-button.disabled-stock { background: var(--c-bg-medium); }
 
 /* --- C. Profil Sayfası --- */
 .profile-dashboard { display: grid; grid-template-columns: 1fr; gap: 20px; }
-.profile-dashboard .stat-card { text-align: center; padding: 25px; }
+.stat-card { text-align: center; padding: 25px; }
 .stat-value { font-size: 2.2em; font-weight: 700; color: var(--c-secondary); margin-top: 8px; }
 .stat-label { color: var(--c-text-secondary); font-size: 1em; }
-.profile-actions-buttons { display: flex; flex-direction: column; gap: 15px; margin-top: 25px; }
 .logout-button { background: linear-gradient(45deg, var(--c-danger), #b8233b); }
 .logout-button:hover:enabled { box-shadow: var(--shadow-danger); }
 
-/* --- D. Admin Paneli --- */
-#page-admin-panel .page-wrapper {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
-    gap: 25px;
-}
-.admin-card .submission-actions { justify-content: flex-start; }
-.btn-approve { background: linear-gradient(45deg, var(--c-success), #00b862); }
-.btn-approve:hover:enabled { box-shadow: var(--shadow-success); }
-.btn-reject { background: linear-gradient(45deg, var(--c-danger), #b8233b); }
-.btn-reject:hover:enabled { box-shadow: var(--shadow-danger); }
-.submission-image { max-width: 150px; height: auto; object-fit: contain; border-radius: 10px; border: 1px solid rgba(0, 246, 255, 0.2); cursor: pointer; transition: transform var(--transition-fast); }
-.submission-image:hover { transform: scale(1.05); }
-.submission-images-container { display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap; }
-.submission-actions { display: flex; gap: 10px; margin-top: 15px;}
-.spark-button.small-button { padding: 8px 15px; font-size: 0.9em; max-width: fit-content; }
-
 /* -------------------------------------------------------------------
-   7. Responsive Tasarım
+   6. Responsive Tasarım
    ------------------------------------------------------------------- */
-@media (max-width: 991px) {
-  body { padding-bottom: 80px; } /* Mobil alt navigasyon için boşluk */
-  header.spark-header { display: block; }
-}
 
+/* Mobil (Varsayılan) */
+.sidebar { display: none; } /* Mobilde sidebar'ı gizle */
+
+/* Tablet ve Masaüstü */
 @media (min-width: 992px) {
-  .bottom-nav.spark-nav { display: none; }
-  .sidebar { display: flex; }
-  #main-content { padding-left: var(--sidebar-width); }
+  .sidebar { display: flex; } /* Masaüstünde sidebar'ı göster */
+  .main-content-wrapper { padding-left: var(--sidebar-width); }
+  .container { padding-bottom: 40px; } /* Alttaki boşluğu sıfırla */
   .page-wrapper { padding: 40px; }
-  .profile-dashboard { grid-template-columns: repeat(3, 1fr); }
+  .bottom-nav, header.spark-header { display: none; } /* Mobil elemanları gizle */
 
   .auth-panel { width: 50%; }
   .auth-decorative-panel { 
       display: flex; flex-direction: column; justify-content: center; 
       background: linear-gradient(135deg, var(--c-primary) 0%, #6a11cb 100%); 
-      color: #fff; text-align: center;
+      color: #fff; text-align: center; padding: 40px;
   }
-  .auth-decorative-panel h2 { font-size: 2.8em; margin-bottom: 15px; }
-  .auth-decorative-panel p { font-size: 1.2em; line-height: 1.8; opacity: 0.9; }
-}
+  .auth-decorative-panel h2 { font-size: 2.8em; }
+  .auth-decorative-panel p { font-size: 1.2em; opacity: 0.9; }
 
+  .profile-dashboard { grid-template-columns: repeat(3, 1fr); }
+
+  #page-admin-panel .page-wrapper {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+      gap: 25px;
+  }
+}

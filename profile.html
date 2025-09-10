@@ -7,39 +7,60 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body id="page-profile">
-    <div id="loader">Yükleniyor...</div>
-    <div id="main-content" style="display: none;">
-        <div class="container">
-            <header class="spark-header"><h1>Profil & İstatistikler</h1></header>
-            <div class="page-wrapper">
-                <div class="spark-card profile-dashboard">
-                    <div class="stat-card">
-                        <div class="stat-label">Kullanıcı Adı</div>
-                        <div class="stat-value" id="usernameDisplay">...</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-label">Mevcut Bakiye</div>
-                        <div class="stat-value" id="balanceDisplay">0 ₺</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-label">Tamamlanan Görevler</div>
-                        <div class="stat-value" id="task-counts">0 / 0</div>
-                    </div>
-                </div>
-                <div class="profile-actions-buttons">
-                    <a href="support.html" class="spark-button support-button">Destek Merkezi</a> 
-                    <button id="logoutBtn" class="spark-button logout-button">ÇIKIŞ YAP</button>
-                </div>
-            </div>
-            <div class="bottom-nav spark-nav">
+    <div id="loader"></div>
+    
+    <div class="app-layout" style="display: none;" id="main-content">
+        <!-- MASAÜSTÜ KENAR ÇUBUĞU -->
+        <nav class="sidebar">
+            <h2 class="sidebar-header">GörevCüzdan</h2>
+            <div class="sidebar-nav">
                 <a href="index.html" class="tab-btn">Görevler</a>
                 <a href="my-tasks.html" class="tab-btn">Görevlerim</a>
                 <a href="bonus.html" class="tab-btn">Bonus</a>
                 <a href="wallet.html" class="tab-btn">Cüzdan</a>
                 <a href="profile.html" class="tab-btn active">Profil</a>
             </div>
-        </div>
+        </nav>
+
+        <!-- ANA İÇERİK -->
+        <main class="main-content-wrapper">
+            <div class="container">
+                <header class="spark-header"><h1>Profil & İstatistikler</h1></header>
+                <div class="page-wrapper">
+                    <div class="spark-card profile-dashboard">
+                        <div class="stat-card">
+                            <div class="stat-label">Kullanıcı Adı</div>
+                            <div class="stat-value" id="usernameDisplay">...</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Mevcut Bakiye</div>
+                            <div class="stat-value" id="balanceDisplay">0 ₺</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Tamamlanan Görevler</div>
+                            <div class="stat-value" id="task-counts">0 / 0</div>
+                        </div>
+                    </div>
+                    <div class="spark-card">
+                        <div class="profile-actions-buttons">
+                            <a href="support.html" class="spark-button">Destek Merkezi</a>
+                            <button id="logoutBtn" class="spark-button logout-button">ÇIKIŞ YAP</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- MOBİL ALT NAVİGASYON -->
+            <nav class="bottom-nav">
+                <a href="index.html" class="tab-btn">Görevler</a>
+                <a href="my-tasks.html" class="tab-btn">Görevlerim</a>
+                <a href="bonus.html" class="tab-btn">Bonus</a>
+                <a href="wallet.html" class="tab-btn">Cüzdan</a>
+                <a href="profile.html" class="tab-btn active">Profil</a>
+            </nav>
+        </main>
     </div>
+    
     <script src="main.js" type="module"></script>
 </body>
 </html>
