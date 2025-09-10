@@ -239,6 +239,7 @@ h3 {
   background: linear-gradient(45deg, var(--c-primary), #6a11cb);
   color: #fff; text-align: center; text-decoration: none; display: inline-block;
   box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  margin-top: 15px; /* Varsayılan boşluk */
 }
 .spark-button:hover:enabled {
   transform: translateY(-3px); box-shadow: var(--shadow-primary);
@@ -247,16 +248,16 @@ h3 {
   background: var(--c-bg-light); color: var(--c-text-secondary);
   box-shadow: none; transform: none; cursor: not-allowed; opacity: 0.7;
 }
-.spark-button.small-button { padding: 8px 15px; font-size: 0.9em; max-width: fit-content; }
+.spark-button.small-button { padding: 8px 15px; font-size: 0.9em; max-width: fit-content; margin-top: 0; }
 
 .input-group.spark { position: relative; margin-bottom: 30px; }
-.input-group.spark input, .input-group.spark textarea, .input-group.spark select {
+.input-group.spark input, .input-group.spark textarea, .input-group.spark select, .spark-input {
   width: 100%; padding: 18px 15px 10px; background: rgba(13, 12, 18, 0.5);
   border: 1px solid rgba(160, 157, 185, 0.3); border-radius: 10px;
   color: var(--c-text-primary); font-size: 1em; outline: none;
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
-.input-group.spark input:focus, .input-group.spark textarea:focus {
+.input-group.spark input:focus, .input-group.spark textarea:focus, .spark-input:focus {
   border-color: var(--c-primary);
   box-shadow: 0 0 10px rgba(159, 85, 255, 0.3);
 }
@@ -267,6 +268,9 @@ h3 {
 .input-group.spark input:focus ~ label, .input-group.spark input:valid ~ label,
 .input-group.spark textarea:focus ~ label, .input-group.spark textarea:valid ~ label {
   top: -10px; font-size: 0.8em; color: var(--c-primary); background: var(--c-bg-light);
+}
+.input-group.spark .static-label { /* For select elements where label doesn't move */
+    top: -10px; font-size: 0.8em; color: var(--c-primary); background: var(--c-bg-light);
 }
 
 .alert {
@@ -342,7 +346,7 @@ body.auth-page .app-layout { padding: 20px; align-items: center; justify-content
 .task-info { flex-grow: 1; }
 .task-title { font-weight: 600; font-size: 1.1em;}
 .task-reward { color: var(--c-success); font-weight: 600; }
-.task-action .spark-button { padding: 10px 22px; font-size: 0.9em; min-width: 95px; }
+.task-action .spark-button { padding: 10px 22px; font-size: 0.9em; min-width: 95px; margin-top: 0;}
 .spark-button.completed, .spark-button.disabled-stock { background: var(--c-bg-medium); }
 
 /* --- C. Görevlerim Sayfası --- */
@@ -360,9 +364,125 @@ body.auth-page .app-layout { padding: 20px; align-items: center; justify-content
 .logout-button { background: linear-gradient(45deg, var(--c-danger), #b8233b); }
 .logout-button:hover:enabled { box-shadow: var(--shadow-danger); }
 
-/* -------------------------------------------------------------------
-   6. Responsive Tasarım
-   ------------------------------------------------------------------- */
+/* --- Admin Panel Stilleri --- */
+.user-management-controls {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 25px;
+    align-items: center;
+    flex-wrap: wrap; /* Mobil uyumluluk için */
+}
+
+.user-management-controls .spark-input {
+    flex-grow: 1;
+    min-width: 200px;
+    margin-bottom: 0; /* Override default input-group margin */
+}
+
+.user-management-controls .spark-button {
+    flex-shrink: 0;
+    margin-top: 0; /* Override default button margin */
+    width: auto; /* Small buttons don't need 100% width */
+}
+
+.user-list-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    padding: 15px 20px;
+    margin-top: 15px; /* spark-card'ın varsayılan margin-top'ını kullanacak */
+}
+.user-list-item .user-info {
+    flex-grow: 1;
+}
+.user-list-item .user-info strong {
+    color: var(--c-primary);
+}
+.user-list-item .user-info p {
+    font-size: 0.9em;
+    color: var(--c-text-secondary);
+    margin-top: 5px;
+}
+.user-list-item .user-actions {
+    display: flex;
+    gap: 10px;
+    flex-shrink: 0;
+}
+.task-list-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    padding: 15px 20px;
+    background: linear-gradient(135deg, rgba(36, 34, 49, 0.4), rgba(36, 34, 49, 0.2)); /* Daha hafif bir kart görünümü */
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    border-radius: var(--border-radius);
+    border: 1px solid rgba(160, 157, 185, 0.15);
+    margin-top: 15px;
+}
+.task-list-item:hover {
+    box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+    border-color: rgba(159, 85, 255, 0.3);
+    transform: translateY(-2px);
+    transition: all var(--transition-fast);
+}
+.task-list-item span {
+    flex-grow: 1;
+    color: var(--c-text-primary);
+    font-weight: 500;
+}
+.task-list-item .btn-delete {
+    background: var(--c-danger);
+    color: white;
+    padding: 8px 15px;
+    border-radius: 8px;
+    font-size: 0.9em;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    border: none;
+    max-width: fit-content;
+    margin-top: 0; /* spark-button'dan gelen margin-top'ı sıfırla */
+}
+.task-list-item .btn-delete:hover {
+    background: #b8233b;
+    box-shadow: 0 4px 10px rgba(255, 74, 107, 0.3);
+    transform: translateY(-2px);
+}
+
+.ticket-admin-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    margin-top: 15px;
+}
+.ticket-admin-item .ticket-info {
+    flex-grow: 1;
+}
+.ticket-admin-item .ticket-info strong {
+    color: var(--c-primary);
+}
+.ticket-admin-item .ticket-info p {
+    font-size: 0.9em;
+    color: var(--c-text-secondary);
+    margin-top: 5px;
+}
+.ticket-admin-item .ticket-status-admin {
+    flex-shrink: 0;
+    margin-right: 15px;
+}
+.ticket-admin-item .ticket-actions-admin {
+    display: flex;
+    gap: 10px;
+    flex-shrink: 0;
+}
+.ticket-admin-item .ticket-actions-admin .spark-button {
+    margin-top: 0; /* spark-button'dan gelen margin-top'ı sıfırla */
+}
+
+
+/* --- Responsive Tasarım --- */
 
 /* Mobil (Varsayılan) */
 .sidebar { display: none; }

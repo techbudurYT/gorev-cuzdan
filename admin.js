@@ -146,7 +146,7 @@ function initAdminPanel(user) {
             filteredUsers.forEach(u => {
                 usersHtml += `
                     <div class="user-list-item spark-card" id="user-${u.id}">
-                        <div class="user-info"><strong>${u.username}</strong> (${u.email})<p>Bakiye: ${u.balance} ₺ | Admin: ${u.isAdmin ? 'Evet' : 'Hayır'}</p></div>
+                        <div class="user-info"><strong>${u.username}</strong> <span style="font-size:0.9em; color:var(--c-text-secondary);">(${u.email})</span><p>Bakiye: ${u.balance} ₺ | Admin: ${u.isAdmin ? 'Evet' : 'Hayır'}</p></div>
                         <div class="user-actions"><button class="spark-button small-button btn-edit-user" data-id="${u.id}">Düzenle</button><button class="spark-button small-button btn-delete-user" data-id="${u.id}">Sil</button></div>
                     </div>`;
             });
@@ -166,7 +166,7 @@ function initAdminPanel(user) {
                 if (newUsername === null) return;
                 const newBalance = prompt("Yeni bakiye (₺):", userToEdit.balance);
                 if (newBalance === null) return;
-                const newIsAdmin = confirm(`Kullanıcıyı admin yapmak ister misiniz?`);
+                const newIsAdmin = confirm(`Kullanıcıyı admin yapmak ister misiniz? (Şimdiki durum: ${userToEdit.isAdmin ? 'Evet' : 'Hayır'})`);
                 try {
                     await updateDoc(doc(db, "users", userId), { username: newUsername, balance: Number(newBalance), isAdmin: newIsAdmin });
                     showAlert("Kullanıcı güncellendi!", true);
@@ -177,7 +177,7 @@ function initAdminPanel(user) {
         }
         if (e.target.matches('.btn-delete-user')) {
             const userId = e.target.dataset.id;
-            if (confirm("Kullanıcıyı silmek istediğinize emin misiniz?")) {
+            if (confirm("Kullanıcıyı silmek istediğinize emin misiniz? Bu işlem geri alınamaz.")) {
                 try {
                     await deleteDoc(doc(db, "users", userId));
                     showAlert("Kullanıcı silindi!", true);
@@ -237,18 +237,23 @@ function initAdminPanel(user) {
         let tasksHtml = snapshot.empty ? `<p class="empty-state">Henüz görev yok.</p>` : '';
         snapshot.forEach(doc => {
             const task = { id: doc.id, ...doc.data() };
-            const taskLinkDisplay = task.link ? `<a href="${task.link}" target="_blank" style="margin-left: 10px; color: var(--spark-primary);">Link</a>` : '';
+            const taskLinkDisplay = task.link ? `<a href="${task.link}" target="_blank" style="margin-left: 10px; color: var(--c-secondary); text-decoration: none;">Link</a>` : '';
             const fileCountDisplay = task.fileCount ? `(${task.fileCount} Dosya)` : '';
             const stockDisplay = `(Stok: ${task.stock || 0})`; // NEW: Display stock
-            tasksHtml += `<div class="task-list-item"><span>${task.text} (${task.reward} ₺) ${fileCountDisplay} ${stockDisplay} ${taskLinkDisplay}</span><button class="btn-delete" data-id="${task.id}">Sil</button></div>`;
+            tasksHtml += `
+                <div class="task-list-item">
+                    <span>${task.text} - ${task.reward} ₺ ${fileCountDisplay} ${stockDisplay} ${taskLinkDisplay}</span>
+                    <button class="spark-button small-button btn-delete" data-id="${task.id}">Sil</button>
+                </div>`;
         });
         existingTasksList.innerHTML = tasksHtml;
     });
 
     existingTasksList.addEventListener('click', async (e) => {
         if (e.target.classList.contains('btn-delete')) {
-            if (confirm("Bu görevi silmek istediğinize emin misiniz?")) {
+            if (confirm("Bu görevi silmek istediğinize emin misiniz? Bu işlem geri alınamaz.")) {
                 await deleteDoc(doc(db, "tasks", e.target.dataset.id));
+                showAlert("Görev başarıyla silindi!", true);
             }
         }
     });
@@ -267,22 +272,22 @@ function initAdminPanel(user) {
             let submissionImagesHtml = '';
             if (Array.isArray(sub.fileURLs) && sub.fileURLs.length > 0) {
                 sub.fileURLs.forEach((url, index) => {
-                    submissionImagesHtml += `<img src="${url}" class="submission-image" onclick="window.open(this.src, '_blank')" alt="Kanıt ${index + 1}">`;
+                    submissionImagesHtml += `<img src="${url}" class="submission-image" onclick="window.open(this.src, '_blank')" alt="Kanıt ${index + 1}" style="max-width: 100px; max-height: 100px; border-radius: 8px; cursor: pointer; margin: 5px;">`;
                 });
             } else if (sub.fileURL) { 
-                 submissionImagesHtml += `<img src="${sub.fileURL}" class="submission-image" onclick="window.open(this.src, '_blank')" alt="Kanıt">`;
+                 submissionImagesHtml += `<img src="${sub.fileURL}" class="submission-image" onclick="window.open(this.src, '_blank')" alt="Kanıt" style="max-width: 100px; max-height: 100px; border-radius: 8px; cursor: pointer; margin: 5px;">`;
             } else {
-                 submissionImagesHtml += `<p>Görsel kanıt yok.</p>`;
+                 submissionImagesHtml += `<p style="font-size: 0.9em; color: var(--c-text-secondary);">Görsel kanıt yok.</p>`;
             }
 
             submissionsList.innerHTML += `
                 <div class="spark-card submission-card">
-                    <h3>${task.text}</h3>
-                    <p><strong>Kullanıcı:</strong> ${sub.userEmail}</p>
-                    <div class="submission-images-container">${submissionImagesHtml}</div>
-                    <div class="submission-actions">
-                        <button class="spark-button small-button btn-approve" data-submission-id="${sub.id}" data-user-id="${sub.userId}" data-reward="${task.reward}">Onayla</button>
-                        <button class="spark-button small-button btn-reject" data-submission-id="${sub.id}">Reddet</button>
+                    <h3>${task.text} (+${task.reward} ₺)</h3>
+                    <p style="font-size: 0.95em; color: var(--c-text-secondary);"><strong>Kullanıcı:</strong> ${sub.userEmail}</p>
+                    <div class="submission-images-container" style="margin-top: 15px; display: flex; flex-wrap: wrap; gap: 10px;">${submissionImagesHtml}</div>
+                    <div class="submission-actions" style="margin-top: 20px; display: flex; gap: 10px;">
+                        <button class="spark-button small-button btn-approve" data-submission-id="${sub.id}" data-user-id="${sub.userId}" data-reward="${task.reward}" style="background-color: var(--c-success);">Onayla</button>
+                        <button class="spark-button small-button btn-reject" data-submission-id="${sub.id}" style="background-color: var(--c-danger);">Reddet</button>
                     </div>
                 </div>`;
         }
@@ -325,7 +330,17 @@ function initAdminPanel(user) {
         let requestsHtml = snapshot.empty ? `<p class="empty-state">Bekleyen çekme talebi yok.</p>` : '';
         snapshot.forEach(doc => {
             const req = { id: doc.id, ...doc.data() };
-            requestsHtml += `<div class="spark-card submission-card"><h3>${req.amount} ₺</h3><p><strong>Kullanıcı:</strong> ${req.userEmail}</p><p><strong>IBAN:</strong> ${req.iban}</p><div class="submission-actions"><button class="spark-button small-button btn-approve-withdrawal" data-id="${req.id}">Ödendi</button><button class="spark-button small-button btn-reject-withdrawal" data-id="${req.id}" data-user-id="${req.userId}" data-amount="${req.amount}">Reddet</button></div></div>`;
+            requestsHtml += `
+                <div class="spark-card submission-card">
+                    <h3>${req.amount} ₺</h3>
+                    <p style="font-size: 0.95em; color: var(--c-text-secondary);"><strong>Kullanıcı:</strong> ${req.userEmail}</p>
+                    <p style="font-size: 0.95em; color: var(--c-text-secondary);"><strong>IBAN:</strong> ${req.iban}</p>
+                    <p style="font-size: 0.95em; color: var(--c-text-secondary);"><strong>Telefon:</strong> ${req.phoneNumber}</p>
+                    <div class="submission-actions" style="margin-top: 20px; display: flex; gap: 10px;">
+                        <button class="spark-button small-button btn-approve-withdrawal" data-id="${req.id}" style="background-color: var(--c-success);">Ödendi</button>
+                        <button class="spark-button small-button btn-reject-withdrawal" data-id="${req.id}" data-user-id="${req.userId}" data-amount="${req.amount}" style="background-color: var(--c-danger);">Reddet</button>
+                    </div>
+                </div>`;
         });
         adminWithdrawalRequestsList.innerHTML = requestsHtml;
     });
@@ -368,8 +383,8 @@ function initAdminPanel(user) {
         snapshot.forEach(doc => {
             const ticket = { id: doc.id, ...doc.data() };
             const lastUpdate = ticket.lastUpdatedAt.toDate().toLocaleString('tr-TR');
-            const actionButtons = ticket.status !== 'closed' ? `<button class="spark-button small-button btn-reply-ticket" data-id="${ticket.id}">Cevapla</button><button class="spark-button small-button btn-close-ticket" data-id="${ticket.id}">Kapat</button>` : `<p>Talep kapatılmıştır.</p>`;
-            ticketsHtml += `<div class="spark-card ticket-admin-item"><div class="ticket-info"><strong>${ticket.subject}</strong><p>Kullanıcı: ${ticket.userEmail}</p></div><div class="ticket-status-admin"><span class="status-badge status-${ticket.status}">${ticket.status === 'open' ? 'Açık' : 'Kapalı'}</span></div><div class="ticket-actions-admin">${actionButtons}</div></div>`;
+            const actionButtons = ticket.status !== 'closed' ? `<button class="spark-button small-button btn-reply-ticket" data-id="${ticket.id}" style="background-color: var(--c-primary);">Cevapla</button><button class="spark-button small-button btn-close-ticket" data-id="${ticket.id}" style="background-color: var(--c-danger);">Kapat</button>` : `<p style="font-size: 0.9em; color: var(--c-text-secondary);">Talep kapatılmıştır.</p>`;
+            ticketsHtml += `<div class="spark-card ticket-admin-item"><div class="ticket-info"><strong>${ticket.subject}</strong><p style="font-size: 0.9em; color: var(--c-text-secondary);">Kullanıcı: ${ticket.userEmail}</p><p style="font-size: 0.85em; color: var(--c-text-secondary);">Son Güncelleme: ${lastUpdate}</p></div><div class="ticket-status-admin"><span class="status-badge status-${ticket.status}">${ticket.status === 'open' ? 'Açık' : 'Kapalı'}</span></div><div class="ticket-actions-admin">${actionButtons}</div></div>`;
         });
         adminTicketsList.innerHTML = ticketsHtml;
     });
@@ -394,4 +409,3 @@ function initAdminPanel(user) {
         }
     });
 }
-// --- END OF FILE admin.js ---
