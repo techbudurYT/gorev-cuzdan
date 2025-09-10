@@ -821,7 +821,7 @@ body.auth-page #main-content {
 
 /* Tablet ve Masaüstü */
 @media (min-width: 992px) {
-  .sidebar { display: flex; }
+  .sidebar { display: flex !important; } /* Force display for sidebar */
   .main-content-wrapper { padding-left: var(--sidebar-width); }
   .container { padding-bottom: 40px; }
   .page-wrapper { padding: 40px 0; } /* Adjust vertical padding */

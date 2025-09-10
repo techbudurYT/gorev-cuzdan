@@ -221,6 +221,9 @@ async function initAdminPanel(user) {
             const userId = e.target.dataset.id;
             if (confirm("Kullanıcıyı silmek istediğinize emin misiniz? Bu işlem geri alınamaz.")) {
                 try {
+                    // Kullanıcının tüm ilgili belgelerini silme (isteğe bağlı, ancak temiz bir silme için önemli)
+                    // Gerçek bir uygulamada, kullanıcının görevlerini, gönderimlerini, ticket'larını vb. de silmek isteyebilirsiniz.
+                    // Bu örnekte sadece user belgesini siliyoruz.
                     await deleteDoc(doc(db, "users", userId));
                     showAlert("Kullanıcı silindi!", true);
                 } catch (error) {

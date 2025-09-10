@@ -8,50 +8,63 @@
 </head>
 <body id="page-support">
   <div id="loader">Yükleniyor...</div>
-  <div id="main-content" style="display: none;">
-    <div class="container">
-      <header class="spark-header"><h1>Destek Merkezi</h1></header>
-      <div class="page-wrapper">
-        <div class="spark-card">
-          <h3>Yeni Destek Talebi Oluştur</h3>
-          <div id="alertBox"></div>
-          <form id="createTicketForm">
-            <div class="input-group spark">
-              <input type="text" id="ticketSubject" required>
-              <label>Konu</label>
-            </div>
-            <div class="input-group spark">
-              <textarea id="ticketMessage" required rows="4"></textarea>
-              <label>Sorununuz</label>
-            </div>
-            <button type="submit" class="spark-button">Talep Oluştur</button>
-          </form>
-        </div>
+  <div class="app-layout" style="display: none;" id="main-content">
+    <nav class="sidebar">
+      <h2 class="sidebar-header">GörevCüzdan</h2>
+      <div class="sidebar-nav">
+        <a href="index.html" class="tab-btn">Görevler</a>
+        <a href="my-tasks.html" class="tab-btn">Görevlerim</a>
+        <a href="bonus.html" class="tab-btn">Bonus</a>
+        <a href="wallet.html" class="tab-btn">Cüzdan</a>
+        <a href="profile.html" class="tab-btn">Profil</a>
+        <a href="announcements.html" class="tab-btn">Duyurular</a>
+      </div>
+    </nav>
+    <main class="main-content-wrapper">
+      <div class="container">
+        <header class="spark-header"><h1>Destek Merkezi</h1></header>
+        <div class="page-wrapper">
+          <div class="spark-card">
+            <h3>Yeni Destek Talebi Oluştur</h3>
+            <div id="alertBox"></div>
+            <form id="createTicketForm">
+              <div class="input-group spark">
+                <input type="text" id="ticketSubject" required>
+                <label>Konu</label>
+              </div>
+              <div class="input-group spark">
+                <textarea id="ticketMessage" required rows="4"></textarea>
+                <label>Sorununuz</label>
+              </div>
+              <button type="submit" class="spark-button">Talep Oluştur</button>
+            </form>
+          </div>
 
-        <div class="spark-card">
-          <h3>Önceki Taleplerim</h3>
-          <div id="previousTicketsList">
-            <!-- Destek talepleri buraya yüklenecek -->
-            <p class="empty-state">Henüz bir destek talebiniz bulunmuyor.</p>
+          <div class="spark-card">
+            <h3>Önceki Taleplerim</h3>
+            <div id="previousTicketsList">
+              <!-- Destek talepleri buraya yüklenecek -->
+              <p class="empty-state">Henüz bir destek talebiniz bulunmuyor.</p>
+            </div>
+          </div>
+
+          <div class="spark-card">
+              <h3>Sıkça Sorulan Sorular</h3>
+              <div id="faqList">
+                  <p class="empty-state">SSS yükleniyor...</p>
+              </div>
           </div>
         </div>
-
-        <div class="spark-card">
-            <h3>Sıkça Sorulan Sorular</h3>
-            <div id="faqList">
-                <p class="empty-state">SSS yükleniyor...</p>
-            </div>
-        </div>
       </div>
-      <div class="bottom-nav spark-nav">
+      <nav class="bottom-nav">
         <a href="index.html" class="tab-btn">Görevler</a>
         <a href="my-tasks.html" class="tab-btn">Görevlerim</a>
         <a href="bonus.html" class="tab-btn">Bonus</a>
         <a href="wallet.html" class="tab-btn">Cüzdan</a>
         <a href="profile.html" class="tab-btn active">Profil</a>
-        <a href="referral.html" class="tab-btn">Referans</a>
-      </div>
-    </div>
+        <a href="announcements.html" class="tab-btn">Duyurular</a>
+      </nav>
+    </main>
   </div>
   <script src="main.js" type="module"></script>
 </body>
