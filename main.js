@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, query, where, orderBy, getDocs, runTransaction, addDoc, serverTimestamp, updateDoc, limit } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-storage.js"; // Storage ekledik
+import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-storage.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyBN85bxThpJYifWAvsS0uqPD0C9D55uPpM", // KENDİ API ANAHTARINIZI GİRİN!
@@ -15,7 +15,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-const storage = getStorage(app); // Storage'ı başlattık
+const storage = getStorage(app);
 
 const categoryData = {
     "youtube": { name: "YouTube", logo: "img/logos/youtube.png" },
@@ -49,9 +49,22 @@ function showLoader() {
 function hideLoader() {
     const loader = document.getElementById('loader');
     const mainContent = document.getElementById('main-content');
-    if (loader) mainContent.style.display = 'flex'; // Use flex for app-layout
+    if (loader) mainContent.style.display = 'flex';
     if (loader) loader.style.display = 'none';
 }
+
+// IP adresini almak için yardımcı fonksiyon
+async function getIpAddress() {
+    try {
+        const response = await fetch('https://api.ipify.org?format=json');
+        const data = await response.json();
+        return data.ip;
+    } catch (error) {
+        console.error("IP adresi alınırken hata:", error);
+        return null;
+    }
+}
+
 
 document.addEventListener('DOMContentLoaded', () => {
     const pageId = document.body.id;
@@ -65,19 +78,31 @@ document.addEventListener('DOMContentLoaded', () => {
     onAuthStateChanged(auth, async (user) => {
         const isAuthPage = pageId === 'page-login' || pageId === 'page-register';
         if (user) {
-            // Ensure user data exists in Firestore upon login
             const userRef = doc(db, "users", user.uid);
             const userDoc = await getDoc(userRef);
             if (!userDoc.exists()) {
-                // If user document doesn't exist, create a basic one
                 await setDoc(userRef, {
                     username: user.email.split('@')[0], 
                     email: user.email, 
                     balance: 0, 
                     isAdmin: false,
-                    createdAt: serverTimestamp() // Oluşturulma tarihi
-                }, { merge: true }); // Use merge: true to avoid overwriting existing data if it was partially created
+                    createdAt: serverTimestamp()
+                }, { merge: true });
             }
+
+            // IP adresini kullanıcı belgesine kaydet (yalnızca kullanıcı girişi veya kaydı sırasında)
+            if (userDoc.exists() && (!userDoc.data().lastLoginIp || userDoc.data().lastLoginIp !== await getIpAddress())) {
+                const ipAddress = await getIpAddress();
+                if (ipAddress) {
+                    await updateDoc(userRef, { lastLoginIp: ipAddress, lastLoginAt: serverTimestamp() });
+                }
+            } else if (!userDoc.exists()) { // Yeni kayıt durumunda
+                const ipAddress = await getIpAddress();
+                if (ipAddress) {
+                    await updateDoc(userRef, { lastLoginIp: ipAddress, lastLoginAt: serverTimestamp() });
+                }
+            }
+
 
             if (isAuthPage) { 
                 window.location.replace('index.html');
@@ -91,7 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     case 'page-support': await loadSupportPageData(user); break;
                     case 'page-ticket-detail': await loadTicketDetailPageData(user); break;
                     case 'page-bonus': await loadBonusPageData(user); break;
-                    case 'page-announcements': await loadAnnouncementsPageData(); break; // Yeni duyurular sayfası
+                    case 'page-announcements': await loadAnnouncementsPageData(); break;
                 }
                 hideLoader();
             }
@@ -125,12 +150,16 @@ function initRegisterPage() {
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const newUserUid = userCredential.user.uid;
             
+            const ipAddress = await getIpAddress(); // IP adresini al
+            
             await setDoc(doc(db, "users", newUserUid), {
                 username, 
                 email, 
                 balance: 0, 
                 isAdmin: false,
-                createdAt: serverTimestamp()
+                createdAt: serverTimestamp(),
+                lastLoginIp: ipAddress, // Yeni kayıt IP adresi
+                lastLoginAt: serverTimestamp()
             });
 
             showAlert("Kayıt başarılı!", true);
@@ -152,6 +181,7 @@ function initLoginPage() {
         try {
             showLoader();
             await signInWithEmailAndPassword(auth, email, password);
+            // IP adresi onAuthStateChanged içinde güncellenecek
         } catch (error) {
             hideLoader();
             showAlert("Hatalı e-posta veya şifre!", false);
@@ -248,7 +278,7 @@ async function loadIndexPageData(user) {
             }
             
             li.innerHTML = `
-                <div class="task-logo"><img src="${categoryInfo.logo}" alt="${categoryInfo.name} logo"></div>
+                <div class="task-logo"><img src="${categoryInfo.logo}" alt="${categoryInfo.name} logo" loading="lazy"></div>
                 <div class="task-info">
                     <div class="task-title">${task.text}</div>
                     <div class="task-reward">+${task.reward} ₺</div>
@@ -383,8 +413,6 @@ async function loadProfilePageData(user) {
             usernameDisplay.textContent = userData.username || 'N/A';
             balanceDisplay.textContent = `${(userData.balance || 0).toFixed(2)} ₺`;
         } else {
-             // This case should ideally be handled by the onAuthStateChanged in DOMContentLoaded,
-             // but as a fallback, ensure the document exists.
              console.warn("Kullanıcı belgesi bulunamadı. Varsayılan oluşturuluyor...");
             setDoc(doc(db, "users", user.uid), {
                 username: user.email.split('@')[0], email: user.email, balance: 0, isAdmin: false
@@ -448,7 +476,6 @@ async function loadMyTasksPageData(user) {
                 }
                 const submissionDate = submission.submittedAt ? submission.submittedAt.toDate().toLocaleDateString('tr-TR') : 'Bilinmiyor';
 
-                // DÜZELTME: İsteğiniz üzerine fotoğraf gösterme kısmı kaldırıldı.
                 submissionsList.innerHTML += `
                   <div class="spark-card submission-card">
                     <div class="submission-header">
@@ -562,7 +589,7 @@ async function loadTaskDetailPageData(user) {
                     filesToUpload[i] = file;
                     currentFileNameSpan.textContent = file.name;
                     const reader = new FileReader();
-                    reader.onload = e => currentImagePreviewDiv.innerHTML = `<img src="${e.target.result}" alt="Önizleme ${i + 1}">`;
+                    reader.onload = e => currentImagePreviewDiv.innerHTML = `<img src="${e.target.result}" alt="Önizleme ${i + 1}" loading="lazy">`;
                     reader.readAsDataURL(file);
                 } else {
                     filesToUpload[i] = null;
@@ -592,12 +619,17 @@ async function loadTaskDetailPageData(user) {
         let uploadedFileURLs = [];
         try {
             for (const file of filesToUpload) {
+                // Görsel boyutunu küçültmek için Canvas kullanımı
+                const compressedFile = await compressImage(file);
+
                 const storageRef = ref(storage, `proofs/${user.uid}/${taskId}-${Date.now()}-${file.name}`);
-                const snapshot = await uploadBytes(storageRef, file);
+                const snapshot = await uploadBytes(storageRef, compressedFile);
                 const downloadURL = await getDownloadURL(snapshot.ref);
                 uploadedFileURLs.push(downloadURL);
             }
             
+            const userIp = await getIpAddress(); // Kullanıcının IP adresini al
+
             await runTransaction(db, async (transaction) => {
                 const taskRef = doc(db, "tasks", taskId);
                 
@@ -628,7 +660,8 @@ async function loadTaskDetailPageData(user) {
                     userEmail: user.email, 
                     fileURLs: uploadedFileURLs, 
                     submittedAt: serverTimestamp(), 
-                    status: 'pending'
+                    status: 'pending',
+                    userIp: userIp // IP adresini gönderime ekle
                 });
             });
             showAlert('Göreviniz başarıyla onaya gönderildi!', true);
@@ -652,6 +685,46 @@ async function loadTaskDetailPageData(user) {
     });
 }
 
+// Görsel sıkıştırma fonksiyonu
+function compressImage(file, { quality = 0.7, maxWidth = 800, maxHeight = 800 } = {}) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = event => {
+            const img = new Image();
+            img.src = event.target.result;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+
+                if (width > height) {
+                    if (width > maxWidth) {
+                        height *= maxWidth / width;
+                        width = maxWidth;
+                    }
+                } else {
+                    if (height > maxHeight) {
+                        width *= maxHeight / height;
+                        height = maxHeight;
+                    }
+                }
+                canvas.width = width;
+                canvas.height = height;
+
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+
+                canvas.toBlob(blob => {
+                    resolve(blob);
+                }, file.type, quality);
+            };
+            img.onerror = error => reject(error);
+        };
+        reader.onerror = error => reject(error);
+    });
+}
+
 async function loadWalletPageData(user) {
     const currentBalanceDisplay = document.getElementById('currentBalance');
     const withdrawalForm = document.getElementById('withdrawalForm');
@@ -667,13 +740,14 @@ async function loadWalletPageData(user) {
             currentBalanceDisplay.textContent = `${userBalance.toFixed(2)} ₺`;
             withdrawalAmountInput.setAttribute('max', userBalance);
 
-            // Set initial values if they exist, to trigger :valid for labels
             const userData = docSnapshot.data();
             if (userData.iban) {
                 ibanInput.value = userData.iban;
+                ibanInput.classList.add('populated'); // Label'ın yukarıda kalması için
             }
             if (userData.phoneNumber) {
                 phoneNumberInput.value = userData.phoneNumber;
+                phoneNumberInput.classList.add('populated'); // Label'ın yukarıda kalması için
             }
         }
     });
@@ -700,14 +774,15 @@ async function loadWalletPageData(user) {
                 if (!userDoc.exists()) throw new Error("Kullanıcı bulunamadı!");
                 const currentBalance = userDoc.data().balance || 0;
                 if (currentBalance < amount) throw new Error("Yetersiz bakiye.");
-                transaction.update(userRef, { balance: currentBalance - amount, iban, phoneNumber }); // Save IBAN and phone number to user doc
+                transaction.update(userRef, { balance: currentBalance - amount, iban, phoneNumber });
                 await addDoc(collection(db, "withdrawalRequests"), {
                     userId: user.uid, userEmail: user.email, amount, iban, phoneNumber,
                     status: 'pending', createdAt: serverTimestamp()
                 });
             });
             showAlert("Çekme talebiniz oluşturuldu.", true);
-            withdrawalForm.reset(); // Don't reset IBAN and phone if saved
+            // Formu sıfırlamak yerine sadece miktarı sıfırla, IBAN ve Telefon kalsın
+            withdrawalAmountInput.value = '';
         } catch (error) {
             showAlert("Talep oluşturulamadı: " + error.message, false);
         } finally {
@@ -745,10 +820,9 @@ async function loadWalletPageData(user) {
 async function loadSupportPageData(user) {
     const createTicketForm = document.getElementById('createTicketForm');
     const previousTicketsList = document.getElementById('previousTicketsList');
-    const faqList = document.getElementById('faqList'); // SSS bölümü için
+    const faqList = document.getElementById('faqList');
 
-    // Fetch user's username for senderName
-    let username = user.email; // Default to email
+    let username = user.email;
     const userDocSnapshot = await getDoc(doc(db, "users", user.uid));
     if (userDocSnapshot.exists() && userDocSnapshot.data().username) {
         username = userDocSnapshot.data().username;
@@ -770,8 +844,8 @@ async function loadSupportPageData(user) {
                 createdAt: serverTimestamp(), lastUpdatedAt: serverTimestamp(),
                 assignedTo: null, 
                 assignedToName: null,
-                lastMessage: message, // Store the first message as lastMessage
-                lastMessageSenderType: 'user' // Sender of the last message
+                lastMessage: message,
+                lastMessageSenderType: 'user'
             });
             await addDoc(collection(db, "tickets", newTicketRef.id, "replies"), {
                 message, senderId: user.uid, senderType: 'user', senderName: username, sentAt: serverTimestamp()
@@ -798,7 +872,6 @@ async function loadSupportPageData(user) {
         snapshot.forEach(doc => {
             const ticket = { id: doc.id, ...doc.data() };
             
-            // "cleared" durumundaki ticket'ları kullanıcı tarafında gösterme
             if (ticket.status === 'cleared') {
                 return; 
             }
@@ -808,7 +881,7 @@ async function loadSupportPageData(user) {
             let statusText = '';
             switch(ticket.status) {
                 case 'open': statusText = 'Açık'; statusClass = 'status-pending'; break;
-                case 'closed': statusText = 'Kapalı'; statusClass = 'status-rejected'; break; // Use rejected style for closed tickets
+                case 'closed': statusText = 'Kapalı'; statusClass = 'status-rejected'; break;
                 case 'archived': statusText = 'Arşivlendi'; statusClass = 'status-archived'; break;
                 default: statusText = 'Bilinmiyor'; statusClass = ''; break;
             }
@@ -828,9 +901,8 @@ async function loadSupportPageData(user) {
         previousTicketsList.innerHTML = `<div class="empty-state" style="color:var(--c-danger);">Destek talepleri yüklenemedi: ${error.message}</div>`;
     });
 
-    // SSS yükleme
     try {
-        const faqsQuery = query(collection(db, "faqs"), orderBy("order", "asc")); // 'order' alanı ile sıralama
+        const faqsQuery = query(collection(db, "faqs"), orderBy("order", "asc"));
         const faqsSnapshot = await getDocs(faqsQuery);
         if (!faqsSnapshot.empty) {
             faqList.innerHTML = '';
@@ -872,20 +944,18 @@ async function loadTicketDetailPageData(user) {
     let selectedFile = null;
     const allowedTypes = ['image/jpeg', 'image/png'];
 
-    // Fetch user's username for replies
-    let username = user.email; // Default to email
+    let username = user.email;
     const userDocSnapshot = await getDoc(doc(db, "users", user.uid));
     if (userDocSnapshot.exists() && userDocSnapshot.data().username) {
         username = userDocSnapshot.data().username;
     }
 
-    // Dosya seçme event listener
     replyFileInput.addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (file) {
             if (!allowedTypes.includes(file.type)) {
                 showAlert('Lütfen sadece JPG veya PNG formatında bir resim dosyası seçin.', false);
-                e.target.value = ''; // Inputu temizle
+                e.target.value = '';
                 selectedFile = null;
                 replyFileNameSpan.textContent = "Dosya seçilmedi";
                 replyImagePreviewDiv.innerHTML = "";
@@ -894,7 +964,7 @@ async function loadTicketDetailPageData(user) {
             selectedFile = file;
             replyFileNameSpan.textContent = file.name;
             const reader = new FileReader();
-            reader.onload = e => replyImagePreviewDiv.innerHTML = `<img src="${e.target.result}" alt="Önizleme">`;
+            reader.onload = e => replyImagePreviewDiv.innerHTML = `<img src="${e.target.result}" alt="Önizleme" loading="lazy">`;
             reader.readAsDataURL(file);
         } else {
             selectedFile = null;
@@ -913,7 +983,7 @@ async function loadTicketDetailPageData(user) {
                 case 'open': statusText = 'Açık'; statusClass = 'status-pending'; break;
                 case 'closed': statusText = 'Kapalı'; statusClass = 'status-rejected'; break;
                 case 'archived': statusText = 'Arşivlendi'; statusClass = 'status-archived'; break;
-                case 'cleared': statusText = 'Temizlendi'; statusClass = 'status-archived'; break; // 'cleared' durumu için
+                case 'cleared': statusText = 'Temizlendi'; statusClass = 'status-archived'; break;
                 default: statusText = 'Bilinmiyor'; statusClass = ''; break;
             }
             if (ticket.assignedToName) {
@@ -922,7 +992,6 @@ async function loadTicketDetailPageData(user) {
             statusSpan.textContent = statusText;
             statusSpan.className = `status-badge ${statusClass}`;
             
-            // Hide reply form and close button if ticket is closed, archived or cleared
             if (ticket.status === 'closed' || ticket.status === 'archived' || ticket.status === 'cleared') {
                 replyFormContainer.style.display = 'none';
                 closeTicketBtn.style.display = 'none';
@@ -955,7 +1024,7 @@ async function loadTicketDetailPageData(user) {
                 
                 let fileAttachmentHtml = '';
                 if (reply.fileURL) {
-                    fileAttachmentHtml = `<div style="margin-top: 10px;"><img src="${reply.fileURL}" class="uploaded-image-preview" onclick="window.open(this.src, '_blank')" alt="Ek"></div>`;
+                    fileAttachmentHtml = `<div style="margin-top: 10px;"><img src="${reply.fileURL}" class="uploaded-image-preview" onclick="window.open(this.src, '_blank')" alt="Ek" loading="lazy"></div>`;
                 }
 
                 repliesHtml += `
@@ -986,8 +1055,11 @@ async function loadTicketDetailPageData(user) {
         try {
             let fileURL = null;
             if (selectedFile) {
+                // Görsel boyutunu küçültmek için Canvas kullanımı
+                const compressedFile = await compressImage(selectedFile);
+
                 const storageRef = ref(storage, `ticket_attachments/${user.uid}/${ticketId}-${Date.now()}-${selectedFile.name}`);
-                const snapshot = await uploadBytes(storageRef, selectedFile);
+                const snapshot = await uploadBytes(storageRef, compressedFile);
                 fileURL = await getDownloadURL(snapshot.ref);
             }
 
@@ -995,18 +1067,18 @@ async function loadTicketDetailPageData(user) {
                 message, 
                 senderId: user.uid, 
                 senderType: 'user', 
-                senderName: username, // Use fetched username
+                senderName: username,
                 sentAt: serverTimestamp(),
                 fileURL: fileURL 
             });
             await updateDoc(ticketRef, { 
                 lastUpdatedAt: serverTimestamp(), 
-                status: 'open', // Ensure status is open if user replies
-                lastMessage: message, // Update last message on ticket document
-                lastMessageSenderType: 'user' // Update sender type
+                status: 'open',
+                lastMessage: message,
+                lastMessageSenderType: 'user'
             }); 
             replyMessageInput.value = '';
-            replyFileInput.value = ''; // Clear file input
+            replyFileInput.value = '';
             selectedFile = null;
             replyFileNameSpan.textContent = "Dosya seçilmedi";
             replyImagePreviewDiv.innerHTML = "";
@@ -1039,7 +1111,6 @@ async function loadTicketDetailPageData(user) {
     });
 }
 
-// YENİ ÖZELLİK: Duyurular Sayfası Yükleme
 async function loadAnnouncementsPageData() {
     const announcementsList = document.getElementById('announcementsList');
 

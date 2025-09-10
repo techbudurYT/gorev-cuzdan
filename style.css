@@ -257,6 +257,7 @@ h3 {
 .input-group.spark input:focus ~ label, 
 .input-group.spark input:valid ~ label, 
 .input-group.spark input:not(:placeholder-shown) ~ label,
+.input-group.spark input.populated ~ label, /* Yeni eklenen .populated sınıfı */
 .input-group.spark textarea:focus ~ label, 
 .input-group.spark textarea:valid ~ label, 
 .input-group.spark textarea:not(:placeholder-shown) ~ label,
@@ -347,7 +348,6 @@ body.auth-page #main-content {
     flex-shrink: 0; width: 50px; height: 50px; background: rgba(13, 12, 18, 0.5);
     border-radius: 12px; display: flex; align-items: center; justify-content: center; padding: 8px;
 }
-/* DÜZELTME: Logo boyutu sorunu giderildi */
 .task-logo img {
     width: 100%;
     height: 100%;
