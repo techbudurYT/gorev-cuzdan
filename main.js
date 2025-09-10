@@ -728,8 +728,7 @@ async function loadSupportPageData(user) {
         }
     });
 
-    // Corrected ticketsQuery: orderBy 'status' first due to '! = "archived"' where clause
-    const ticketsQuery = query(collection(db, "tickets"), where("userId", "==", user.uid), where("status", "!=", "archived"), orderBy("status", "asc"), orderBy("lastUpdatedAt", "desc"));
+    const ticketsQuery = query(collection(db, "tickets"), where("userId", "==", user.uid), orderBy("lastUpdatedAt", "desc"));
     onSnapshot(ticketsQuery, (snapshot) => {
         if (snapshot.empty) {
             previousTicketsList.innerHTML = `<div class="empty-state">Henüz bir destek talebiniz bulunmuyor.</div>`;
@@ -744,6 +743,7 @@ async function loadSupportPageData(user) {
             switch(ticket.status) {
                 case 'open': statusText = 'Açık'; statusClass = 'status-pending'; break;
                 case 'closed': statusText = 'Kapalı'; statusClass = 'status-rejected'; break; // Use rejected style for closed tickets
+                case 'archived': statusText = 'Arşivlendi'; statusClass = 'status-archived'; break;
                 default: statusText = 'Bilinmiyor'; statusClass = ''; break;
             }
             if (ticket.assignedToName) {

@@ -204,7 +204,8 @@ async function initAdminPanel(user) {
                 try {
                     await updateDoc(doc(db, "users", userId), { username: newUsername, balance: Number(newBalance), isAdmin: newIsAdmin });
                     showAlert("Kullanıcı güncellendi!", true);
-                } catch (error) {
+                }
+                catch (error) {
                     showAlert("Güncelleme hatası: " + error.message, false);
                 }
             }
@@ -448,7 +449,7 @@ async function initAdminPanel(user) {
     });
 
     // --- Ticket Management ---
-    const ticketsQuery = query(collection(db, "tickets"), where("status", "!=", "archived"), orderBy("status", "asc"), orderBy("lastUpdatedAt", "desc"));
+    const ticketsQuery = query(collection(db, "tickets"), orderBy("lastUpdatedAt", "desc"));
     onSnapshot(ticketsQuery, (snapshot) => {
         if (snapshot.empty) {
             adminTicketsList.innerHTML = `<p class="empty-state">Henüz destek talebi bulunmamaktadır.</p>`;
