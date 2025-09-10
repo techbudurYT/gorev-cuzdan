@@ -728,7 +728,8 @@ async function loadSupportPageData(user) {
         }
     });
 
-    const ticketsQuery = query(collection(db, "tickets"), where("userId", "==", user.uid), where("status", "!=", "archived"), orderBy("lastUpdatedAt", "desc"));
+    // Corrected ticketsQuery: orderBy 'status' first due to '! = "archived"' where clause
+    const ticketsQuery = query(collection(db, "tickets"), where("userId", "==", user.uid), where("status", "!=", "archived"), orderBy("status", "asc"), orderBy("lastUpdatedAt", "desc"));
     onSnapshot(ticketsQuery, (snapshot) => {
         if (snapshot.empty) {
             previousTicketsList.innerHTML = `<div class="empty-state">Henüz bir destek talebiniz bulunmuyor.</div>`;
