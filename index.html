@@ -8,9 +8,7 @@
 </head>
 <body id="page-index">
   <div id="loader"></div>
-
   <div class="app-layout" style="display: none;" id="main-content">
-    <!-- MASAÜSTÜ KENAR ÇUBUĞU -->
     <nav class="sidebar">
       <h2 class="sidebar-header">GörevCüzdan</h2>
       <div class="sidebar-nav">
@@ -21,22 +19,14 @@
         <a href="profile.html" class="tab-btn">Profil</a>
       </div>
     </nav>
-
-    <!-- ANA İÇERİK -->
     <main class="main-content-wrapper">
       <div class="container">
-        <header class="spark-header">
-          <h1>Görevler</h1>
-        </header>
-
+        <header class="spark-header"><h1>Görevler</h1></header>
         <div class="page-wrapper">
-          <!-- Bakiye Kartı -->
           <div class="spark-card balance-card">
             <p>Toplam Bakiye</p>
             <div class="balance-amount" id="balanceDisplay">0 ₺</div>
           </div>
-
-          <!-- Kategori Filtreleri -->
           <div class="category-filters-container">
             <div class="category-filters">
               <button class="filter-btn active" data-category="all">Tümü</button>
@@ -47,14 +37,10 @@
               <button class="filter-btn" data-category="other">Diğer</button>
             </div>
           </div>
-
-          <!-- Görev Listesi -->
           <h3 style="margin-top: 25px;">Mevcut Görevler</h3>
           <ul id="taskList"></ul>
         </div>
       </div>
-
-      <!-- MOBİL ALT NAVİGASYON -->
       <nav class="bottom-nav">
         <a href="index.html" class="tab-btn active">Görevler</a>
         <a href="my-tasks.html" class="tab-btn">Görevlerim</a>
@@ -64,7 +50,6 @@
       </nav>
     </main>
   </div>
-
   <script src="main.js" type="module"></script>
 </body>
 </html>

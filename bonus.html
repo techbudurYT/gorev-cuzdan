@@ -7,27 +7,39 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body id="page-bonus">
-    <div id="loader">Yükleniyor...</div>
-    <div id="main-content" style="display: none;">
-        <div class="container">
-            <header class="spark-header"><h1>Günlük Bonus</h1></header>
-            <div class="page-wrapper">
-                <div class="spark-card bonus-card">
-                    <div class="bonus-icon">🎁</div>
-                    <h3>Günün Bonusu Seni Bekliyor!</h3>
-                    <p id="bonusStatusText">Her 24 saatte bir gelerek 0.50 ₺ bonus kazanabilirsin.</p>
-                    <div id="alertBox"></div>
-                    <button id="claimBonusBtn" class="spark-button bonus-button" disabled>Kontrol Ediliyor...</button>
-                </div>
-            </div>
-            <div class="bottom-nav spark-nav">
+    <div id="loader"></div>
+    <div class="app-layout" style="display: none;" id="main-content">
+        <nav class="sidebar">
+            <h2 class="sidebar-header">GörevCüzdan</h2>
+            <div class="sidebar-nav">
                 <a href="index.html" class="tab-btn">Görevler</a>
                 <a href="my-tasks.html" class="tab-btn">Görevlerim</a>
                 <a href="bonus.html" class="tab-btn active">Bonus</a>
                 <a href="wallet.html" class="tab-btn">Cüzdan</a>
                 <a href="profile.html" class="tab-btn">Profil</a>
             </div>
-        </div>
+        </nav>
+        <main class="main-content-wrapper">
+            <div class="container">
+                <header class="spark-header"><h1>Günlük Bonus</h1></header>
+                <div class="page-wrapper">
+                    <div class="spark-card bonus-card" style="text-align: center;">
+                        <div class="bonus-icon" style="font-size: 4rem;">🎁</div>
+                        <h3>Günün Bonusu Seni Bekliyor!</h3>
+                        <p id="bonusStatusText">Her 24 saatte bir gelerek 0.50 ₺ bonus kazanabilirsin.</p>
+                        <div id="alertBox"></div>
+                        <button id="claimBonusBtn" class="spark-button" disabled style="max-width: 300px; margin: 15px auto 0;">Kontrol Ediliyor...</button>
+                    </div>
+                </div>
+            </div>
+            <nav class="bottom-nav">
+                <a href="index.html" class="tab-btn">Görevler</a>
+                <a href="my-tasks.html" class="tab-btn">Görevlerim</a>
+                <a href="bonus.html" class="tab-btn active">Bonus</a>
+                <a href="wallet.html" class="tab-btn">Cüzdan</a>
+                <a href="profile.html" class="tab-btn">Profil</a>
+            </nav>
+        </main>
     </div>
     <script src="main.js" type="module"></script>
 </body>

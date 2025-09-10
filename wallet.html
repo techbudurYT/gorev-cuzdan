@@ -7,52 +7,59 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body id="page-wallet">
-    <div id="loader">Yükleniyor...</div>
-    <div id="main-content" style="display: none;">
-        <div class="container">
-            <header class="spark-header"><h1>Cüzdanım</h1></header>
-            <div class="page-wrapper">
-                <div class="spark-card balance-card">
-                    <p>Mevcut Bakiye</p>
-                    <div class="balance-amount" id="currentBalance">0 ₺</div>
-                </div>
-
-                <div class="spark-card">
-                    <h3>Para Çekme Talebi Oluştur</h3>
-                    <div id="alertBox"></div>
-                    <form id="withdrawalForm">
-                        <div class="input-group spark">
-                            <input type="number" id="withdrawalAmount" required min="200" step="any">
-                            <label>Çekmek İstediğiniz Miktar (₺)</label>
-                        </div>
-                        <div class="input-group spark">
-                            <input type="text" id="iban" required pattern="TR[0-9]{24}">
-                            <label>IBAN Numaranız (TR ile Başlayan)</label>
-                        </div>
-                        <div class="input-group spark">
-                            <input type="tel" id="phoneNumber" required pattern="[0-9]{10}">
-                            <label>Telefon Numaranız (10 Hane)</label>
-                        </div>
-                        <button type="submit" class="spark-button">Çekme Talebi Oluştur</button>
-                    </form>
-                    <p class="small-info" style="font-size: 0.8em; text-align: center; margin-top: 15px; color: var(--spark-secondary);">Minimum çekim miktarı 200 ₺'dir. Telefon numaranızı başında "0" olmadan giriniz (örn: 5xxxxxxxxx).</p>
-                </div>
-
-                <div class="spark-card">
-                    <h3>Önceki Taleplerim</h3>
-                    <div id="previousWithdrawalsList">
-                        <p class="empty-state">Henüz para çekme talebiniz bulunmamaktadır.</p>
-                    </div>
-                </div>
-            </div>
-            <div class="bottom-nav spark-nav">
+    <div id="loader"></div>
+    <div class="app-layout" style="display: none;" id="main-content">
+        <nav class="sidebar">
+            <h2 class="sidebar-header">GörevCüzdan</h2>
+            <div class="sidebar-nav">
                 <a href="index.html" class="tab-btn">Görevler</a>
                 <a href="my-tasks.html" class="tab-btn">Görevlerim</a>
                 <a href="bonus.html" class="tab-btn">Bonus</a>
                 <a href="wallet.html" class="tab-btn active">Cüzdan</a>
                 <a href="profile.html" class="tab-btn">Profil</a>
             </div>
-        </div>
+        </nav>
+        <main class="main-content-wrapper">
+            <div class="container">
+                <header class="spark-header"><h1>Cüzdanım</h1></header>
+                <div class="page-wrapper">
+                    <div class="spark-card balance-card">
+                        <p>Mevcut Bakiye</p>
+                        <div class="balance-amount" id="currentBalance">0 ₺</div>
+                    </div>
+                    <div class="spark-card">
+                        <h3>Para Çekme Talebi Oluştur</h3>
+                        <div id="alertBox"></div>
+                        <form id="withdrawalForm">
+                            <div class="input-group spark">
+                                <input type="number" id="withdrawalAmount" required min="200" step="any">
+                                <label>Çekmek İstediğiniz Miktar (₺)</label>
+                            </div>
+                            <div class="input-group spark">
+                                <input type="text" id="iban" required pattern="TR[0-9]{24}">
+                                <label>IBAN Numaranız</label>
+                            </div>
+                            <div class="input-group spark">
+                                <input type="tel" id="phoneNumber" required pattern="[0-9]{10}">
+                                <label>Telefon (5xxxxxxxxx)</label>
+                            </div>
+                            <button type="submit" class="spark-button">Talep Oluştur</button>
+                        </form>
+                    </div>
+                    <div class="spark-card">
+                        <h3>Önceki Taleplerim</h3>
+                        <div id="previousWithdrawalsList"></div>
+                    </div>
+                </div>
+            </div>
+            <nav class="bottom-nav">
+                <a href="index.html" class="tab-btn">Görevler</a>
+                <a href="my-tasks.html" class="tab-btn">Görevlerim</a>
+                <a href="bonus.html" class="tab-btn">Bonus</a>
+                <a href="wallet.html" class="tab-btn active">Cüzdan</a>
+                <a href="profile.html" class="tab-btn">Profil</a>
+            </nav>
+        </main>
     </div>
     <script src="main.js" type="module"></script>
 </body>

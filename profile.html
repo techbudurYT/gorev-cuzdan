@@ -8,9 +8,7 @@
 </head>
 <body id="page-profile">
     <div id="loader"></div>
-    
     <div class="app-layout" style="display: none;" id="main-content">
-        <!-- MASAÜSTÜ KENAR ÇUBUĞU -->
         <nav class="sidebar">
             <h2 class="sidebar-header">GörevCüzdan</h2>
             <div class="sidebar-nav">
@@ -21,8 +19,6 @@
                 <a href="profile.html" class="tab-btn active">Profil</a>
             </div>
         </nav>
-
-        <!-- ANA İÇERİK -->
         <main class="main-content-wrapper">
             <div class="container">
                 <header class="spark-header"><h1>Profil & İstatistikler</h1></header>
@@ -41,16 +37,12 @@
                             <div class="stat-value" id="task-counts">0 / 0</div>
                         </div>
                     </div>
-                    <div class="spark-card">
-                        <div class="profile-actions-buttons">
-                            <a href="support.html" class="spark-button">Destek Merkezi</a>
-                            <button id="logoutBtn" class="spark-button logout-button">ÇIKIŞ YAP</button>
-                        </div>
+                    <div class="spark-card" style="padding: 15px;">
+                         <a href="support.html" class="spark-button" style="margin-bottom: 15px;">Destek Merkezi</a> 
+                         <button id="logoutBtn" class="spark-button logout-button">ÇIKIŞ YAP</button>
                     </div>
                 </div>
             </div>
-            
-            <!-- MOBİL ALT NAVİGASYON -->
             <nav class="bottom-nav">
                 <a href="index.html" class="tab-btn">Görevler</a>
                 <a href="my-tasks.html" class="tab-btn">Görevlerim</a>
@@ -60,7 +52,6 @@
             </nav>
         </main>
     </div>
-    
     <script src="main.js" type="module"></script>
 </body>
 </html>

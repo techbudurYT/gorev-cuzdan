@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="tr">
 <head>
@@ -8,23 +7,35 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body id="page-my-tasks">
-  <div id="loader">Yükleniyor...</div>
-  <div id="main-content" style="display: none;">
-    <div class="container">
-      <header class="spark-header"><h1>Görevlerim</h1></header>
-      <div class="page-wrapper">
-        <div id="submissionsList">
-          <p class="empty-state">Gönderimleriniz yükleniyor...</p>
-        </div>
-      </div>
-      <div class="bottom-nav spark-nav">
+  <div id="loader"></div>
+  <div class="app-layout" style="display: none;" id="main-content">
+    <nav class="sidebar">
+      <h2 class="sidebar-header">GörevCüzdan</h2>
+      <div class="sidebar-nav">
         <a href="index.html" class="tab-btn">Görevler</a>
         <a href="my-tasks.html" class="tab-btn active">Görevlerim</a>
         <a href="bonus.html" class="tab-btn">Bonus</a>
         <a href="wallet.html" class="tab-btn">Cüzdan</a>
         <a href="profile.html" class="tab-btn">Profil</a>
       </div>
-    </div>
+    </nav>
+    <main class="main-content-wrapper">
+      <div class="container">
+        <header class="spark-header"><h1>Görevlerim</h1></header>
+        <div class="page-wrapper">
+          <div id="submissionsList">
+            <!-- Gönderimler buraya yüklenecek -->
+          </div>
+        </div>
+      </div>
+      <nav class="bottom-nav">
+        <a href="index.html" class="tab-btn">Görevler</a>
+        <a href="my-tasks.html" class="tab-btn active">Görevlerim</a>
+        <a href="bonus.html" class="tab-btn">Bonus</a>
+        <a href="wallet.html" class="tab-btn">Cüzdan</a>
+        <a href="profile.html" class="tab-btn">Profil</a>
+      </nav>
+    </main>
   </div>
   <script src="main.js" type="module"></script>
 </body>

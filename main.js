@@ -350,18 +350,7 @@ async function loadMyTasksPageData(user) {
                 }
                 const submissionDate = submission.submittedAt ? submission.submittedAt.toDate().toLocaleDateString('tr-TR') : 'Bilinmiyor';
 
-                let submissionImagesHtml = '';
-                if (Array.isArray(submission.fileURLs) && submission.fileURLs.length > 0) {
-                    submission.fileURLs.forEach((url, index) => {
-                        submissionImagesHtml += `<img src="${url}" class="submission-image-thumbnail" onclick="window.open(this.src, '_blank')" alt="Kanıt ${index + 1}">`;
-                    });
-                } else if (submission.fileURL) { 
-                    submissionImagesHtml += `<img src="${submission.fileURL}" class="submission-image-thumbnail" onclick="window.open(this.src, '_blank')" alt="Kanıt">`;
-                } else {
-                    submissionImagesHtml += `<p>Görsel kanıt yok.</p>`;
-                }
-
-
+                // DÜZELTME: İsteğiniz üzerine fotoğraf gösterme kısmı kaldırıldı.
                 submissionsList.innerHTML += `
                   <div class="spark-card submission-card">
                     <div class="submission-header">
@@ -371,7 +360,6 @@ async function loadMyTasksPageData(user) {
                     <div class="submission-details">
                         <p>Gönderim Tarihi: ${submissionDate}</p>
                         <p>Ödül: +${task.reward} ₺</p>
-                        <div class="submission-images-container">${submissionImagesHtml}</div>
                     </div>
                     <div class="submission-actions">${reasonButtonHtml}</div>
                   </div>`;
@@ -382,6 +370,7 @@ async function loadMyTasksPageData(user) {
         submissionsList.innerHTML = `<div class="empty-state" style="color:var(--c-danger);">Gönderimler yüklenemedi.</div>`;
     }
 }
+
 
 async function loadTaskDetailPageData(user) {
     const urlParams = new URLSearchParams(window.location.search);

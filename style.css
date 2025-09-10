@@ -1,8 +1,8 @@
 /* ===================================================================
-   GörevCüzdan Stil Dosyası - Versiyon 5.0 (Tam Entegrasyon)
+   GörevCüzdan Stil Dosyası - Versiyon 6.0 (Tamamen Düzeltilmiş)
    Yazar: Gemini
-   Açıklama: Masaüstü için tam ekran sidebar ve mobil için alt navigasyon
-             entegrasyonu ile eksiksiz, optimize edilmiş ve modern tasarım.
+   Açıklama: Tüm sayfalarda tutarlı layout, CSS hataları giderildi,
+             kullanıcı talepleri uygulandı. Eksiksiz ve optimize.
    =================================================================== */
 
 /* -------------------------------------------------------------------
@@ -66,8 +66,8 @@ body::before {
   animation: background-pan 30s ease infinite alternate;
 }
 @keyframes background-pan {
-  from { background-position: 0% 0%; }
-  to { background-position: 100% 100%; }
+  from { transform: scale(1); }
+  to { transform: scale(1.2); }
 }
 
 @keyframes fade-in-up {
@@ -86,7 +86,6 @@ body::before {
 
 /* --- Kenar Çubuğu (Sidebar) - Sadece Masaüstü --- */
 .sidebar {
-    display: none; /* Mobilde gizli başlar */
     width: var(--sidebar-width);
     flex-shrink: 0;
     background: rgba(26, 24, 35, 0.7);
@@ -149,7 +148,7 @@ body::before {
 
 .container {
   width: 100%;
-  max-width: 900px; /* Geniş ekranlarda okunabilirliği artırır */
+  max-width: 900px; /* Okunabilirliği artırır */
   margin: 0 auto;
   padding-bottom: 90px; /* Mobil nav için boşluk */
 }
@@ -195,7 +194,7 @@ header.spark-header {
 /* --- Yükleyici --- */
 #loader {
   position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
-  font-size: 1.5rem; color: var(--c-primary); z-index: 9999; background: var(--c-bg-dark);
+  z-index: 9999; background: var(--c-bg-dark);
 }
 #loader::after {
     content: ''; width: 50px; height: 50px;
@@ -248,6 +247,7 @@ h3 {
   background: var(--c-bg-light); color: var(--c-text-secondary);
   box-shadow: none; transform: none; cursor: not-allowed; opacity: 0.7;
 }
+.spark-button.small-button { padding: 8px 15px; font-size: 0.9em; max-width: fit-content; }
 
 .input-group.spark { position: relative; margin-bottom: 30px; }
 .input-group.spark input, .input-group.spark textarea, .input-group.spark select {
@@ -329,7 +329,15 @@ body.auth-page .app-layout { padding: 20px; align-items: center; justify-content
 .task-card { display: flex; align-items: center; gap: 20px; padding: 20px; margin-top: 0; }
 .task-logo {
     flex-shrink: 0; width: 50px; height: 50px; background: rgba(13, 12, 18, 0.5);
-    border-radius: 12px; display: flex; align-items: center; justify-content: center; padding: 10px;
+    border-radius: 12px; display: flex; align-items: center; justify-content: center; padding: 8px;
+}
+/* DÜZELTME: Logo boyutu sorunu giderildi */
+.task-logo img {
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
 }
 .task-info { flex-grow: 1; }
 .task-title { font-weight: 600; font-size: 1.1em;}
@@ -337,7 +345,14 @@ body.auth-page .app-layout { padding: 20px; align-items: center; justify-content
 .task-action .spark-button { padding: 10px 22px; font-size: 0.9em; min-width: 95px; }
 .spark-button.completed, .spark-button.disabled-stock { background: var(--c-bg-medium); }
 
-/* --- C. Profil Sayfası --- */
+/* --- C. Görevlerim Sayfası --- */
+.submission-status { padding: 5px 12px; border-radius: 20px; font-size: 0.8em; font-weight: bold; }
+.status-pending { background-color: rgba(255, 206, 84, 0.2); color: var(--c-warning); }
+.status-approved { background-color: rgba(0, 255, 133, 0.2); color: var(--c-success); }
+.status-rejected { background-color: rgba(160, 157, 185, 0.2); color: var(--c-text-secondary); }
+.submission-card .submission-header { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+
+/* --- D. Profil Sayfası --- */
 .profile-dashboard { display: grid; grid-template-columns: 1fr; gap: 20px; }
 .stat-card { text-align: center; padding: 25px; }
 .stat-value { font-size: 2.2em; font-weight: 700; color: var(--c-secondary); margin-top: 8px; }
@@ -350,15 +365,15 @@ body.auth-page .app-layout { padding: 20px; align-items: center; justify-content
    ------------------------------------------------------------------- */
 
 /* Mobil (Varsayılan) */
-.sidebar { display: none; } /* Mobilde sidebar'ı gizle */
+.sidebar { display: none; }
 
 /* Tablet ve Masaüstü */
 @media (min-width: 992px) {
-  .sidebar { display: flex; } /* Masaüstünde sidebar'ı göster */
+  .sidebar { display: flex; }
   .main-content-wrapper { padding-left: var(--sidebar-width); }
-  .container { padding-bottom: 40px; } /* Alttaki boşluğu sıfırla */
+  .container { padding-bottom: 40px; }
   .page-wrapper { padding: 40px; }
-  .bottom-nav, header.spark-header { display: none; } /* Mobil elemanları gizle */
+  .bottom-nav, header.spark-header { display: none; }
 
   .auth-panel { width: 50%; }
   .auth-decorative-panel { 
@@ -370,10 +385,4 @@ body.auth-page .app-layout { padding: 20px; align-items: center; justify-content
   .auth-decorative-panel p { font-size: 1.2em; opacity: 0.9; }
 
   .profile-dashboard { grid-template-columns: repeat(3, 1fr); }
-
-  #page-admin-panel .page-wrapper {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
-      gap: 25px;
-  }
 }
