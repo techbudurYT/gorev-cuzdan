@@ -1,5 +1,3 @@
-// --- START OF FILE main.js ---
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, query, where, orderBy, getDocs, runTransaction, addDoc, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
@@ -65,6 +63,19 @@ document.addEventListener('DOMContentLoaded', () => {
     onAuthStateChanged(auth, async (user) => {
         const isAuthPage = pageId === 'page-login' || pageId === 'page-register';
         if (user) {
+            // Ensure user data exists in Firestore upon login
+            const userRef = doc(db, "users", user.uid);
+            const userDoc = await getDoc(userRef);
+            if (!userDoc.exists()) {
+                // If user document doesn't exist, create a basic one
+                await setDoc(userRef, {
+                    username: user.email.split('@')[0], 
+                    email: user.email, 
+                    balance: 0, 
+                    isAdmin: false 
+                }, { merge: true }); // Use merge: true to avoid overwriting existing data if it was partially created
+            }
+
             if (isAuthPage) { 
                 window.location.replace('index.html');
             } else { 
@@ -288,10 +299,12 @@ async function loadProfilePageData(user) {
             usernameDisplay.textContent = userData.username || 'N/A';
             balanceDisplay.textContent = `${(userData.balance || 0).toFixed(2)} ₺`;
         } else {
+             // This case should ideally be handled by the onAuthStateChanged in DOMContentLoaded,
+             // but as a fallback, ensure the document exists.
              console.warn("Kullanıcı belgesi bulunamadı. Varsayılan oluşturuluyor...");
             setDoc(doc(db, "users", user.uid), {
                 username: user.email.split('@')[0], email: user.email, balance: 0, isAdmin: false
-            });
+            }, { merge: true });
         }
     });
     
@@ -346,6 +359,7 @@ async function loadMyTasksPageData(user) {
                             reasonButtonHtml = `<button class="spark-button small-button btn-show-reason" data-reason="${encodedReason}">İptal Nedeni</button>`;
                         }
                         break;
+                    case 'archived': statusText = 'Arşivlendi'; statusClass = 'status-archived'; break;
                     default: statusText = 'Bilinmiyor'; statusClass = ''; break;
                 }
                 const submissionDate = submission.submittedAt ? submission.submittedAt.toDate().toLocaleDateString('tr-TR') : 'Bilinmiyor';
@@ -600,12 +614,9 @@ async function loadWalletPageData(user) {
             const userData = docSnapshot.data();
             if (userData.iban) {
                 ibanInput.value = userData.iban;
-                // Manually trigger :valid state if needed, though CSS should handle it
-                // ibanInput.classList.add('has-value'); // Example for a custom class if :valid is insufficient
             }
             if (userData.phoneNumber) {
                 phoneNumberInput.value = userData.phoneNumber;
-                // phoneNumberInput.classList.add('has-value');
             }
         }
     });
@@ -639,7 +650,7 @@ async function loadWalletPageData(user) {
                 });
             });
             showAlert("Çekme talebiniz oluşturuldu.", true);
-            // withdrawalForm.reset(); // Don't reset IBAN and phone if saved
+            withdrawalForm.reset(); // Don't reset IBAN and phone if saved
         } catch (error) {
             showAlert("Talep oluşturulamadı: " + error.message, false);
         } finally {
@@ -678,18 +689,18 @@ async function loadSupportPageData(user) {
     const createTicketForm = document.getElementById('createTicketForm');
     const previousTicketsList = document.getElementById('previousTicketsList');
 
+    // Fetch user's username for senderName
+    let username = user.email; // Default to email
+    const userDocSnapshot = await getDoc(doc(db, "users", user.uid));
+    if (userDocSnapshot.exists() && userDocSnapshot.data().username) {
+        username = userDocSnapshot.data().username;
+    }
+
     createTicketForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const subject = document.getElementById('ticketSubject').value.trim();
         const message = document.getElementById('ticketMessage').value.trim();
         if (!subject || !message) return showAlert("Lütfen tüm alanları doldurun.", false);
-
-        // Fetch user's username for senderName
-        let username = user.email; // Default to email
-        const userDoc = await getDoc(doc(db, "users", user.uid));
-        if (userDoc.exists() && userDoc.data().username) {
-            username = userDoc.data().username;
-        }
 
         try {
             const submitBtn = createTicketForm.querySelector('button[type="submit"]');
@@ -732,7 +743,6 @@ async function loadSupportPageData(user) {
             switch(ticket.status) {
                 case 'open': statusText = 'Açık'; statusClass = 'status-pending'; break;
                 case 'closed': statusText = 'Kapalı'; statusClass = 'status-rejected'; break; // Use rejected style for closed tickets
-                case 'archived': statusText = 'Arşivlendi'; statusClass = 'status-archived'; break;
                 default: statusText = 'Bilinmiyor'; statusClass = ''; break;
             }
             if (ticket.assignedToName) {
@@ -767,9 +777,9 @@ async function loadTicketDetailPageData(user) {
 
     // Fetch user's username for replies
     let username = user.email; // Default to email
-    const userDoc = await getDoc(doc(db, "users", user.uid));
-    if (userDoc.exists() && userDoc.data().username) {
-        username = userDoc.data().username;
+    const userDocSnapshot = await getDoc(doc(db, "users", user.uid));
+    if (userDocSnapshot.exists() && userDocSnapshot.data().username) {
+        username = userDocSnapshot.data().username;
     }
 
     onSnapshot(ticketRef, (docSnapshot) => {

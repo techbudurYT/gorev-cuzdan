@@ -148,7 +148,7 @@ body::before {
 
 .container {
   width: 100%;
-  max-width: 900px; /* Okunabilirliği artırır */
+  max-width: 900px; /* Okunabilliği artırır */
   margin: 0 auto;
   padding-bottom: 90px; /* Mobil nav için boşluk */
 }

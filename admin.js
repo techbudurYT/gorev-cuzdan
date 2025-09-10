@@ -1,5 +1,3 @@
-// --- START OF FILE admin.js ---
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, query, where, orderBy, getDocs, runTransaction, addDoc, deleteDoc, serverTimestamp, updateDoc, writeBatch } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
@@ -534,7 +532,7 @@ async function initAdminPanel(user) {
                 showAlert("Talep vazgeçme hatası: " + error.message, false);
             }
         }
-        if (target.matches('.btn-reply-ticket')) {
+        if (target.matches('.btn-reply-ticket') || target.matches('.btn-view-ticket')) { // View button also toggles reply area
             const replyArea = document.getElementById(`adminReplyArea-${ticketId}`);
             if (replyArea) {
                 replyArea.style.display = replyArea.style.display === 'none' ? 'block' : 'none';
@@ -573,18 +571,6 @@ async function initAdminPanel(user) {
                     showAlert("Talep kapatıldı!", true);
                 } catch (error) {
                     showAlert("Kapatma hatası: " + error.message, false);
-                }
-            }
-        }
-        if (target.matches('.btn-view-ticket')) {
-            // No direct view link in admin panel, replies are handled inline or should lead to a dedicated page if needed.
-            // For now, this button could toggle the reply area if the ticket is closed or assigned to someone else
-            const replyArea = document.getElementById(`adminReplyArea-${ticketId}`);
-            if (replyArea) {
-                replyArea.style.display = replyArea.style.display === 'none' ? 'block' : 'none';
-                if(replyArea.style.display === 'block') {
-                    // Optionally load replies here dynamically if needed
-                    // For this simple version, we assume the admin interacts with live view in the main adminTicketsList
                 }
             }
         }
