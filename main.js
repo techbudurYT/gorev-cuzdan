@@ -1,3 +1,4 @@
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail, updateProfile, updateEmail, updatePassword } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, query, where, orderBy, getDocs, runTransaction, addDoc, serverTimestamp, updateDoc, limit, deleteDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
@@ -495,7 +496,7 @@ async function loadBonusPageData(user) {
 // ImageBB'ye resim yüklemek için yardımcı fonksiyon
 async function uploadImageToImageBB(file) {
     if (!IMGBB_API_KEY || IMGBB_API_KEY === "YOUR_IMGBB_API_KEY") {
-        throw new Error("ImageBB API Key ayarlanmamış veya varsayılan değerde. Lütfen main.js dosyasındaki IMGBB_API_KEY değişkenini güncelleyin.");
+        throw new Error("ImageBB API Key ayarlanmamış veya varsayılan değerde. Lütfen main.js dosasındaki IMGBB_API_KEY değişkenini güncelleyin.");
     }
 
     const formData = new FormData();
@@ -526,7 +527,6 @@ async function uploadImageToImageBB(file) {
 
 async function loadProfilePageData(user) {
     const usernameDisplay = document.getElementById("usernameDisplay");
-    const emailDisplay = document.getElementById("emailDisplay");
     const balanceDisplay = document.getElementById("balanceDisplay");
     const taskCountsDisplay = document.getElementById("task-counts");
     const totalEarnedDisplay = document.getElementById("totalEarnedDisplay");
@@ -537,7 +537,7 @@ async function loadProfilePageData(user) {
     const closeModalBtn = document.getElementById("closeModalBtn");
     const editProfileForm = document.getElementById("editProfileForm");
     const editUsername = document.getElementById("editUsername");
-    const editEmail = document.getElementById("editEmail");
+    const editEmail = document.getElementById("editEmail"); // Keep for edit functionality
     const changePasswordBtn = document.getElementById("changePasswordBtn");
     const avatarInput = document.getElementById("avatarInput");
     const avatarPreview = document.getElementById("avatarPreview");
@@ -549,7 +549,6 @@ async function loadProfilePageData(user) {
         if(docSnapshot.exists()) {
             const userData = docSnapshot.data();
             usernameDisplay.textContent = userData.username || 'N/A';
-            emailDisplay.textContent = userData.email || user.email;
             balanceDisplay.textContent = `${(userData.balance || 0).toFixed(2)} ₺`;
             totalEarnedDisplay.textContent = `${(userData.totalEarned || 0).toFixed(2)} ₺`;
             userLevelDisplay.textContent = `${userData.level || 1}`;
@@ -599,8 +598,9 @@ async function loadProfilePageData(user) {
         signOut(auth).then(() => window.location.replace("login.html"));
     });
 
-    editProfileBtn.addEventListener('click', () => {
-        profileEditModal.style.display = 'flex'; // Modalı açmak için display: flex kullan
+    editProfileBtn.addEventListener('click', (e) => {
+        e.preventDefault(); // Prevent default link/button behavior if any
+        profileEditModal.style.display = 'flex'; // Use flex to show modal
     });
 
     closeModalBtn.addEventListener('click', () => {
@@ -662,8 +662,10 @@ async function loadProfilePageData(user) {
             }
 
             showAlert("Profil başarıyla güncellendi!", true);
-            profileEditModal.style.display = 'none';
-            selectedAvatarFile = null; // Seçili dosyayı sıfırla
+            setTimeout(() => { // Add a short delay for UX before closing modal
+                profileEditModal.style.display = 'none';
+                selectedAvatarFile = null; // Seçili dosyayı sıfırla
+            }, 1500);
         } catch (error) {
             console.error("Profil güncelleme hatası:", error);
             if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
