@@ -1103,7 +1103,6 @@ async function loadWalletPageData(user) {
 async function loadSupportPageData(user) {
     const createTicketForm = document.getElementById('createTicketForm');
     const previousTicketsList = document.getElementById('previousTicketsList');
-    const faqList = document.getElementById('faqList');
 
     let username = user.displayName || user.email.split('@')[0];
     const userDocSnapshot = await getDoc(doc(db, "users", user.uid));
@@ -1186,31 +1185,6 @@ async function loadSupportPageData(user) {
         console.error("Destek talepleri yüklenirken hata oluştu:", error);
         previousTicketsList.innerHTML = `<div class="empty-state" style="color:var(--c-danger);">Destek talepleri yüklenemedi: ${error.message}</div>`;
     });
-
-    // SSS bölümünü sadece destek sayfasında yükle, FAQ sayfasında değil
-    if (document.body.id === 'page-support') {
-        try {
-            const faqsQuery = query(collection(db, "faqs"), orderBy("order", "asc"));
-            const faqsSnapshot = await getDocs(faqsQuery);
-            if (!faqsSnapshot.empty) {
-                faqList.innerHTML = '';
-                faqsSnapshot.forEach(doc => {
-                    const faq = doc.data();
-                    faqList.innerHTML += `
-                        <div class="spark-card" style="margin-top: 15px;">
-                            <h4>${faq.question}</h4>
-                            <p>${faq.answer}</p>
-                        </div>
-                    `;
-                });
-            } else {
-                faqList.innerHTML = '<div class="empty-state">Henüz sıkça sorulan soru bulunmuyor.</div>';
-            }
-        } catch (error) {
-            console.error("SSS yüklenirken hata:", error);
-            faqList.innerHTML = `<div class="empty-state" style="color:var(--c-danger);">SSS yüklenemedi.</div>`;
-        }
-    }
 }
 
 async function loadTicketDetailPageData(user) {
