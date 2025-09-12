@@ -28,12 +28,6 @@
                 <div class="page-wrapper">
                     <div class="spark-card profile-dashboard">
                         <div class="stat-card">
-                            <div class="stat-label">Profil Fotoğrafı</div>
-                            <div class="stat-value">
-                                <img id="currentAvatar" src="img/default-avatar.png" alt="Avatar" class="profile-avatar">
-                            </div>
-                        </div>
-                        <div class="stat-card">
                             <div class="stat-label">Kullanıcı Adı</div>
                             <div class="stat-value" id="usernameDisplay">...</div>
                         </div>
@@ -48,10 +42,6 @@
                         <div class="stat-card">
                             <div class="stat-label">Tamamlanan Görevler</div>
                             <div class="stat-value" id="task-counts">0 / 0</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">Seviye</div>
-                            <div class="stat-value" id="userLevelDisplay">1</div>
                         </div>
                     </div>
                     <div class="spark-card" style="padding: 15px;">
@@ -88,12 +78,6 @@
                 <div class="input-group spark">
                     <input type="email" id="editEmail" required>
                     <label>E-posta</label>
-                </div>
-                <div class="input-group spark file-upload-group">
-                    <label for="avatarInput" class="spark-button small-button">Avatar Seç</label>
-                    <input type="file" id="avatarInput" accept="image/jpeg,image/png" style="display: none;">
-                    <span class="file-name-display">Resim seçilmedi</span>
-                    <div id="avatarPreview" class="upload-preview" style="margin-top: 10px; text-align: center;"></div>
                 </div>
                 <button type="submit" class="spark-button">Değişiklikleri Kaydet</button>
                 <button type="button" id="changePasswordBtn" class="spark-button" style="background-color: var(--c-warning);">Şifreyi Değiştir</button>
