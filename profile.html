@@ -45,8 +45,6 @@
                         </div>
                     </div>
                     <div class="spark-card" style="padding: 15px;">
-                         <button id="editProfileBtn" class="spark-button">Profili Düzenle</button>
-                         
                          <button id="logoutBtn" class="spark-button logout-button">ÇIKIŞ YAP</button>
                     </div>
                 </div>
@@ -62,27 +60,6 @@
                 <a href="faq.html" class="tab-btn">SSS</a>
             </nav>
         </main>
-    </div>
-
-    <!-- Profil Düzenleme Modalı -->
-    <div id="profileEditModal" class="modal">
-        <div class="modal-content spark-card">
-            <span class="close-button" id="closeModalBtn">&times;</span>
-            <h3>Profili Düzenle</h3>
-            <div id="alertBox"></div>
-            <form id="editProfileForm">
-                <div class="input-group spark">
-                    <input type="text" id="editUsername" required>
-                    <label>Kullanıcı Adı</label>
-                </div>
-                <div class="input-group spark">
-                    <input type="email" id="editEmail" required>
-                    <label>E-posta</label>
-                </div>
-                <button type="submit" class="spark-button">Değişiklikleri Kaydet</button>
-                <button type="button" id="changePasswordBtn" class="spark-button" style="background-color: var(--c-warning);">Şifreyi Değiştir</button>
-            </form>
-        </div>
     </div>
 
     <script src="main.js" type="module"></script>
