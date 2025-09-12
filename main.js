@@ -1,4 +1,3 @@
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail, updateProfile, updateEmail, updatePassword } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, query, where, orderBy, getDocs, runTransaction, addDoc, serverTimestamp, updateDoc, limit, deleteDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
@@ -537,7 +536,7 @@ async function loadProfilePageData(user) {
     const closeModalBtn = document.getElementById("closeModalBtn");
     const editProfileForm = document.getElementById("editProfileForm");
     const editUsername = document.getElementById("editUsername");
-    const editEmail = document.getElementById("editEmail"); // Keep for edit functionality
+    const editEmail = document.getElementById("editEmail"); 
     const changePasswordBtn = document.getElementById("changePasswordBtn");
     const avatarInput = document.getElementById("avatarInput");
     const avatarPreview = document.getElementById("avatarPreview");
@@ -545,6 +544,7 @@ async function loadProfilePageData(user) {
 
     let selectedAvatarFile = null;
 
+    // Profil verilerini güncelleyen ana gözlemci
     onSnapshot(doc(db, 'users', user.uid), (docSnapshot) => {
         if(docSnapshot.exists()) {
             const userData = docSnapshot.data();
@@ -552,13 +552,13 @@ async function loadProfilePageData(user) {
             balanceDisplay.textContent = `${(userData.balance || 0).toFixed(2)} ₺`;
             totalEarnedDisplay.textContent = `${(userData.totalEarned || 0).toFixed(2)} ₺`;
             userLevelDisplay.textContent = `${userData.level || 1}`;
+            
+            // Edit modalındaki input alanlarını güncelle
             editUsername.value = userData.username || '';
             editEmail.value = userData.email || '';
 
-            // Manually add 'populated' class for pre-filled inputs
-            if (editUsername.value) editUsername.classList.add('populated'); else editUsername.classList.remove('populated');
-            if (editEmail.value) editEmail.classList.add('populated'); else editEmail.classList.remove('populated');
-
+            // Input etiketlerinin doğru şekilde yukarıda kalmasını sağla
+            handleInputLabels();
 
             if (userData.avatarUrl) {
                 currentAvatar.src = userData.avatarUrl;
@@ -602,6 +602,8 @@ async function loadProfilePageData(user) {
         e.preventDefault(); 
         console.log("Edit Profile button clicked. Showing modal.");
         profileEditModal.classList.add('is-visible'); // CSS class to manage visibility and transition
+        // Input etiketlerini tekrar işle, çünkü modal görünür hale geldiğinde değerler yüklenmiş olabilir
+        handleInputLabels(); 
     });
 
     closeModalBtn.addEventListener('click', () => {
@@ -611,6 +613,7 @@ async function loadProfilePageData(user) {
     });
 
     window.addEventListener('click', (event) => {
+        // Eğer tıklama modalın dışındaki gri alana yapılırsa modalı kapat
         if (event.target === profileEditModal) {
             console.log("Clicked outside modal. Hiding modal.");
             profileEditModal.classList.remove('is-visible'); // Hide modal using CSS class
@@ -654,6 +657,8 @@ async function loadProfilePageData(user) {
             }
 
             if (newEmail !== currentUser.email) {
+                // E-posta değiştirilmeden önce Firestore'daki "users" koleksiyonundaki "email" alanını güncelle
+                // Bu, onAuthStateChanged tetiklendiğinde Firebase Authentication'dan gelen e-posta ile tutarlı kalmasını sağlar
                 await updateEmail(currentUser, newEmail);
                 await updateDoc(doc(db, "users", user.uid), { email: newEmail });
             }
