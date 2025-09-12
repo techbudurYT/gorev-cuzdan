@@ -1,3 +1,4 @@
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail, updateProfile, updateEmail, updatePassword } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, query, where, orderBy, getDocs, runTransaction, addDoc, serverTimestamp, updateDoc, limit, deleteDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
@@ -368,8 +369,6 @@ async function loadIndexPageData(user) {
             li.style.animationDelay = `${index * 0.05}s`;
 
             let displayReward = task.reward;
-            let premiumBonusText = '';
-
             const now = new Date();
             const isPremiumActive = isUserPremium && premiumExpiry && premiumExpiry > now;
 
@@ -727,7 +726,7 @@ async function loadTaskDetailPageData(user) {
             taskStockDisplay.textContent = `Mevcut Stok: ${currentTask.stock || 0}`; 
 
             let displayReward = currentTask.reward;
-            const now = new Date();
+            const now = new Date(); // Moved 'now' inside the try block
             const isPremiumActive = isUserPremium && premiumExpiry && premiumExpiry > now;
 
             if (isPremiumActive) {
@@ -865,6 +864,9 @@ async function loadTaskDetailPageData(user) {
                 transaction.update(taskRef, { stock: newStock }); 
 
                 const newSubmissionRef = doc(collection(db, "submissions")); 
+                const now = new Date(); // Define 'now' here
+                const isPremiumActive = isUserPremium && premiumExpiry && premiumExpiry > now;
+
                 transaction.set(newSubmissionRef, { 
                     taskId, 
                     userId: user.uid, 
@@ -873,7 +875,7 @@ async function loadTaskDetailPageData(user) {
                     submittedAt: serverTimestamp(), 
                     status: 'pending',
                     userIp: userIp, // IP adresini gönderime ekle
-                    isPremiumBonusApplied: isUserPremium && premiumExpiry && premiumExpiry > now // NEW: Record if premium bonus was applicable at submission
+                    isPremiumBonusApplied: isPremiumActive // NEW: Record if premium bonus was applicable at submission
                 });
             });
             showAlert('Göreviniz başarıyla onaya gönderildi!', true);
