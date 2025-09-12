@@ -2,6 +2,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail, updateProfile, updateEmail, updatePassword } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, query, where, orderBy, getDocs, runTransaction, addDoc, serverTimestamp, updateDoc, limit, deleteDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+// Firebase Storage artık kullanılmayacak, bu satırı kaldırıyoruz
+// import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-storage.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyBN85bxThpJYifWAvsS0uqPD0C9D55uPpM", // KENDİ API ANAHTARINIZI GİRİN!
@@ -525,13 +527,6 @@ async function loadProfilePageData(user) {
     const taskCountsDisplay = document.getElementById("task-counts");
     const totalEarnedDisplay = document.getElementById("totalEarnedDisplay");
     const logoutBtn = document.getElementById("logoutBtn");
-    const editProfileBtn = document.getElementById("editProfileBtn");
-    const profileEditModal = document.getElementById("profileEditModal");
-    const closeModalBtn = document.getElementById("closeModalBtn");
-    const editProfileForm = document.getElementById("editProfileForm");
-    const editUsername = document.getElementById("editUsername");
-    const editEmail = document.getElementById("editEmail"); 
-    const changePasswordBtn = document.getElementById("changePasswordBtn");
 
     // Profil verilerini güncelleyen ana gözlemci
     onSnapshot(doc(db, 'users', user.uid), (docSnapshot) => {
@@ -541,10 +536,6 @@ async function loadProfilePageData(user) {
             balanceDisplay.textContent = `${(userData.balance || 0).toFixed(2)} ₺`;
             totalEarnedDisplay.textContent = `${(userData.totalEarned || 0).toFixed(2)} ₺`;
             
-            // Edit modalındaki input alanlarını güncelle
-            editUsername.value = userData.username || '';
-            editEmail.value = userData.email || '';
-
             // Input etiketlerinin doğru şekilde yukarıda kalmasını sağla
             handleInputLabels();
         } else {
@@ -562,7 +553,6 @@ async function loadProfilePageData(user) {
         const tasksSnapshot = await getDocs(collection(db, 'tasks'));
         if(taskCountsDisplay) {
             taskCountsDisplay.textContent = `${approvedSubmissionsSnapshot.size} / ${tasksSnapshot.size}`;
-            // Seviye hesaplama kaldırıldı
             await updateDoc(doc(db, "users", user.uid), {
                 totalCompletedTasks: approvedSubmissionsSnapshot.size,
             }, { merge: true });
@@ -574,109 +564,6 @@ async function loadProfilePageData(user) {
     logoutBtn.addEventListener("click", (e) => {
         e.preventDefault(); 
         signOut(auth).then(() => window.location.replace("login.html"));
-    });
-
-    editProfileBtn.addEventListener('click', (e) => {
-        e.preventDefault(); 
-        console.log("Edit Profile button clicked. Showing modal.");
-        profileEditModal.classList.add('is-visible'); // CSS class to manage visibility and transition
-        // Input etiketlerini tekrar işle, çünkü modal görünür hale geldiğinde değerler yüklenmiş olabilir
-        handleInputLabels(); 
-    });
-
-    closeModalBtn.addEventListener('click', () => {
-        console.log("Close modal button clicked. Hiding modal.");
-        profileEditModal.classList.remove('is-visible'); // Hide modal using CSS class
-    });
-
-    window.addEventListener('click', (event) => {
-        // Eğer tıklama modalın dışındaki gri alana yapılırsa modalı kapat
-        if (event.target === profileEditModal) {
-            console.log("Clicked outside modal. Hiding modal.");
-            profileEditModal.classList.remove('is-visible'); // Hide modal using CSS class
-        }
-    });
-
-    editProfileForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const newUsername = editUsername.value.trim();
-        const newEmail = editEmail.value.trim();
-        const currentPassword = prompt("Değişiklikleri kaydetmek için lütfen mevcut şifrenizi girin:");
-
-        if (!currentPassword) {
-            return showAlert("Değişiklikler için mevcut şifrenizi girmeniz gereklidir.", false);
-        }
-
-        showLoader();
-
-        try {
-            // Re-authenticate user
-            const credential = await signInWithEmailAndPassword(auth, user.email, currentPassword);
-            const currentUser = credential.user;
-
-            if (newUsername !== (user.displayName || user.email.split('@')[0])) {
-                await updateProfile(currentUser, { displayName: newUsername });
-                await updateDoc(doc(db, "users", user.uid), { username: newUsername });
-            }
-
-            if (newEmail !== currentUser.email) {
-                // E-posta değiştirilmeden önce Firestore'daki "users" koleksiyonundaki "email" alanını güncelle
-                // Bu, onAuthStateChanged tetiklendiğinde Firebase Authentication'dan gelen e-posta ile tutarlı kalmasını sağlar
-                await updateEmail(currentUser, newEmail);
-                await updateDoc(doc(db, "users", user.uid), { email: newEmail });
-            }
-
-            showAlert("Profil başarıyla güncellendi!", true);
-            setTimeout(() => { // Add a short delay for UX before closing modal
-                profileEditModal.classList.remove('is-visible'); // Hide modal using CSS class
-            }, 1500);
-        } catch (error) {
-            console.error("Profil güncelleme hatası:", error);
-            if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-                showAlert("Mevcut şifreniz yanlış.", false);
-            } else if (error.code === 'auth/email-already-in-use') {
-                showAlert("Bu e-posta adresi zaten kullanımda.", false);
-            } else {
-                showAlert("Profil güncellenirken bir hata oluştu: " + error.message, false);
-            }
-        } finally {
-            hideLoader();
-        }
-    });
-
-    changePasswordBtn.addEventListener('click', async () => {
-        const currentPassword = prompt("Şifrenizi değiştirmek için lütfen mevcut şifrenizi girin:");
-        if (!currentPassword) return;
-
-        const newPassword = prompt("Yeni şifrenizi girin (en az 6 karakter):");
-        if (!newPassword || newPassword.length < 6) {
-            return showAlert("Yeni şifre en az 6 karakter olmalıdır.", false);
-        }
-
-        const confirmNewPassword = prompt("Yeni şifrenizi tekrar girin:");
-        if (newPassword !== confirmNewPassword) {
-            return showAlert("Yeni şifreler eşleşmiyor.", false);
-        }
-
-        showLoader();
-
-        try {
-            const credential = await signInWithEmailAndPassword(auth, user.email, currentPassword);
-            await updatePassword(credential.user, newPassword);
-            showAlert("Şifre başarıyla değiştirildi!", true);
-        } catch (error) {
-            console.error("Şifre değiştirme hatası:", error);
-            if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-                showAlert("Mevcut şifreniz yanlış.", false);
-            } else if (error.code === 'auth/requires-recent-login') {
-                showAlert("Güvenlik nedeniyle, bu işlemi gerçekleştirmeden önce yakın zamanda giriş yapmış olmalısınız. Lütfen tekrar giriş yapıp deneyin.", false);
-            }
-            else {
-                showAlert("Şifre değiştirilirken bir hata oluştu: " + error.message, false);
-            }
-        } finally {
-            hideLoader();
-        }
     });
 }
 
