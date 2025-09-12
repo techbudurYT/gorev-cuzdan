@@ -1,8 +1,7 @@
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail, updateProfile, updateEmail, updatePassword } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, query, where, orderBy, getDocs, runTransaction, addDoc, serverTimestamp, updateDoc, limit, deleteDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
-// Firebase Storage artık kullanılmayacak, bu satırı kaldırıyoruz
-// import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-storage.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyBN85bxThpJYifWAvsS0uqPD0C9D55uPpM", // KENDİ API ANAHTARINIZI GİRİN!
@@ -137,8 +136,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     balance: 0, 
                     isAdmin: false,
                     createdAt: serverTimestamp(),
-                    avatarUrl: null,
-                    level: 1,
                     totalCompletedTasks: 0,
                     totalEarned: 0,
                     lastLoginIp: await getIpAddress(),
@@ -216,8 +213,6 @@ function initRegisterPage() {
                 createdAt: serverTimestamp(),
                 lastLoginIp: ipAddress, // Yeni kayıt IP adresi
                 lastLoginAt: serverTimestamp(),
-                avatarUrl: null,
-                level: 1,
                 totalCompletedTasks: 0,
                 totalEarned: 0
             });
@@ -529,7 +524,6 @@ async function loadProfilePageData(user) {
     const balanceDisplay = document.getElementById("balanceDisplay");
     const taskCountsDisplay = document.getElementById("task-counts");
     const totalEarnedDisplay = document.getElementById("totalEarnedDisplay");
-    const userLevelDisplay = document.getElementById("userLevelDisplay");
     const logoutBtn = document.getElementById("logoutBtn");
     const editProfileBtn = document.getElementById("editProfileBtn");
     const profileEditModal = document.getElementById("profileEditModal");
@@ -538,11 +532,6 @@ async function loadProfilePageData(user) {
     const editUsername = document.getElementById("editUsername");
     const editEmail = document.getElementById("editEmail"); 
     const changePasswordBtn = document.getElementById("changePasswordBtn");
-    const avatarInput = document.getElementById("avatarInput");
-    const avatarPreview = document.getElementById("avatarPreview");
-    const currentAvatar = document.getElementById("currentAvatar");
-
-    let selectedAvatarFile = null;
 
     // Profil verilerini güncelleyen ana gözlemci
     onSnapshot(doc(db, 'users', user.uid), (docSnapshot) => {
@@ -551,7 +540,6 @@ async function loadProfilePageData(user) {
             usernameDisplay.textContent = userData.username || 'N/A';
             balanceDisplay.textContent = `${(userData.balance || 0).toFixed(2)} ₺`;
             totalEarnedDisplay.textContent = `${(userData.totalEarned || 0).toFixed(2)} ₺`;
-            userLevelDisplay.textContent = `${userData.level || 1}`;
             
             // Edit modalındaki input alanlarını güncelle
             editUsername.value = userData.username || '';
@@ -559,19 +547,11 @@ async function loadProfilePageData(user) {
 
             // Input etiketlerinin doğru şekilde yukarıda kalmasını sağla
             handleInputLabels();
-
-            if (userData.avatarUrl) {
-                currentAvatar.src = userData.avatarUrl;
-                avatarPreview.innerHTML = `<img src="${userData.avatarUrl}" alt="Mevcut Avatar" style="max-width: 100px; max-height: 100px; border-radius: 50%; object-fit: cover;">`;
-            } else {
-                currentAvatar.src = 'img/default-avatar.png'; // Varsayılan avatar
-                avatarPreview.innerHTML = '<p>Avatar seçilmedi.</p>';
-            }
         } else {
              console.warn("Kullanıcı belgesi bulunamadı. Varsayılan oluşturuluyor...");
             setDoc(doc(db, "users", user.uid), {
                 username: user.email.split('@')[0], email: user.email, balance: 0, isAdmin: false,
-                avatarUrl: null, level: 1, totalCompletedTasks: 0, totalEarned: 0
+                totalCompletedTasks: 0, totalEarned: 0
             }, { merge: true });
         }
     });
@@ -582,11 +562,9 @@ async function loadProfilePageData(user) {
         const tasksSnapshot = await getDocs(collection(db, 'tasks'));
         if(taskCountsDisplay) {
             taskCountsDisplay.textContent = `${approvedSubmissionsSnapshot.size} / ${tasksSnapshot.size}`;
-            // Seviye hesaplama (örnek olarak her 5 görevde bir seviye atlama)
-            const newLevel = Math.floor(approvedSubmissionsSnapshot.size / 5) + 1;
+            // Seviye hesaplama kaldırıldı
             await updateDoc(doc(db, "users", user.uid), {
                 totalCompletedTasks: approvedSubmissionsSnapshot.size,
-                level: newLevel
             }, { merge: true });
         }
     } catch (error) {
@@ -609,7 +587,6 @@ async function loadProfilePageData(user) {
     closeModalBtn.addEventListener('click', () => {
         console.log("Close modal button clicked. Hiding modal.");
         profileEditModal.classList.remove('is-visible'); // Hide modal using CSS class
-        selectedAvatarFile = null; // Modalı kapatırken seçili dosyayı sıfırla
     });
 
     window.addEventListener('click', (event) => {
@@ -617,20 +594,6 @@ async function loadProfilePageData(user) {
         if (event.target === profileEditModal) {
             console.log("Clicked outside modal. Hiding modal.");
             profileEditModal.classList.remove('is-visible'); // Hide modal using CSS class
-            selectedAvatarFile = null;
-        }
-    });
-
-    avatarInput.addEventListener('change', (e) => {
-        selectedAvatarFile = e.target.files[0];
-        if (selectedAvatarFile) {
-            const reader = new FileReader();
-            reader.onload = e => {
-                avatarPreview.innerHTML = `<img src="${e.target.result}" alt="Yeni Avatar Önizleme" style="max-width: 100px; max-height: 100px; border-radius: 50%; object-fit: cover;">`;
-            };
-            reader.readAsDataURL(selectedAvatarFile);
-        } else {
-            avatarPreview.innerHTML = '<p>Avatar seçilmedi.</p>';
         }
     });
 
@@ -663,16 +626,9 @@ async function loadProfilePageData(user) {
                 await updateDoc(doc(db, "users", user.uid), { email: newEmail });
             }
 
-            if (selectedAvatarFile) {
-                // ImageBB'ye yükleme
-                const avatarUrl = await uploadImageToImageBB(selectedAvatarFile);
-                await updateDoc(doc(db, "users", user.uid), { avatarUrl: avatarUrl });
-            }
-
             showAlert("Profil başarıyla güncellendi!", true);
             setTimeout(() => { // Add a short delay for UX before closing modal
                 profileEditModal.classList.remove('is-visible'); // Hide modal using CSS class
-                selectedAvatarFile = null; // Seçili dosyayı sıfırla
             }, 1500);
         } catch (error) {
             console.error("Profil güncelleme hatası:", error);
@@ -968,8 +924,8 @@ async function loadTaskDetailPageData(user) {
     });
 }
 
-// Görsel sıkıştırma fonksiyonu (bu fonksiyon hala gerekli olabilir, ancak artık ImageBB'ye yüklemeden önce çalışacak)
-// ImageBB'ye doğrudan yüklenen dosyaların boyutunu sıkıştırmak genellikle iyi bir fikirdir.
+// Görsel sıkıştırma fonksiyonu (bu fonksiyon artık kullanılmıyor)
+/*
 function compressImage(file, { quality = 0.7, maxWidth = 800, maxHeight = 800 } = {}) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -1013,6 +969,7 @@ function compressImage(file, { quality = 0.7, maxWidth = 800, maxHeight = 800 } 
         reader.onerror = error => reject(error);
     });
 }
+*/
 
 async function loadWalletPageData(user) {
     const currentBalanceDisplay = document.getElementById('currentBalance');
