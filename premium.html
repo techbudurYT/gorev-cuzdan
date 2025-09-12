@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Profil</title>
+    <title>Premium Üyelik</title>
     <link rel="stylesheet" href="style.css">
 </head>
-<body id="page-profile">
+<body id="page-premium">
     <div id="loader"></div>
     <div class="app-layout" style="display: none;" id="main-content">
         <nav class="sidebar">
@@ -16,8 +16,8 @@
                 <a href="my-tasks.html" class="tab-btn">Görevlerim</a>
                 <a href="bonus.html" class="tab-btn">Bonus</a>
                 <a href="wallet.html" class="tab-btn">Cüzdan</a>
-                <a href="profile.html" class="tab-btn active">Profil</a>
-                <a href="premium.html" class="tab-btn">Premium</a>
+                <a href="profile.html" class="tab-btn">Profil</a>
+                <a href="premium.html" class="tab-btn active">Premium</a>
                 <a href="announcements.html" class="tab-btn">Duyurular</a>
                 <a href="support.html" class="tab-btn">Destek</a>
                 <a href="faq.html" class="tab-btn">SSS</a>
@@ -25,37 +25,35 @@
         </nav>
         <main class="main-content-wrapper">
             <div class="container">
-                <header class="spark-header"><h1>Profil & İstatistikler</h1></header>
+                <header class="spark-header"><h1>Premium Üyelik</h1></header>
                 <div class="page-wrapper">
-                    <div class="spark-card profile-dashboard">
+                    <div class="spark-card premium-info-card">
+                        <h3>Premium Üyeliğin Avantajları</h3>
+                        <ul>
+                            <li>Yapılan görevlerden <span class="premium-highlight">%35 EK Ödül</span> kazan!</li>
+                            <li>Özel görevlere erişim (gelecekte).</li>
+                            <li>Öncelikli destek.</li>
+                        </ul>
+                        <p>Aylık sadece <span class="premium-price">50 ₺</span> karşılığında tüm bu avantajlara sahip olabilirsin.</p>
+                    </div>
+
+                    <div class="spark-card premium-status-card">
+                        <h3>Üyelik Durumunuz</h3>
+                        <div id="alertBox"></div>
                         <div class="stat-card">
-                            <div class="stat-label">Kullanıcı Adı</div>
-                            <div class="stat-value" id="usernameDisplay">...</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">Mevcut Bakiye</div>
-                            <div class="stat-value" id="balanceDisplay">0 ₺</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">Toplam Kazanılan</div>
-                            <div class="stat-value" id="totalEarnedDisplay">0 ₺</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">Tamamlanan Görevler</div>
-                            <div class="stat-value" id="task-counts">0 / 0</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">Premium Üye</div>
+                            <div class="stat-label">Premium Üye Misiniz?</div>
                             <div class="stat-value" id="isPremiumDisplay">Hayır</div>
                         </div>
                         <div class="stat-card" id="premiumExpirationSection" style="display: none;">
-                            <div class="stat-label">Premium Bitiş</div>
-                            <div class="stat-value" id="premiumExpirationDisplay">...</div>
+                            <div class="stat-label">Bitiş Tarihi</div>
+                            <div class="stat-value" id="premiumExpirationDisplay">Yükleniyor...</div>
                         </div>
-                    </div>
-                    <div class="spark-card" style="padding: 15px;">
-                         <a href="premium.html" class="spark-button" style="margin-bottom: 15px;">Premium Üyeliği Yönet</a>
-                         <button id="logoutBtn" class="spark-button logout-button">ÇIKIŞ YAP</button>
+                        <div class="stat-card">
+                            <div class="stat-label">Mevcut Bakiyeniz</div>
+                            <div class="stat-value" id="currentBalanceForPremium">0 ₺</div>
+                        </div>
+                        
+                        <button id="subscribeBtn" class="spark-button" style="margin-top: 20px;">Premium Ol / Yenile (50 ₺)</button>
                     </div>
                 </div>
             </div>
@@ -64,15 +62,14 @@
                 <a href="my-tasks.html" class="tab-btn">Görevlerim</a>
                 <a href="bonus.html" class="tab-btn">Bonus</a>
                 <a href="wallet.html" class="tab-btn">Cüzdan</a>
-                <a href="profile.html" class="tab-btn active">Profil</a>
-                <a href="premium.html" class="tab-btn">Premium</a>
+                <a href="profile.html" class="tab-btn">Profil</a>
+                <a href="premium.html" class="tab-btn active">Premium</a>
                 <a href="announcements.html" class="tab-btn">Duyurular</a>
                 <a href="support.html" class="tab-btn">Destek</a>
                 <a href="faq.html" class="tab-btn">SSS</a>
             </nav>
         </main>
     </div>
-
     <script src="main.js" type="module"></script>
 </body>
 </html>
