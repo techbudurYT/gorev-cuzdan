@@ -1,4 +1,3 @@
-
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
 
 :root {
@@ -831,6 +830,44 @@ body.auth-page #main-content {
 #faqList .spark-card p {
     color: var(--c-text-secondary);
     font-size: 0.9em;
+}
+
+/* Premium Sayfası Stilleri */
+.premium-info-card ul {
+    list-style: none;
+    padding-left: 0;
+    margin-bottom: 20px;
+}
+
+.premium-info-card ul li {
+    background: rgba(0, 246, 255, 0.05); /* Açık ikincil renk arka plan */
+    padding: 10px 15px;
+    border-left: 3px solid var(--c-secondary);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    color: var(--c-text-primary);
+    font-size: 0.95em;
+}
+
+.premium-info-card .premium-highlight {
+    color: var(--c-success);
+    font-weight: 700;
+}
+
+.premium-info-card .premium-price {
+    font-size: 1.5em;
+    font-weight: 700;
+    color: var(--c-primary);
+}
+
+.premium-status-card .stat-value {
+    color: var(--c-primary); /* Premium statüler için birincil renk */
+}
+.premium-status-card .stat-value#isPremiumDisplay.active {
+    color: var(--c-success);
+}
+.premium-status-card .stat-value#isPremiumDisplay.inactive {
+    color: var(--c-danger);
 }
 
 

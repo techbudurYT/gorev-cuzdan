@@ -15,6 +15,8 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+const PREMIUM_BONUS_PERCENTAGE = 0.35; // %35 ek ödül
+
 function showAlert(message, isSuccess = false) {
     const alertBox = document.getElementById("alertBox");
     if (alertBox) {
@@ -160,7 +162,7 @@ async function initAdminPanel(user) {
     const renderUsers = (searchTerm = '') => {
         const filteredUsers = allUsers.filter(u => 
             u.email.toLowerCase().includes(searchTerm.toLowerCase()) || 
-            u.username.toLowerCase().includes(searchTerm.toLowerCase()) || 
+            (u.username && u.username.toLowerCase().includes(searchTerm.toLowerCase())) || 
             u.id.toLowerCase().includes(searchTerm.toLowerCase())
         );
         
@@ -171,9 +173,11 @@ async function initAdminPanel(user) {
         } else {
             const usersToDisplay = filteredUsers.slice(0, displayCount);
             usersToDisplay.forEach(u => {
+                const premiumStatus = (u.isPremium && u.premiumExpirationDate && u.premiumExpirationDate.toDate() > new Date()) ? 
+                                      `Evet (Bitiş: ${u.premiumExpirationDate.toDate().toLocaleDateString('tr-TR')})` : 'Hayır'; // NEW
                 usersHtml += `
                     <div class="user-list-item spark-card" id="user-${u.id}">
-                        <div class="user-info"><strong>${u.username}</strong> <span style="font-size:0.9em; color:var(--c-text-secondary);">(${u.email})</span><p>Bakiye: ${u.balance} ₺ | Admin: ${u.isAdmin ? 'Evet' : 'Hayır'} | Level: ${u.level || 1} | Completed: ${u.totalCompletedTasks || 0}</p><p>IP: ${u.lastLoginIp || 'N/A'}</p></div>
+                        <div class="user-info"><strong>${u.username}</strong> <span style="font-size:0.9em; color:var(--c-text-secondary);">(${u.email})</span><p>Bakiye: ${u.balance} ₺ | Admin: ${u.isAdmin ? 'Evet' : 'Hayır'} | Premium: ${premiumStatus} | Level: ${u.level || 1} | Completed: ${u.totalCompletedTasks || 0}</p><p>IP: ${u.lastLoginIp || 'N/A'}</p></div>
                         <div class="user-actions">
                             <button class="spark-button small-button btn-edit-user" data-id="${u.id}">Düzenle</button>
                             <button class="spark-button small-button ${u.isAdmin ? 'btn-remove-admin' : 'btn-make-admin'}" data-id="${u.id}">${u.isAdmin ? 'Adminlik Al' : 'Admin Yap'}</button>
@@ -363,14 +367,21 @@ async function initAdminPanel(user) {
                  submissionImagesHtml += `<p style="font-size: 0.9em; color: var(--c-text-secondary);">Görsel kanıt yok.</p>`;
             }
 
+            // Display submission info including premium status at time of submission
+            let premiumInfoText = '';
+            if (sub.isPremiumBonusApplied) {
+                premiumInfoText = `<p style="font-size: 0.95em; color: var(--c-success);"><strong>Premium Bonuslu Gönderim</strong></p>`;
+            }
+
             submissionsList.innerHTML += `
                 <div class="spark-card submission-card">
                     <h3>${task.text} (+${task.reward} ₺)</h3>
                     <p style="font-size: 0.95em; color: var(--c-text-secondary);"><strong>Kullanıcı:</strong> ${userDisplayName} (${sub.userEmail})</p>
+                    ${premiumInfoText}
                     <p style="font-size: 0.95em; color: var(--c-text-secondary);"><strong>IP Adresi:</strong> ${sub.userIp || 'Bilinmiyor'}</p>
                     <div class="submission-images-container" style="margin-top: 15px; display: flex; flex-wrap: wrap; gap: 10px;">${submissionImagesHtml}</div>
                     <div class="submission-actions" style="margin-top: 20px; display: flex; gap: 10px;">
-                        <button class="spark-button small-button btn-approve" data-submission-id="${sub.id}" data-user-id="${sub.userId}" data-reward="${task.reward}" style="background-color: var(--c-success);">Onayla</button>
+                        <button class="spark-button small-button btn-approve" data-submission-id="${sub.id}" data-user-id="${sub.userId}" data-task-reward="${task.reward}" data-is-premium-bonus-applied="${sub.isPremiumBonusApplied}" style="background-color: var(--c-success);">Onayla</button>
                         <button class="spark-button small-button btn-reject" data-submission-id="${sub.id}" style="background-color: var(--c-danger);">Reddet</button>
                     </div>
                 </div>`;
@@ -392,13 +403,21 @@ async function initAdminPanel(user) {
                     const totalEarned = userDoc.data().totalEarned || 0;
                     const currentLevel = userDoc.data().level || 1;
 
+                    let finalReward = Number(target.dataset.taskReward);
+                    // Check if premium bonus was applicable at the time of submission
+                    const isPremiumBonusApplied = target.dataset.isPremiumBonusApplied === 'true';
+
+                    if (isPremiumBonusApplied) {
+                        finalReward = finalReward * (1 + PREMIUM_BONUS_PERCENTAGE);
+                    }
+                    
                     const newCompletedTasks = totalCompletedTasks + 1;
                     const newLevel = Math.floor(newCompletedTasks / 5) + 1; // Her 5 görevde 1 seviye atlama
                     
                     t.update(userRef, { 
-                        balance: currentBalance + Number(target.dataset.reward),
+                        balance: currentBalance + finalReward,
                         totalCompletedTasks: newCompletedTasks,
-                        totalEarned: totalEarned + Number(target.dataset.reward),
+                        totalEarned: totalEarned + finalReward,
                         level: newLevel
                     });
                     t.update(doc(db, "submissions", target.dataset.submissionId), { status: 'approved' });

@@ -1,4 +1,3 @@
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail, updateProfile, updateEmail, updatePassword } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, query, where, orderBy, getDocs, runTransaction, addDoc, serverTimestamp, updateDoc, limit, deleteDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
@@ -22,6 +21,9 @@ const db = getFirestore(app);
 
 // ImageBB API Key'inizi buraya girin!
 const IMGBB_API_KEY = "84a7c0a54294a6e8ea2ffc9bab240719"; 
+
+const PREMIUM_MONTHLY_FEE = 50; // Premium üyelik ücreti
+const PREMIUM_BONUS_PERCENTAGE = 0.35; // %35 ek ödül
 
 const categoryData = {
     "youtube": { name: "YouTube", logo: "img/logos/youtube.png" },
@@ -137,6 +139,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     email: user.email, 
                     balance: 0, 
                     isAdmin: false,
+                    isPremium: false, // NEW: Premium status for new users
+                    premiumExpirationDate: null, // NEW: Premium expiration date
+                    lastPremiumPaymentDate: null, // NEW: Last premium payment date
                     createdAt: serverTimestamp(),
                     totalCompletedTasks: 0,
                     totalEarned: 0,
@@ -149,6 +154,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 const currentIp = await getIpAddress();
                 if (currentIp && storedIp !== currentIp) {
                     await updateDoc(userRef, { lastLoginIp: currentIp, lastLoginAt: serverTimestamp() });
+                }
+                // Ensure premium fields exist for existing users without them
+                const userData = userDoc.data();
+                if (typeof userData.isPremium === 'undefined') {
+                    await updateDoc(userRef, {
+                        isPremium: false,
+                        premiumExpirationDate: null,
+                        lastPremiumPaymentDate: null
+                    });
                 }
             }
             
@@ -166,7 +180,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     case 'page-ticket-detail': await loadTicketDetailPageData(user); break;
                     case 'page-bonus': await loadBonusPageData(user); break;
                     case 'page-announcements': await loadAnnouncementsPageData(); break;
-                    case 'page-faq': await loadFaqPageData(); break; // NEW: Load FAQ page data
+                    case 'page-faq': await loadFaqPageData(); break; 
+                    case 'page-premium': await loadPremiumPageData(user); break; // NEW: Load Premium page data
                 }
                 hideLoader();
                 handleInputLabels(); // Call here after content is loaded
@@ -212,6 +227,9 @@ function initRegisterPage() {
                 email, 
                 balance: 0, 
                 isAdmin: false,
+                isPremium: false, // NEW: Premium status for new users
+                premiumExpirationDate: null, // NEW: Premium expiration date
+                lastPremiumPaymentDate: null, // NEW: Last premium payment date
                 createdAt: serverTimestamp(),
                 lastLoginIp: ipAddress, // Yeni kayıt IP adresi
                 lastLoginAt: serverTimestamp(),
@@ -279,10 +297,16 @@ async function loadIndexPageData(user) {
     let currentTaskDisplayCount = tasksPerLoad;
     let currentFilterCategory = 'all';
     let currentSearchTerm = '';
+    let isUserPremium = false;
+    let premiumExpiry = null;
 
     onSnapshot(doc(db, "users", user.uid), (docSnapshot) => {
         if (docSnapshot.exists()) {
-            balanceDisplay.textContent = `${(docSnapshot.data().balance || 0).toFixed(2)} ₺`;
+            const userData = docSnapshot.data();
+            balanceDisplay.textContent = `${(userData.balance || 0).toFixed(2)} ₺`;
+            isUserPremium = userData.isPremium || false;
+            premiumExpiry = userData.premiumExpirationDate ? userData.premiumExpirationDate.toDate() : null;
+            renderTasks(); // Re-render tasks if premium status changes
         } else {
             balanceDisplay.textContent = `0.00 ₺`;
         }
@@ -343,6 +367,17 @@ async function loadIndexPageData(user) {
             li.className = "spark-card task-card";
             li.style.animationDelay = `${index * 0.05}s`;
 
+            let displayReward = task.reward;
+            let premiumBonusText = '';
+
+            const now = new Date();
+            const isPremiumActive = isUserPremium && premiumExpiry && premiumExpiry > now;
+
+            if (isPremiumActive) {
+                displayReward = (task.reward * (1 + PREMIUM_BONUS_PERCENTAGE)).toFixed(2);
+                premiumBonusText = `<span style="font-size: 0.8em; color: var(--c-success);"> (+%${PREMIUM_BONUS_PERCENTAGE * 100} Premium Bonus)</span>`;
+            }
+
             let actionButtonsHtml = '';
             if (isSubmitted) {
                 actionButtonsHtml += `<button class='spark-button completed' disabled>Gönderildi</button>`;
@@ -357,7 +392,7 @@ async function loadIndexPageData(user) {
                 <div class="task-logo"><img src="${categoryInfo.logo}" alt="${categoryInfo.name} logo" loading="lazy"></div>
                 <div class="task-info">
                     <div class="task-title">${task.text}</div>
-                    <div class="task-reward">+${task.reward} ₺</div>
+                    <div class="task-reward">+${displayReward} ₺${premiumBonusText}</div>
                 </div>
                 <div class="task-action">${actionButtonsHtml}</div>`;
             taskList.appendChild(li);
@@ -526,6 +561,9 @@ async function loadProfilePageData(user) {
     const balanceDisplay = document.getElementById("balanceDisplay");
     const taskCountsDisplay = document.getElementById("task-counts");
     const totalEarnedDisplay = document.getElementById("totalEarnedDisplay");
+    const isPremiumDisplay = document.getElementById("isPremiumDisplay"); // NEW
+    const premiumExpirationSection = document.getElementById("premiumExpirationSection"); // NEW
+    const premiumExpirationDisplay = document.getElementById("premiumExpirationDisplay"); // NEW
     const logoutBtn = document.getElementById("logoutBtn");
 
     // Profil verilerini güncelleyen ana gözlemci
@@ -536,12 +574,28 @@ async function loadProfilePageData(user) {
             balanceDisplay.textContent = `${(userData.balance || 0).toFixed(2)} ₺`;
             totalEarnedDisplay.textContent = `${(userData.totalEarned || 0).toFixed(2)} ₺`;
             
+            // NEW: Premium status display
+            const now = new Date();
+            if (userData.isPremium && userData.premiumExpirationDate && userData.premiumExpirationDate.toDate() > now) {
+                isPremiumDisplay.textContent = 'Evet (Aktif)';
+                isPremiumDisplay.classList.remove('inactive');
+                isPremiumDisplay.classList.add('active');
+                premiumExpirationDisplay.textContent = userData.premiumExpirationDate.toDate().toLocaleDateString('tr-TR');
+                premiumExpirationSection.style.display = 'block';
+            } else {
+                isPremiumDisplay.textContent = 'Hayır (Pasif)';
+                isPremiumDisplay.classList.remove('active');
+                isPremiumDisplay.classList.add('inactive');
+                premiumExpirationSection.style.display = 'none';
+            }
+
             // Input etiketlerinin doğru şekilde yukarıda kalmasını sağla
             handleInputLabels();
         } else {
              console.warn("Kullanıcı belgesi bulunamadı. Varsayılan oluşturuluyor...");
             setDoc(doc(db, "users", user.uid), {
                 username: user.email.split('@')[0], email: user.email, balance: 0, isAdmin: false,
+                isPremium: false, premiumExpirationDate: null, lastPremiumPaymentDate: null, // NEW: premium fields
                 totalCompletedTasks: 0, totalEarned: 0
             }, { merge: true });
         }
@@ -606,6 +660,13 @@ async function loadMyTasksPageData(user) {
                 }
                 const submissionDate = submission.submittedAt ? submission.submittedAt.toDate().toLocaleDateString('tr-TR') : 'Bilinmiyor';
 
+                let rewardDisplay = task.reward;
+                let premiumBonusInfo = '';
+                if (submission.isPremiumBonusApplied) { // Check if bonus was applied during approval
+                    rewardDisplay = (task.reward * (1 + PREMIUM_BONUS_PERCENTAGE)).toFixed(2);
+                    premiumBonusInfo = ` (%${PREMIUM_BONUS_PERCENTAGE * 100} Premium Bonus)`;
+                }
+
                 submissionsList.innerHTML += `
                   <div class="spark-card submission-card">
                     <div class="submission-header">
@@ -614,7 +675,7 @@ async function loadMyTasksPageData(user) {
                     </div>
                     <div class="submission-details">
                         <p>Gönderim Tarihi: ${submissionDate}</p>
-                        <p>Ödül: +${task.reward} ₺</p>
+                        <p>Ödül: +${rewardDisplay} ₺${premiumBonusInfo}</p>
                     </div>
                     <div class="submission-actions">${reasonButtonHtml}</div>
                   </div>`;
@@ -634,6 +695,7 @@ async function loadTaskDetailPageData(user) {
 
     const taskTitle = document.getElementById('taskTitle');
     const taskReward = document.getElementById('taskReward');
+    const premiumBonusInfo = document.getElementById('premiumBonusInfo'); // NEW
     const taskDescription = document.getElementById('taskDescription');
     const taskLinkContainer = document.getElementById('taskLinkContainer'); 
     const requiredFileCountSpan = document.getElementById('requiredFileCount'); 
@@ -645,15 +707,38 @@ async function loadTaskDetailPageData(user) {
     const allowedTypes = ['image/jpeg', 'image/png'];
 
     let currentTask = null; 
+    let isUserPremium = false;
+    let premiumExpiry = null;
+
+    // Fetch user premium status
+    const userDoc = await getDoc(doc(db, "users", user.uid));
+    if (userDoc.exists()) {
+        const userData = userDoc.data();
+        isUserPremium = userData.isPremium || false;
+        premiumExpiry = userData.premiumExpirationDate ? userData.premiumExpirationDate.toDate() : null;
+    }
 
     try {
         const taskDoc = await getDoc(doc(db, "tasks", taskId));
         if (taskDoc.exists()) {
             currentTask = taskDoc.data();
             taskTitle.textContent = currentTask.text;
-            taskReward.textContent = `+${currentTask.reward} ₺`;
             taskDescription.textContent = currentTask.description;
             taskStockDisplay.textContent = `Mevcut Stok: ${currentTask.stock || 0}`; 
+
+            let displayReward = currentTask.reward;
+            const now = new Date();
+            const isPremiumActive = isUserPremium && premiumExpiry && premiumExpiry > now;
+
+            if (isPremiumActive) {
+                displayReward = (currentTask.reward * (1 + PREMIUM_BONUS_PERCENTAGE)).toFixed(2);
+                taskReward.textContent = `Ödül: ${currentTask.reward} ₺`;
+                premiumBonusInfo.textContent = `Premium ile Kazanacağınız: +${displayReward} ₺ (İlave %${PREMIUM_BONUS_PERCENTAGE * 100})`;
+                premiumBonusInfo.style.display = 'block';
+            } else {
+                taskReward.textContent = `Ödül: ${currentTask.reward} ₺`;
+                premiumBonusInfo.style.display = 'none';
+            }
 
             if ((currentTask.stock || 0) <= 0) { 
                 submitTaskBtn.disabled = true;
@@ -787,7 +872,8 @@ async function loadTaskDetailPageData(user) {
                     fileURLs: uploadedFileURLs, 
                     submittedAt: serverTimestamp(), 
                     status: 'pending',
-                    userIp: userIp // IP adresini gönderime ekle
+                    userIp: userIp, // IP adresini gönderime ekle
+                    isPremiumBonusApplied: isUserPremium && premiumExpiry && premiumExpiry > now // NEW: Record if premium bonus was applicable at submission
                 });
             });
             showAlert('Göreviniz başarıyla onaya gönderildi!', true);
@@ -811,52 +897,6 @@ async function loadTaskDetailPageData(user) {
     });
 }
 
-// Görsel sıkıştırma fonksiyonu (bu fonksiyon artık kullanılmıyor)
-/*
-function compressImage(file, { quality = 0.7, maxWidth = 800, maxHeight = 800 } = {}) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = event => {
-            const img = new Image();
-            img.src = event.target.result;
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                let width = img.width;
-                let height = img.height;
-
-                if (width > height) {
-                    if (width > maxWidth) {
-                        height *= maxWidth / width;
-                        width = maxWidth;
-                    }
-                } else {
-                    if (height > maxHeight) {
-                        width *= maxHeight / height;
-                        height = maxHeight;
-                    }
-                }
-                canvas.width = width;
-                canvas.height = height;
-
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, width, height);
-
-                canvas.toBlob(blob => {
-                    // Blob'u File nesnesine geri dönüştür (ImageBB FormData için File bekler)
-                    const compressedFile = new File([blob], file.name, {
-                        type: file.type,
-                        lastModified: Date.now()
-                    });
-                    resolve(compressedFile);
-                }, file.type, quality);
-            };
-            img.onerror = error => reject(error);
-        };
-        reader.onerror = error => reject(error);
-    });
-}
-*/
 
 async function loadWalletPageData(user) {
     const currentBalanceDisplay = document.getElementById('currentBalance');
@@ -1283,4 +1323,87 @@ async function loadFaqPageData() {
         console.error("SSS yüklenirken hata oluştu:", error);
         faqList.innerHTML = `<div class="empty-state" style="color:var(--c-danger);">SSS yüklenemedi.</div>`;
     }
+}
+
+// NEW: loadPremiumPageData function
+async function loadPremiumPageData(user) {
+    const isPremiumDisplay = document.getElementById('isPremiumDisplay');
+    const premiumExpirationSection = document.getElementById('premiumExpirationSection');
+    const premiumExpirationDisplay = document.getElementById('premiumExpirationDisplay');
+    const currentBalanceForPremium = document.getElementById('currentBalanceForPremium');
+    const subscribeBtn = document.getElementById('subscribeBtn');
+    const userRef = doc(db, 'users', user.uid);
+
+    onSnapshot(userRef, (docSnapshot) => {
+        if (!docSnapshot.exists()) return;
+
+        const userData = docSnapshot.data();
+        const now = new Date();
+        const isPremiumActive = userData.isPremium && userData.premiumExpirationDate && userData.premiumExpirationDate.toDate() > now;
+        currentBalanceForPremium.textContent = `${(userData.balance || 0).toFixed(2)} ₺`;
+
+        if (isPremiumActive) {
+            isPremiumDisplay.textContent = 'Evet (Aktif)';
+            isPremiumDisplay.classList.remove('inactive');
+            isPremiumDisplay.classList.add('active');
+            premiumExpirationDisplay.textContent = userData.premiumExpirationDate.toDate().toLocaleDateString('tr-TR');
+            premiumExpirationSection.style.display = 'block';
+            subscribeBtn.textContent = `Premium Yenile (${PREMIUM_MONTHLY_FEE} ₺)`;
+        } else {
+            isPremiumDisplay.textContent = 'Hayır (Pasif)';
+            isPremiumDisplay.classList.remove('active');
+            isPremiumDisplay.classList.add('inactive');
+            premiumExpirationSection.style.display = 'none';
+            subscribeBtn.textContent = `Premium Ol (${PREMIUM_MONTHLY_FEE} ₺)`;
+        }
+
+        // Disable button if balance is insufficient
+        subscribeBtn.disabled = (userData.balance || 0) < PREMIUM_MONTHLY_FEE;
+        if (subscribeBtn.disabled) {
+            subscribeBtn.textContent += " - Yetersiz Bakiye";
+        }
+    });
+
+    subscribeBtn.addEventListener('click', async () => {
+        subscribeBtn.disabled = true;
+        subscribeBtn.textContent = "İşlem Yapılıyor...";
+
+        try {
+            await runTransaction(db, async (transaction) => {
+                const userDoc = await transaction.get(userRef);
+                if (!userDoc.exists()) throw new Error("Kullanıcı bulunamadı!");
+
+                const userData = userDoc.data();
+                const currentBalance = userData.balance || 0;
+
+                if (currentBalance < PREMIUM_MONTHLY_FEE) {
+                    throw new Error("Bakiyeniz premium üyeliği için yeterli değil.");
+                }
+
+                let newExpirationDate = new Date();
+                const now = new Date();
+                
+                // If already premium and not expired, extend from current expiration
+                if (userData.isPremium && userData.premiumExpirationDate && userData.premiumExpirationDate.toDate() > now) {
+                    newExpirationDate = userData.premiumExpirationDate.toDate();
+                }
+                
+                // Add one month to the effective start date
+                newExpirationDate.setMonth(newExpirationDate.getMonth() + 1);
+
+                transaction.update(userRef, {
+                    balance: currentBalance - PREMIUM_MONTHLY_FEE,
+                    isPremium: true,
+                    premiumExpirationDate: newExpirationDate,
+                    lastPremiumPaymentDate: serverTimestamp()
+                });
+            });
+            showAlert("Premium üyeliğiniz başarıyla etkinleştirildi/yenilendi!", true);
+        } catch (error) {
+            console.error("Premium işlem hatası:", error);
+            showAlert("Premium işlemi sırasında bir hata oluştu: " + error.message, false);
+        } finally {
+            // State will be updated by onSnapshot listener
+        }
+    });
 }
