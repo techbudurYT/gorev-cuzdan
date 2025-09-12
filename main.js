@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
-import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, query, where, orderBy, getDocs, runTransaction, addDoc, serverTimestamp, updateDoc, limit } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-storage.js";
+import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail, updateProfile, updateEmail, updatePassword } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, query, where, orderBy, getDocs, runTransaction, addDoc, serverTimestamp, updateDoc, limit, deleteDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-storage.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyBN85bxThpJYifWAvsS0uqPD0C9D55uPpM", // KENDİ API ANAHTARINIZI GİRİN!
@@ -86,23 +86,23 @@ document.addEventListener('DOMContentLoaded', () => {
                     email: user.email, 
                     balance: 0, 
                     isAdmin: false,
-                    createdAt: serverTimestamp()
+                    createdAt: serverTimestamp(),
+                    avatarUrl: null,
+                    level: 1,
+                    totalCompletedTasks: 0,
+                    totalEarned: 0,
+                    lastLoginIp: await getIpAddress(),
+                    lastLoginAt: serverTimestamp()
                 }, { merge: true });
-            }
-
-            // IP adresini kullanıcı belgesine kaydet (yalnızca kullanıcı girişi veya kaydı sırasında)
-            if (userDoc.exists() && (!userDoc.data().lastLoginIp || userDoc.data().lastLoginIp !== await getIpAddress())) {
-                const ipAddress = await getIpAddress();
-                if (ipAddress) {
-                    await updateDoc(userRef, { lastLoginIp: ipAddress, lastLoginAt: serverTimestamp() });
-                }
-            } else if (!userDoc.exists()) { // Yeni kayıt durumunda
-                const ipAddress = await getIpAddress();
-                if (ipAddress) {
-                    await updateDoc(userRef, { lastLoginIp: ipAddress, lastLoginAt: serverTimestamp() });
+            } else {
+                // IP adresini kullanıcı belgesine kaydet (yalnızca kullanıcı girişi veya kaydı sırasında)
+                const storedIp = userDoc.data().lastLoginIp;
+                const currentIp = await getIpAddress();
+                if (currentIp && storedIp !== currentIp) {
+                    await updateDoc(userRef, { lastLoginIp: currentIp, lastLoginAt: serverTimestamp() });
                 }
             }
-
+            
 
             if (isAuthPage) { 
                 window.location.replace('index.html');
@@ -148,18 +148,24 @@ function initRegisterPage() {
         try {
             showLoader();
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-            const newUserUid = userCredential.user.uid;
+            const newUser = userCredential.user;
             
+            await updateProfile(newUser, { displayName: username }); // DisplayName'i ayarla
+
             const ipAddress = await getIpAddress(); // IP adresini al
             
-            await setDoc(doc(db, "users", newUserUid), {
+            await setDoc(doc(db, "users", newUser.uid), {
                 username, 
                 email, 
                 balance: 0, 
                 isAdmin: false,
                 createdAt: serverTimestamp(),
                 lastLoginIp: ipAddress, // Yeni kayıt IP adresi
-                lastLoginAt: serverTimestamp()
+                lastLoginAt: serverTimestamp(),
+                avatarUrl: null,
+                level: 1,
+                totalCompletedTasks: 0,
+                totalEarned: 0
             });
 
             showAlert("Kayıt başarılı!", true);
@@ -212,11 +218,14 @@ async function loadIndexPageData(user) {
     const filterButtons = document.querySelectorAll(".filter-btn");
     const showMoreTasksBtn = document.getElementById("showMoreTasksBtn");
     const announcementsContainer = document.getElementById("announcementsContainer");
+    const searchTaskInput = document.getElementById("searchTaskInput");
 
     let allTasks = [];
     let submittedTaskIds = [];
     const tasksPerLoad = 4;
     let currentTaskDisplayCount = tasksPerLoad;
+    let currentFilterCategory = 'all';
+    let currentSearchTerm = '';
 
     onSnapshot(doc(db, "users", user.uid), (docSnapshot) => {
         if (docSnapshot.exists()) {
@@ -238,22 +247,36 @@ async function loadIndexPageData(user) {
             const submissionsSnapshot = await getDocs(submissionsQuery);
             submittedTaskIds = submissionsSnapshot.docs.map(doc => doc.data().taskId);
             
-            renderTasks(document.querySelector('.filter-btn.active')?.dataset.category || 'all');
+            renderTasks();
         } catch (error) {
             console.error("Görevler veya gönderimler yüklenirken hata oluştu:", error);
             taskList.innerHTML = `<li class="empty-state" style="color:var(--c-danger);">Görevler yüklenemedi.</li>`;
         }
     };
 
-    const renderTasks = (filterCategory) => {
+    const renderTasks = () => {
         taskList.innerHTML = "";
-        const filteredTasks = (filterCategory === 'all' 
-            ? allTasks 
-            : allTasks.filter(task => task.category === filterCategory))
-            .filter(task => (task.stock || 0) > 0); 
+        let filteredTasks = allTasks;
+
+        // Kategoriye göre filtrele
+        if (currentFilterCategory !== 'all') {
+            filteredTasks = filteredTasks.filter(task => task.category === currentFilterCategory);
+        }
+
+        // Arama terimine göre filtrele
+        if (currentSearchTerm) {
+            const searchTermLower = currentSearchTerm.toLowerCase();
+            filteredTasks = filteredTasks.filter(task => 
+                task.text.toLowerCase().includes(searchTermLower) || 
+                task.description.toLowerCase().includes(searchTermLower)
+            );
+        }
+
+        // Stok kontrolü
+        filteredTasks = filteredTasks.filter(task => (task.stock || 0) > 0); 
 
         if (filteredTasks.length === 0) {
-            taskList.innerHTML = `<li class="empty-state">Bu kategoride aktif görev bulunmamaktadır.</li>`;
+            taskList.innerHTML = `<li class="empty-state">Bu kriterlere uygun aktif görev bulunmamaktadır.</li>`;
             showMoreTasksBtn.style.display = 'none';
             return;
         }
@@ -298,14 +321,21 @@ async function loadIndexPageData(user) {
         button.addEventListener('click', () => {
             document.querySelector('.filter-btn.active')?.classList.remove('active');
             button.classList.add('active');
+            currentFilterCategory = button.dataset.category;
             currentTaskDisplayCount = tasksPerLoad; // Reset display count on filter change
-            renderTasks(button.dataset.category);
+            renderTasks();
         });
+    });
+
+    searchTaskInput.addEventListener('input', () => {
+        currentSearchTerm = searchTaskInput.value.trim();
+        currentTaskDisplayCount = tasksPerLoad; // Reset display count on search change
+        renderTasks();
     });
 
     showMoreTasksBtn.addEventListener('click', () => {
         currentTaskDisplayCount += tasksPerLoad;
-        renderTasks(document.querySelector('.filter-btn.active')?.dataset.category || 'all');
+        renderTasks();
     });
 
     await fetchTasksAndSubmissions(); // Initial load
@@ -388,7 +418,12 @@ async function loadBonusPageData(user) {
 
                 if (isEligible) {
                     const newBalance = (userData.balance || 0) + 0.5;
-                    transaction.update(userRef, { balance: newBalance, lastBonusClaimed: serverTimestamp() });
+                    const totalEarned = (userData.totalEarned || 0) + 0.5;
+                    transaction.update(userRef, { 
+                        balance: newBalance, 
+                        lastBonusClaimed: serverTimestamp(),
+                        totalEarned: totalEarned
+                    });
                     showAlert("Bonus başarıyla eklendi!", true);
                 } else {
                     showAlert("Günlük bonusunu zaten aldınız.", false);
@@ -403,19 +438,48 @@ async function loadBonusPageData(user) {
 
 async function loadProfilePageData(user) {
     const usernameDisplay = document.getElementById("usernameDisplay");
+    const emailDisplay = document.getElementById("emailDisplay");
     const balanceDisplay = document.getElementById("balanceDisplay");
     const taskCountsDisplay = document.getElementById("task-counts");
+    const totalEarnedDisplay = document.getElementById("totalEarnedDisplay");
+    const userLevelDisplay = document.getElementById("userLevelDisplay");
     const logoutBtn = document.getElementById("logoutBtn");
+    const editProfileBtn = document.getElementById("editProfileBtn");
+    const profileEditModal = document.getElementById("profileEditModal");
+    const closeModalBtn = document.getElementById("closeModalBtn");
+    const editProfileForm = document.getElementById("editProfileForm");
+    const editUsername = document.getElementById("editUsername");
+    const editEmail = document.getElementById("editEmail");
+    const changePasswordBtn = document.getElementById("changePasswordBtn");
+    const avatarInput = document.getElementById("avatarInput");
+    const avatarPreview = document.getElementById("avatarPreview");
+    const currentAvatar = document.getElementById("currentAvatar");
+
+    let selectedAvatarFile = null;
 
     onSnapshot(doc(db, 'users', user.uid), (docSnapshot) => {
         if(docSnapshot.exists()) {
             const userData = docSnapshot.data();
             usernameDisplay.textContent = userData.username || 'N/A';
+            emailDisplay.textContent = userData.email || user.email;
             balanceDisplay.textContent = `${(userData.balance || 0).toFixed(2)} ₺`;
+            totalEarnedDisplay.textContent = `${(userData.totalEarned || 0).toFixed(2)} ₺`;
+            userLevelDisplay.textContent = `Seviye: ${userData.level || 1}`;
+            editUsername.value = userData.username || '';
+            editEmail.value = userData.email || '';
+
+            if (userData.avatarUrl) {
+                currentAvatar.src = userData.avatarUrl;
+                avatarPreview.innerHTML = `<img src="${userData.avatarUrl}" alt="Mevcut Avatar" style="max-width: 100%; border-radius: 50%;">`;
+            } else {
+                currentAvatar.src = 'img/default-avatar.png'; // Varsayılan avatar
+                avatarPreview.innerHTML = '<p>Avatar seçilmedi.</p>';
+            }
         } else {
              console.warn("Kullanıcı belgesi bulunamadı. Varsayılan oluşturuluyor...");
             setDoc(doc(db, "users", user.uid), {
-                username: user.email.split('@')[0], email: user.email, balance: 0, isAdmin: false
+                username: user.email.split('@')[0], email: user.email, balance: 0, isAdmin: false,
+                avatarUrl: null, level: 1, totalCompletedTasks: 0, totalEarned: 0
             }, { merge: true });
         }
     });
@@ -426,6 +490,12 @@ async function loadProfilePageData(user) {
         const tasksSnapshot = await getDocs(collection(db, 'tasks'));
         if(taskCountsDisplay) {
             taskCountsDisplay.textContent = `${approvedSubmissionsSnapshot.size} / ${tasksSnapshot.size}`;
+            // Seviye hesaplama (örnek olarak her 5 görevde bir seviye atlama)
+            const newLevel = Math.floor(approvedSubmissionsSnapshot.size / 5) + 1;
+            await updateDoc(doc(db, "users", user.uid), {
+                totalCompletedTasks: approvedSubmissionsSnapshot.size,
+                level: newLevel
+            }, { merge: true });
         }
     } catch (error) {
         console.error("Görev sayıları alınırken hata:", error);
@@ -434,6 +504,133 @@ async function loadProfilePageData(user) {
     logoutBtn.addEventListener("click", (e) => {
         e.preventDefault(); 
         signOut(auth).then(() => window.location.replace("login.html"));
+    });
+
+    editProfileBtn.addEventListener('click', () => {
+        profileEditModal.style.display = 'block';
+    });
+
+    closeModalBtn.addEventListener('click', () => {
+        profileEditModal.style.display = 'none';
+        selectedAvatarFile = null; // Modalı kapatırken seçili dosyayı sıfırla
+    });
+
+    window.addEventListener('click', (event) => {
+        if (event.target === profileEditModal) {
+            profileEditModal.style.display = 'none';
+            selectedAvatarFile = null;
+        }
+    });
+
+    avatarInput.addEventListener('change', (e) => {
+        selectedAvatarFile = e.target.files[0];
+        if (selectedAvatarFile) {
+            const reader = new FileReader();
+            reader.onload = e => {
+                avatarPreview.innerHTML = `<img src="${e.target.result}" alt="Yeni Avatar Önizleme" style="max-width: 100%; border-radius: 50%;">`;
+            };
+            reader.readAsDataURL(selectedAvatarFile);
+        } else {
+            avatarPreview.innerHTML = '<p>Avatar seçilmedi.</p>';
+        }
+    });
+
+    editProfileForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const newUsername = editUsername.value.trim();
+        const newEmail = editEmail.value.trim();
+        const currentPassword = prompt("Değişiklikleri kaydetmek için lütfen mevcut şifrenizi girin:");
+
+        if (!currentPassword) {
+            return showAlert("Değişiklikler için mevcut şifrenizi girmeniz gereklidir.", false);
+        }
+
+        showLoader();
+
+        try {
+            // Re-authenticate user
+            const credential = await signInWithEmailAndPassword(auth, user.email, currentPassword);
+            const currentUser = credential.user;
+
+            if (newUsername !== (user.displayName || user.email.split('@')[0])) {
+                await updateProfile(currentUser, { displayName: newUsername });
+                await updateDoc(doc(db, "users", user.uid), { username: newUsername });
+            }
+
+            if (newEmail !== currentUser.email) {
+                await updateEmail(currentUser, newEmail);
+                await updateDoc(doc(db, "users", user.uid), { email: newEmail });
+            }
+
+            if (selectedAvatarFile) {
+                // Önceki avatarı sil
+                const userData = (await getDoc(doc(db, "users", user.uid))).data();
+                if (userData.avatarUrl) {
+                    const oldAvatarRef = ref(storage, userData.avatarUrl);
+                    try {
+                        await deleteObject(oldAvatarRef);
+                    } catch (deleteError) {
+                        console.warn("Önceki avatar silinirken hata oluştu (önemli değilse göz ardı edilebilir):", deleteError);
+                    }
+                }
+
+                const compressedFile = await compressImage(selectedAvatarFile, { maxWidth: 200, maxHeight: 200, quality: 0.8 });
+                const avatarRef = ref(storage, `avatars/${user.uid}/${selectedAvatarFile.name}`);
+                const snapshot = await uploadBytes(avatarRef, compressedFile);
+                const avatarUrl = await getDownloadURL(snapshot.ref);
+                await updateDoc(doc(db, "users", user.uid), { avatarUrl: avatarUrl });
+            }
+
+            showAlert("Profil başarıyla güncellendi!", true);
+            profileEditModal.style.display = 'none';
+            selectedAvatarFile = null; // Seçili dosyayı sıfırla
+        } catch (error) {
+            console.error("Profil güncelleme hatası:", error);
+            if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+                showAlert("Mevcut şifreniz yanlış.", false);
+            } else if (error.code === 'auth/email-already-in-use') {
+                showAlert("Bu e-posta adresi zaten kullanımda.", false);
+            } else {
+                showAlert("Profil güncellenirken bir hata oluştu: " + error.message, false);
+            }
+        } finally {
+            hideLoader();
+        }
+    });
+
+    changePasswordBtn.addEventListener('click', async () => {
+        const currentPassword = prompt("Şifrenizi değiştirmek için lütfen mevcut şifrenizi girin:");
+        if (!currentPassword) return;
+
+        const newPassword = prompt("Yeni şifrenizi girin (en az 6 karakter):");
+        if (!newPassword || newPassword.length < 6) {
+            return showAlert("Yeni şifre en az 6 karakter olmalıdır.", false);
+        }
+
+        const confirmNewPassword = prompt("Yeni şifrenizi tekrar girin:");
+        if (newPassword !== confirmNewPassword) {
+            return showAlert("Yeni şifreler eşleşmiyor.", false);
+        }
+
+        showLoader();
+
+        try {
+            const credential = await signInWithEmailAndPassword(auth, user.email, currentPassword);
+            await updatePassword(credential.user, newPassword);
+            showAlert("Şifre başarıyla değiştirildi!", true);
+        } catch (error) {
+            console.error("Şifre değiştirme hatası:", error);
+            if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+                showAlert("Mevcut şifreniz yanlış.", false);
+            } else if (error.code === 'auth/requires-recent-login') {
+                showAlert("Güvenlik nedeniyle, bu işlemi gerçekleştirmeden önce yakın zamanda giriş yapmış olmalısınız. Lütfen tekrar giriş yapıp deneyin.", false);
+            }
+            else {
+                showAlert("Şifre değiştirilirken bir hata oluştu: " + error.message, false);
+            }
+        } finally {
+            hideLoader();
+        }
     });
 }
 
@@ -822,7 +1019,7 @@ async function loadSupportPageData(user) {
     const previousTicketsList = document.getElementById('previousTicketsList');
     const faqList = document.getElementById('faqList');
 
-    let username = user.email;
+    let username = user.displayName || user.email.split('@')[0];
     const userDocSnapshot = await getDoc(doc(db, "users", user.uid));
     if (userDocSnapshot.exists() && userDocSnapshot.data().username) {
         username = userDocSnapshot.data().username;
@@ -832,7 +1029,8 @@ async function loadSupportPageData(user) {
         e.preventDefault();
         const subject = document.getElementById('ticketSubject').value.trim();
         const message = document.getElementById('ticketMessage').value.trim();
-        if (!subject || !message) return showAlert("Lütfen tüm alanları doldurun.", false);
+        const category = document.getElementById('ticketCategory').value; // Yeni: Kategori
+        if (!subject || !message || !category) return showAlert("Lütfen tüm alanları doldurun.", false);
 
         try {
             const submitBtn = createTicketForm.querySelector('button[type="submit"]');
@@ -845,13 +1043,15 @@ async function loadSupportPageData(user) {
                 assignedTo: null, 
                 assignedToName: null,
                 lastMessage: message,
-                lastMessageSenderType: 'user'
+                lastMessageSenderType: 'user',
+                category: category // Yeni: Kategori eklendi
             });
             await addDoc(collection(db, "tickets", newTicketRef.id, "replies"), {
                 message, senderId: user.uid, senderType: 'user', senderName: username, sentAt: serverTimestamp()
             });
             showAlert("Destek talebiniz başarıyla oluşturuldu!", true);
             createTicketForm.reset();
+            document.getElementById('ticketCategory').value = ""; // Kategori seçimi sıfırla
         } catch (error) {
             console.error("Talep oluşturulurken bir hata oluştu:", error);
             showAlert("Talep oluşturulurken bir hata oluştu: " + error.message, false);
@@ -944,7 +1144,7 @@ async function loadTicketDetailPageData(user) {
     let selectedFile = null;
     const allowedTypes = ['image/jpeg', 'image/png'];
 
-    let username = user.email;
+    let username = user.displayName || user.email.split('@')[0];
     const userDocSnapshot = await getDoc(doc(db, "users", user.uid));
     if (userDocSnapshot.exists() && userDocSnapshot.data().username) {
         username = userDocSnapshot.data().username;

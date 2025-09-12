@@ -18,6 +18,7 @@
         <a href="wallet.html" class="tab-btn">Cüzdan</a>
         <a href="profile.html" class="tab-btn">Profil</a>
         <a href="announcements.html" class="tab-btn">Duyurular</a>
+        <a href="support.html" class="tab-btn active">Destek</a>
       </div>
     </nav>
     <main class="main-content-wrapper">
@@ -31,6 +32,17 @@
               <div class="input-group spark">
                 <input type="text" id="ticketSubject" required>
                 <label>Konu</label>
+              </div>
+              <div class="input-group spark">
+                  <select id="ticketCategory" required>
+                      <option value="" disabled selected>Kategori Seçin...</option>
+                      <option value="Görev Problemi">Görev Problemi</option>
+                      <option value="Ödeme Problemi">Ödeme Problemi</option>
+                      <option value="Hesap Problemi">Hesap Problemi</option>
+                      <option value="Teknik Destek">Teknik Destek</option>
+                      <option value="Diğer">Diğer</option>
+                  </select>
+                  <label class="static-label">Kategori</label>
               </div>
               <div class="input-group spark">
                 <textarea id="ticketMessage" required rows="4"></textarea>
@@ -61,8 +73,9 @@
         <a href="my-tasks.html" class="tab-btn">Görevlerim</a>
         <a href="bonus.html" class="tab-btn">Bonus</a>
         <a href="wallet.html" class="tab-btn">Cüzdan</a>
-        <a href="profile.html" class="tab-btn active">Profil</a>
+        <a href="profile.html" class="tab-btn">Profil</a>
         <a href="announcements.html" class="tab-btn">Duyurular</a>
+        <a href="support.html" class="tab-btn active">Destek</a>
       </nav>
     </main>
   </div>

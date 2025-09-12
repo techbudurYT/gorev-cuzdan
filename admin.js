@@ -173,8 +173,12 @@ async function initAdminPanel(user) {
             usersToDisplay.forEach(u => {
                 usersHtml += `
                     <div class="user-list-item spark-card" id="user-${u.id}">
-                        <div class="user-info"><strong>${u.username}</strong> <span style="font-size:0.9em; color:var(--c-text-secondary);">(${u.email})</span><p>Bakiye: ${u.balance} ₺ | Admin: ${u.isAdmin ? 'Evet' : 'Hayır'}</p></div>
-                        <div class="user-actions"><button class="spark-button small-button btn-edit-user" data-id="${u.id}">Düzenle</button><button class="spark-button small-button btn-delete-user" data-id="${u.id}">Sil</button></div>
+                        <div class="user-info"><strong>${u.username}</strong> <span style="font-size:0.9em; color:var(--c-text-secondary);">(${u.email})</span><p>Bakiye: ${u.balance} ₺ | Admin: ${u.isAdmin ? 'Evet' : 'Hayır'} | Level: ${u.level || 1} | Completed: ${u.totalCompletedTasks || 0}</p><p>IP: ${u.lastLoginIp || 'N/A'}</p></div>
+                        <div class="user-actions">
+                            <button class="spark-button small-button btn-edit-user" data-id="${u.id}">Düzenle</button>
+                            <button class="spark-button small-button ${u.isAdmin ? 'btn-remove-admin' : 'btn-make-admin'}" data-id="${u.id}">${u.isAdmin ? 'Adminlik Al' : 'Admin Yap'}</button>
+                            <button class="spark-button small-button btn-delete-user" data-id="${u.id}">Sil</button>
+                        </div>
                     </div>`;
             });
             if (filteredUsers.length > displayCount) {
@@ -207,9 +211,9 @@ async function initAdminPanel(user) {
                 if (newUsername === null) return;
                 const newBalance = prompt("Yeni bakiye (₺):", userToEdit.balance);
                 if (newBalance === null) return;
-                const newIsAdmin = confirm(`Kullanıcıyı admin yapmak ister misiniz? (Şimdiki durum: ${userToEdit.isAdmin ? 'Evet' : 'Hayır'})`);
+                
                 try {
-                    await updateDoc(doc(db, "users", userId), { username: newUsername, balance: Number(newBalance), isAdmin: newIsAdmin });
+                    await updateDoc(doc(db, "users", userId), { username: newUsername, balance: Number(newBalance) });
                     showAlert("Kullanıcı güncellendi!", true);
                 }
                 catch (error) {
@@ -217,8 +221,38 @@ async function initAdminPanel(user) {
                 }
             }
         }
+        if (e.target.matches('.btn-make-admin')) {
+            const userId = e.target.dataset.id;
+            if (confirm("Bu kullanıcıyı yönetici yapmak istediğinize emin misiniz?")) {
+                try {
+                    await updateDoc(doc(db, "users", userId), { isAdmin: true });
+                    showAlert("Kullanıcı yönetici yapıldı!", true);
+                } catch (error) {
+                    showAlert("Admin yapma hatası: " + error.message, false);
+                }
+            }
+        }
+        if (e.target.matches('.btn-remove-admin')) {
+            const userId = e.target.dataset.id;
+            if (userId === currentAdminId) {
+                showAlert("Kendi adminliğinizi kaldıramazsınız!", false);
+                return;
+            }
+            if (confirm("Bu kullanıcının yöneticilik yetkisini kaldırmak istediğinize emin misiniz?")) {
+                try {
+                    await updateDoc(doc(db, "users", userId), { isAdmin: false });
+                    showAlert("Kullanıcının adminlik yetkisi kaldırıldı!", true);
+                } catch (error) {
+                    showAlert("Adminlik kaldırma hatası: " + error.message, false);
+                }
+            }
+        }
         if (e.target.matches('.btn-delete-user')) {
             const userId = e.target.dataset.id;
+            if (userId === currentAdminId) {
+                showAlert("Kendi hesabınızı silemezsiniz!", false);
+                return;
+            }
             if (confirm("Kullanıcıyı silmek istediğinize emin misiniz? Bu işlem geri alınamaz.")) {
                 try {
                     // Kullanıcının tüm ilgili belgelerini silme (isteğe bağlı, ancak temiz bir silme için önemli)
@@ -315,7 +349,9 @@ async function initAdminPanel(user) {
             const sub = { id: docSnapshot.id, ...docSnapshot.data() };
             const taskDoc = await getDoc(doc(db, "tasks", sub.taskId));
             const task = taskDoc.exists() ? taskDoc.data() : { text: 'Bilinmeyen Görev', reward: 0 };
-            
+            const userDoc = await getDoc(doc(db, "users", sub.userId));
+            const userDisplayName = userDoc.exists() ? (userDoc.data().username || sub.userEmail) : sub.userEmail;
+
             let submissionImagesHtml = '';
             if (Array.isArray(sub.fileURLs) && sub.fileURLs.length > 0) {
                 sub.fileURLs.forEach((url, index) => {
@@ -330,7 +366,8 @@ async function initAdminPanel(user) {
             submissionsList.innerHTML += `
                 <div class="spark-card submission-card">
                     <h3>${task.text} (+${task.reward} ₺)</h3>
-                    <p style="font-size: 0.95em; color: var(--c-text-secondary);"><strong>Kullanıcı:</strong> ${sub.userEmail}</p>
+                    <p style="font-size: 0.95em; color: var(--c-text-secondary);"><strong>Kullanıcı:</strong> ${userDisplayName} (${sub.userEmail})</p>
+                    <p style="font-size: 0.95em; color: var(--c-text-secondary);"><strong>IP Adresi:</strong> ${sub.userIp || 'Bilinmiyor'}</p>
                     <div class="submission-images-container" style="margin-top: 15px; display: flex; flex-wrap: wrap; gap: 10px;">${submissionImagesHtml}</div>
                     <div class="submission-actions" style="margin-top: 20px; display: flex; gap: 10px;">
                         <button class="spark-button small-button btn-approve" data-submission-id="${sub.id}" data-user-id="${sub.userId}" data-reward="${task.reward}" style="background-color: var(--c-success);">Onayla</button>
@@ -349,7 +386,21 @@ async function initAdminPanel(user) {
                     const userRef = doc(db, "users", target.dataset.userId);
                     const userDoc = await t.get(userRef);
                     if (!userDoc.exists()) throw "Kullanıcı bulunamadı!";
-                    t.update(userRef, { balance: userDoc.data().balance + Number(target.dataset.reward) });
+                    
+                    const currentBalance = userDoc.data().balance || 0;
+                    const totalCompletedTasks = userDoc.data().totalCompletedTasks || 0;
+                    const totalEarned = userDoc.data().totalEarned || 0;
+                    const currentLevel = userDoc.data().level || 1;
+
+                    const newCompletedTasks = totalCompletedTasks + 1;
+                    const newLevel = Math.floor(newCompletedTasks / 5) + 1; // Her 5 görevde 1 seviye atlama
+                    
+                    t.update(userRef, { 
+                        balance: currentBalance + Number(target.dataset.reward),
+                        totalCompletedTasks: newCompletedTasks,
+                        totalEarned: totalEarned + Number(target.dataset.reward),
+                        level: newLevel
+                    });
                     t.update(doc(db, "submissions", target.dataset.submissionId), { status: 'approved' });
                 });
                 showAlert("Gönderim onaylandı ve bakiye eklendi!", true);
@@ -443,7 +494,7 @@ async function initAdminPanel(user) {
             let assignedStatus = '';
 
             if (ticket.status === 'closed') {
-                assignedStatus = '<span class="status-badge status-rejected">Kapalı</span>';
+                assignedStatus = '<span class="status-badge status-closed">Kapalı</span>';
                 actionButtons = `<button class="spark-button small-button btn-view-ticket" data-id="${ticket.id}">Görüntüle</button>`;
             } else {
                 if (ticket.assignedTo === currentAdminId) {
@@ -455,12 +506,12 @@ async function initAdminPanel(user) {
                     `;
                 } else if (ticket.assignedTo) {
                     assignedStatus = `<span class="status-badge status-pending">Atanmış: ${ticket.assignedToName || 'Bilinmiyor'}</span>`;
-                    actionButtons = `<button class="spark-button small-button btn-view-ticket" data-id="${ticket.id}">Görüntüle</button>`;
+                    actionButtons = `<button class="spark-button small-button btn-reply-ticket" data-id="${ticket.id}">Cevapla</button>`;
                 } else {
-                    assignedStatus = `<span class="status-badge status-pending">Açık</span>`;
+                    assignedStatus = `<span class="status-badge status-open">Açık</span>`;
                     actionButtons = `
                         <button class="spark-button small-button btn-assign-ticket" data-id="${ticket.id}" style="background-color: var(--c-secondary);">Üstlen</button>
-                        <button class="spark-button small-button btn-view-ticket" data-id="${ticket.id}">Görüntüle</button>
+                        <button class="spark-button small-button btn-reply-ticket" data-id="${ticket.id}">Cevapla</button>
                     `;
                 }
             }
@@ -469,6 +520,7 @@ async function initAdminPanel(user) {
                 <div class="spark-card ticket-admin-item">
                     <div class="ticket-info">
                         <strong>${ticket.subject}</strong>
+                        <p>Kategori: ${ticket.category || 'Belirtilmemiş'}</p>
                         <p>Kullanıcı: ${ticket.userEmail}</p>
                         <p>Son Güncelleme: ${lastUpdate}</p>
                     </div>

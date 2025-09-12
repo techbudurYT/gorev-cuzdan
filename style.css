@@ -428,6 +428,61 @@ body.auth-page #main-content {
 .logout-button { background: linear-gradient(45deg, var(--c-danger), #b8233b); }
 .logout-button:hover:enabled { box-shadow: var(--shadow-danger); }
 
+.profile-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--c-primary);
+    padding: 2px;
+}
+
+/* Modal Stilleri */
+.modal {
+    display: none; /* Varsayılan olarak gizli */
+    position: fixed; /* Yeri sabit */
+    z-index: 1200; /* En önde olmalı */
+    left: 0;
+    top: 0;
+    width: 100%; /* Tam genişlik */
+    height: 100%; /* Tam yükseklik */
+    overflow: auto; /* İçerik taşarsa kaydırma çubuğu */
+    background-color: rgba(0,0,0,0.6); /* Hafif karartılmış arkaplan */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background-color: var(--c-bg-medium);
+    margin: auto; /* Ortalamak için */
+    padding: 30px;
+    border-radius: var(--border-radius);
+    width: 90%; /* Genişlik */
+    max-width: 500px; /* Maksimum genişlik */
+    box-shadow: 0 5px 15px rgba(0,0,0,0.4);
+    position: relative;
+    animation: fade-in-up 0.3s ease-out;
+}
+
+.close-button {
+    color: var(--c-text-secondary);
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    position: absolute;
+    top: 10px;
+    right: 20px;
+    cursor: pointer;
+}
+
+.close-button:hover,
+.close-button:focus {
+    color: var(--c-primary);
+    text-decoration: none;
+    cursor: pointer;
+}
+
 /* --- Destek Talebi Sohbet Görünümü --- */
 .ticket-replies-container {
     background: var(--c-bg-medium);
@@ -818,6 +873,17 @@ body.auth-page #main-content {
     margin-right: 0;
 }
 
+/* Arama çubuğu stilleri */
+.search-bar {
+    margin-top: 25px;
+    margin-bottom: 20px;
+    display: flex;
+    gap: 10px;
+}
+.search-bar .spark-input {
+    flex-grow: 1;
+    margin-bottom: 0; /* Override default input group margin */
+}
 
 /* Tablet ve Masaüstü */
 @media (min-width: 992px) {
