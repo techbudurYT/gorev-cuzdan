@@ -1,4 +1,3 @@
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail, updateProfile, updateEmail, updatePassword } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, query, where, orderBy, getDocs, runTransaction, addDoc, serverTimestamp, updateDoc, limit, deleteDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
@@ -25,6 +24,8 @@ const IMGBB_API_KEY = "84a7c0a54294a6e8ea2ffc9bab240719";
 
 const PREMIUM_MONTHLY_FEE = 50; // Premium üyelik ücreti
 const PREMIUM_BONUS_PERCENTAGE = 0.35; // %35 ek ödül
+
+const BACKEND_URL = "http://localhost:3000"; // NEW: Backend URL
 
 const categoryData = {
     "youtube": { name: "YouTube", logo: "img/logos/youtube.png" },
@@ -177,6 +178,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     case 'page-my-tasks': await loadMyTasksPageData(user); break;
                     case 'page-task-detail': await loadTaskDetailPageData(user); break;
                     case 'page-wallet': await loadWalletPageData(user); break;
+                    case 'page-deposit': await loadDepositPageData(user); break; // NEW: Load deposit page data
                     case 'page-support': await loadSupportPageData(user); break;
                     case 'page-ticket-detail': await loadTicketDetailPageData(user); break;
                     case 'page-bonus': await loadBonusPageData(user); break;
@@ -369,7 +371,8 @@ async function loadIndexPageData(user) {
             li.style.animationDelay = `${index * 0.05}s`;
 
             let displayReward = task.reward;
-            const now = new Date();
+            let premiumBonusText = '';
+            const now = new Date(); // Moved 'now' inside the try block
             const isPremiumActive = isUserPremium && premiumExpiry && premiumExpiry > now;
 
             if (isPremiumActive) {
@@ -995,6 +998,155 @@ async function loadWalletPageData(user) {
         });
     });
 }
+
+// NEW: loadDepositPageData function
+async function loadDepositPageData(user) {
+    const currentBalanceDisplay = document.getElementById('currentBalanceDisplay');
+    const depositAmountButtons = document.querySelectorAll('.deposit-amount-btn');
+    const customDepositAmountInput = document.getElementById('customDepositAmount');
+    const depositBtn = document.getElementById('depositBtn');
+    const depositHistoryList = document.getElementById('depositHistoryList');
+
+    let selectedAmount = 0;
+
+    // Listen to user balance changes
+    onSnapshot(doc(db, "users", user.uid), (docSnapshot) => {
+        if (docSnapshot.exists()) {
+            const userData = docSnapshot.data();
+            currentBalanceDisplay.textContent = `${(userData.balance || 0).toFixed(2)} ₺`;
+        }
+    });
+
+    // Handle amount button clicks
+    depositAmountButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            document.querySelector('.deposit-amount-btn.active-amount')?.classList.remove('active-amount');
+            button.classList.add('active-amount');
+            selectedAmount = Number(button.dataset.amount);
+            customDepositAmountInput.value = ''; // Clear custom input
+            depositBtn.disabled = false;
+            depositBtn.textContent = `Seçilen Miktarı Yükle (${selectedAmount} ₺)`;
+        });
+    });
+
+    // Handle custom amount input
+    customDepositAmountInput.addEventListener('input', () => {
+        document.querySelector('.deposit-amount-btn.active-amount')?.classList.remove('active-amount');
+        const customAmount = Number(customDepositAmountInput.value);
+        if (customAmount >= 10) {
+            selectedAmount = customAmount;
+            depositBtn.disabled = false;
+            depositBtn.textContent = `Seçilen Miktarı Yükle (${selectedAmount} ₺)`;
+        } else {
+            selectedAmount = 0;
+            depositBtn.disabled = true;
+            depositBtn.textContent = "Seçilen Miktarı Yükle";
+        }
+    });
+
+    // Handle deposit button click
+    depositBtn.addEventListener('click', async () => {
+        if (selectedAmount === 0 || selectedAmount < 10) {
+            showAlert("Lütfen geçerli bir miktar seçin (min. 10 ₺).", false);
+            return;
+        }
+
+        depositBtn.disabled = true;
+        depositBtn.textContent = "Ödeme Başlatılıyor...";
+
+        try {
+            // Step 1: Request payment intent from backend
+            const createPaymentResponse = await fetch(`${BACKEND_URL}/api/create-payment`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${await user.getIdToken()}` // Send Firebase ID token for authentication
+                },
+                body: JSON.stringify({ amount: selectedAmount, userId: user.uid, userEmail: user.email })
+            });
+
+            if (!createPaymentResponse.ok) {
+                const errorData = await createPaymentResponse.json();
+                throw new Error(errorData.message || "Ödeme başlatılırken bir hata oluştu.");
+            }
+
+            const { paymentId, paymentLink } = await createPaymentResponse.json();
+            showAlert(`Ödeme başlatıldı. Yönlendiriliyorsunuz... (Simülasyon) Payment ID: ${paymentId}`, true);
+            
+            // SIMULATION ONLY: In a real app, you would redirect to paymentLink here
+            // For this example, we directly simulate success after a short delay
+            setTimeout(async () => {
+                const simulatePaymentResponse = await fetch(`${BACKEND_URL}/api/simulate-payment-webhook`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ paymentId: paymentId, status: 'success' }) // Always simulate success for demo
+                });
+
+                if (!simulatePaymentResponse.ok) {
+                    const errorData = await simulatePaymentResponse.json();
+                    throw new Error(errorData.message || "Ödeme doğrulanırken bir hata oluştu.");
+                }
+
+                const result = await simulatePaymentResponse.json();
+                if (result.success) {
+                    showAlert(`Bakiye başarıyla yüklendi: ${selectedAmount} ₺`, true);
+                    selectedAmount = 0;
+                    customDepositAmountInput.value = '';
+                    depositBtn.disabled = true;
+                    depositBtn.textContent = "Seçilen Miktarı Yükle";
+                    document.querySelector('.deposit-amount-btn.active-amount')?.classList.remove('active-amount');
+                } else {
+                    showAlert(`Bakiye yüklenirken bir sorun oluştu: ${result.message}`, false);
+                }
+            }, 2000); // Simulate 2-second payment process
+
+        } catch (error) {
+            console.error("Para yükleme hatası:", error);
+            showAlert("Para yüklenirken bir hata oluştu: " + error.message, false);
+        } finally {
+            depositBtn.disabled = false;
+            depositBtn.textContent = "Seçilen Miktarı Yükle";
+        }
+    });
+
+    // Load previous deposit history
+    try {
+        const depositsQuery = query(collection(db, "deposits"), where("userId", "==", user.uid), orderBy("createdAt", "desc"));
+        onSnapshot(depositsQuery, (snapshot) => {
+            if (snapshot.empty) {
+                depositHistoryList.innerHTML = `<div class="empty-state">Henüz bir bakiye yüklemeniz bulunmamaktadır.</div>`;
+                return;
+            }
+            depositHistoryList.innerHTML = '';
+            snapshot.forEach(docSnapshot => {
+                const deposit = docSnapshot.data();
+                const depositDate = deposit.createdAt ? deposit.createdAt.toDate().toLocaleDateString('tr-TR') : 'Bilinmiyor';
+                let statusText = '', statusClass = '';
+                switch(deposit.status) {
+                    case 'pending': statusText = 'Beklemede'; statusClass = 'status-pending'; break;
+                    case 'completed': statusText = 'Tamamlandı'; statusClass = 'status-approved'; break;
+                    case 'failed': statusText = 'Başarısız'; statusClass = 'status-rejected'; break;
+                    default: statusText = 'Bilinmiyor'; statusClass = ''; break;
+                }
+                depositHistoryList.innerHTML += `
+                    <div class="spark-card deposit-history-item">
+                        <div class="deposit-info">
+                            <strong>${deposit.amount} ₺</strong>
+                            <p>Ödeme ID: ${deposit.paymentId}</p>
+                            <p>Tarih: ${depositDate}</p>
+                        </div>
+                        <span class="status-badge ${statusClass}">${statusText}</span>
+                    </div>`;
+            });
+        });
+    } catch (error) {
+        console.error("Para yükleme geçmişi yüklenirken hata:", error);
+        depositHistoryList.innerHTML = `<div class="empty-state" style="color:var(--c-danger);">Yükleme geçmişi yüklenemedi.</div>`;
+    }
+}
+
 
 async function loadSupportPageData(user) {
     const createTicketForm = document.getElementById('createTicketForm');

@@ -1,12 +1,13 @@
+--- START OF FILE deposit.html ---
 <!DOCTYPE html>
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cüzdanım</title>
+    <title>Para Yükle</title>
     <link rel="stylesheet" href="style.css">
 </head>
-<body id="page-wallet">
+<body id="page-deposit">
     <div id="loader"></div>
     <div class="app-layout" style="display: none;" id="main-content">
         <nav class="sidebar">
@@ -15,8 +16,8 @@
                 <a href="index.html" class="tab-btn">Görevler</a>
                 <a href="my-tasks.html" class="tab-btn">Görevlerim</a>
                 <a href="bonus.html" class="tab-btn">Bonus</a>
-                <a href="wallet.html" class="tab-btn active">Cüzdan</a>
-                <a href="deposit.html" class="tab-btn">Para Yükle</a>
+                <a href="wallet.html" class="tab-btn">Cüzdan</a>
+                <a href="deposit.html" class="tab-btn active">Para Yükle</a>
                 <a href="profile.html" class="tab-btn">Profil</a>
                 <a href="premium.html" class="tab-btn">Premium</a>
                 <a href="announcements.html" class="tab-btn">Duyurular</a>
@@ -26,34 +27,38 @@
         </nav>
         <main class="main-content-wrapper">
             <div class="container">
-                <header class="spark-header"><h1>Cüzdanım</h1></header>
+                <header class="spark-header"><h1>Para Yükle</h1></header>
                 <div class="page-wrapper">
                     <div class="spark-card balance-card">
                         <p>Mevcut Bakiye</p>
-                        <div class="balance-amount" id="currentBalance">0 ₺</div>
+                        <div class="balance-amount" id="currentBalanceDisplay">0 ₺</div>
                     </div>
+
                     <div class="spark-card">
-                        <h3>Para Çekme Talebi Oluştur</h3>
+                        <h3>Miktar Seçin veya Girin</h3>
                         <div id="alertBox"></div>
-                        <form id="withdrawalForm">
-                            <div class="input-group spark">
-                                <input type="number" id="withdrawalAmount" required min="200" step="any">
-                                <label>Çekmek İstediğiniz Miktar (₺)</label>
-                            </div>
-                            <div class="input-group spark">
-                                <input type="text" id="iban" required pattern="TR[0-9]{24}">
-                                <label>IBAN Numaranız</label>
-                            </div>
-                            <div class="input-group spark">
-                                <input type="tel" id="phoneNumber" required pattern="[0-9]{10}">
-                                <label>Telefon (5xxxxxxxxx)</label>
-                            </div>
-                            <button type="submit" class="spark-button">Talep Oluştur</button>
-                        </form>
+                        <div class="deposit-amount-selection">
+                            <button class="spark-button small-button deposit-amount-btn" data-amount="10">10 ₺</button>
+                            <button class="spark-button small-button deposit-amount-btn" data-amount="25">25 ₺</button>
+                            <button class="spark-button small-button deposit-amount-btn" data-amount="50">50 ₺</button>
+                            <button class="spark-button small-button deposit-amount-btn" data-amount="100">100 ₺</button>
+                            <button class="spark-button small-button deposit-amount-btn" data-amount="200">200 ₺</button>
+                        </div>
+                        <div class="input-group spark" style="margin-top: 20px;">
+                            <input type="number" id="customDepositAmount" min="10" step="1">
+                            <label>Özel Miktar (Min. 10 ₺)</label>
+                        </div>
+                        <button id="depositBtn" class="spark-button" disabled>Seçilen Miktarı Yükle</button>
+                        <p style="font-size: 0.9em; color: var(--c-text-secondary); margin-top: 15px; text-align: center;">
+                            Ödeme Papara üzerinden simüle edilecektir.
+                        </p>
                     </div>
+
                     <div class="spark-card">
-                        <h3>Önceki Taleplerim</h3>
-                        <div id="previousWithdrawalsList"></div>
+                        <h3>Yükleme Geçmişim</h3>
+                        <div id="depositHistoryList">
+                            <p class="empty-state">Henüz bir bakiye yüklemeniz bulunmamaktadır.</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -61,8 +66,8 @@
                 <a href="index.html" class="tab-btn">Görevler</a>
                 <a href="my-tasks.html" class="tab-btn">Görevlerim</a>
                 <a href="bonus.html" class="tab-btn">Bonus</a>
-                <a href="wallet.html" class="tab-btn active">Cüzdan</a>
-                <a href="deposit.html" class="tab-btn">Para Yükle</a>
+                <a href="wallet.html" class="tab-btn">Cüzdan</a>
+                <a href="deposit.html" class="tab-btn active">Para Yükle</a>
                 <a href="profile.html" class="tab-btn">Profil</a>
                 <a href="premium.html" class="tab-btn">Premium</a>
                 <a href="announcements.html" class="tab-btn">Duyurular</a>
