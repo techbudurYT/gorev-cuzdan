@@ -1,3 +1,4 @@
+
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
 
 :root {
@@ -470,7 +471,7 @@ body.auth-page #main-content {
     background-color: rgba(0,0,0,0.8); /* Daha koyu arkaplan */
     justify-content: center;
     align-items: center;
-    /* transition: opacity 0.3s ease; /* Opaklık geçişi ekle */
+    transition: opacity 0.3s ease; /* Opaklık geçişi ekle */
     opacity: 0; /* Başlangıçta gizli */
     pointer-events: none; /* Gizliyken tıklamaları engelle */
 }

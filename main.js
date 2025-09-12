@@ -599,18 +599,21 @@ async function loadProfilePageData(user) {
     });
 
     editProfileBtn.addEventListener('click', (e) => {
-        e.preventDefault(); // Prevent default link/button behavior if any
-        profileEditModal.style.display = 'flex'; // Use flex to show modal
+        e.preventDefault(); 
+        console.log("Edit Profile button clicked. Showing modal.");
+        profileEditModal.classList.add('is-visible'); // CSS class to manage visibility and transition
     });
 
     closeModalBtn.addEventListener('click', () => {
-        profileEditModal.style.display = 'none';
+        console.log("Close modal button clicked. Hiding modal.");
+        profileEditModal.classList.remove('is-visible'); // Hide modal using CSS class
         selectedAvatarFile = null; // Modalı kapatırken seçili dosyayı sıfırla
     });
 
     window.addEventListener('click', (event) => {
         if (event.target === profileEditModal) {
-            profileEditModal.style.display = 'none';
+            console.log("Clicked outside modal. Hiding modal.");
+            profileEditModal.classList.remove('is-visible'); // Hide modal using CSS class
             selectedAvatarFile = null;
         }
     });
@@ -663,7 +666,7 @@ async function loadProfilePageData(user) {
 
             showAlert("Profil başarıyla güncellendi!", true);
             setTimeout(() => { // Add a short delay for UX before closing modal
-                profileEditModal.style.display = 'none';
+                profileEditModal.classList.remove('is-visible'); // Hide modal using CSS class
                 selectedAvatarFile = null; // Seçili dosyayı sıfırla
             }, 1500);
         } catch (error) {
