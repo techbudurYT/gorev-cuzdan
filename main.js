@@ -562,7 +562,7 @@ async function loadProfilePageData(user) {
     });
 
     editProfileBtn.addEventListener('click', () => {
-        profileEditModal.style.display = 'block';
+        profileEditModal.style.display = 'flex'; // Modalı açmak için display: flex kullan
     });
 
     closeModalBtn.addEventListener('click', () => {

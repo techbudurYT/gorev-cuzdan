@@ -423,7 +423,7 @@ body.auth-page #main-content {
 /* --- D. Profil Sayfası --- */
 .profile-dashboard { display: grid; grid-template-columns: 1fr; gap: 20px; }
 .stat-card { text-align: center; padding: 25px; }
-.stat-value { font-size: 2.2em; font-weight: 700; color: var(--c-secondary); margin-top: 8px; }
+.stat-value { font-size: 2.2em; font-weight: 700; color: var(--c-secondary); margin-top: 8px; overflow-wrap: break-word; /* Metin sığmazsa kelimeyi kır */ }
 .stat-label { color: var(--c-text-secondary); font-size: 1em; }
 .logout-button { background: linear-gradient(45deg, var(--c-danger), #b8233b); }
 .logout-button:hover:enabled { box-shadow: var(--shadow-danger); }
