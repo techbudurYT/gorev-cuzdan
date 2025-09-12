@@ -167,6 +167,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     case 'page-ticket-detail': await loadTicketDetailPageData(user); break;
                     case 'page-bonus': await loadBonusPageData(user); break;
                     case 'page-announcements': await loadAnnouncementsPageData(); break;
+                    case 'page-faq': await loadFaqPageData(); break; // NEW: Load FAQ page data
                 }
                 hideLoader();
                 handleInputLabels(); // Call here after content is loaded
@@ -551,7 +552,7 @@ async function loadProfilePageData(user) {
             emailDisplay.textContent = userData.email || user.email;
             balanceDisplay.textContent = `${(userData.balance || 0).toFixed(2)} ₺`;
             totalEarnedDisplay.textContent = `${(userData.totalEarned || 0).toFixed(2)} ₺`;
-            userLevelDisplay.textContent = `Seviye: ${userData.level || 1}`;
+            userLevelDisplay.textContent = `${userData.level || 1}`;
             editUsername.value = userData.username || '';
             editEmail.value = userData.email || '';
 
@@ -562,7 +563,7 @@ async function loadProfilePageData(user) {
 
             if (userData.avatarUrl) {
                 currentAvatar.src = userData.avatarUrl;
-                avatarPreview.innerHTML = `<img src="${userData.avatarUrl}" alt="Mevcut Avatar" style="max-width: 100%; border-radius: 50%;">`;
+                avatarPreview.innerHTML = `<img src="${userData.avatarUrl}" alt="Mevcut Avatar" style="max-width: 100px; max-height: 100px; border-radius: 50%; object-fit: cover;">`;
             } else {
                 currentAvatar.src = 'img/default-avatar.png'; // Varsayılan avatar
                 avatarPreview.innerHTML = '<p>Avatar seçilmedi.</p>';
@@ -619,7 +620,7 @@ async function loadProfilePageData(user) {
         if (selectedAvatarFile) {
             const reader = new FileReader();
             reader.onload = e => {
-                avatarPreview.innerHTML = `<img src="${e.target.result}" alt="Yeni Avatar Önizleme" style="max-width: 100%; border-radius: 50%;">`;
+                avatarPreview.innerHTML = `<img src="${e.target.result}" alt="Yeni Avatar Önizleme" style="max-width: 100px; max-height: 100px; border-radius: 50%; object-fit: cover;">`;
             };
             reader.readAsDataURL(selectedAvatarFile);
         } else {
@@ -1186,26 +1187,29 @@ async function loadSupportPageData(user) {
         previousTicketsList.innerHTML = `<div class="empty-state" style="color:var(--c-danger);">Destek talepleri yüklenemedi: ${error.message}</div>`;
     });
 
-    try {
-        const faqsQuery = query(collection(db, "faqs"), orderBy("order", "asc"));
-        const faqsSnapshot = await getDocs(faqsQuery);
-        if (!faqsSnapshot.empty) {
-            faqList.innerHTML = '';
-            faqsSnapshot.forEach(doc => {
-                const faq = doc.data();
-                faqList.innerHTML += `
-                    <div class="spark-card" style="margin-top: 15px;">
-                        <h4>${faq.question}</h4>
-                        <p>${faq.answer}</p>
-                    </div>
-                `;
-            });
-        } else {
-            faqList.innerHTML = '<div class="empty-state">Henüz sıkça sorulan soru bulunmuyor.</div>';
+    // SSS bölümünü sadece destek sayfasında yükle, FAQ sayfasında değil
+    if (document.body.id === 'page-support') {
+        try {
+            const faqsQuery = query(collection(db, "faqs"), orderBy("order", "asc"));
+            const faqsSnapshot = await getDocs(faqsQuery);
+            if (!faqsSnapshot.empty) {
+                faqList.innerHTML = '';
+                faqsSnapshot.forEach(doc => {
+                    const faq = doc.data();
+                    faqList.innerHTML += `
+                        <div class="spark-card" style="margin-top: 15px;">
+                            <h4>${faq.question}</h4>
+                            <p>${faq.answer}</p>
+                        </div>
+                    `;
+                });
+            } else {
+                faqList.innerHTML = '<div class="empty-state">Henüz sıkça sorulan soru bulunmuyor.</div>';
+            }
+        } catch (error) {
+            console.error("SSS yüklenirken hata:", error);
+            faqList.innerHTML = `<div class="empty-state" style="color:var(--c-danger);">SSS yüklenemedi.</div>`;
         }
-    } catch (error) {
-        console.error("SSS yüklenirken hata:", error);
-        faqList.innerHTML = `<div class="empty-state" style="color:var(--c-danger);">SSS yüklenemedi.</div>`;
     }
 }
 
@@ -1250,7 +1254,7 @@ async function loadTicketDetailPageData(user) {
             replyFileNameSpan.textContent = file.name;
             const reader = new FileReader();
             reader.onload = e => replyImagePreviewDiv.innerHTML = `<img src="${e.target.result}" alt="Önizleme" loading="lazy">`;
-            reader.readAsDataURL(file);
+            reader.readAsDataURL(selectedFile);
         } else {
             selectedFile = null;
             replyFileNameSpan.textContent = "Dosya seçilmedi";
@@ -1420,5 +1424,35 @@ async function loadAnnouncementsPageData() {
     } catch (error) {
         console.error("Duyurular yüklenirken hata oluştu:", error);
         announcementsList.innerHTML = `<div class="empty-state" style="color:var(--c-danger);">Duyurular yüklenemedi.</div>`;
+    }
+}
+
+// NEW: loadFaqPageData function
+async function loadFaqPageData() {
+    const faqList = document.getElementById('faqList');
+
+    try {
+        const faqsQuery = query(collection(db, "faqs"), orderBy("order", "asc"));
+        const faqsSnapshot = await getDocs(faqsQuery);
+
+        if (faqsSnapshot.empty) {
+            faqList.innerHTML = `<div class="empty-state">Henüz sıkça sorulan soru bulunmamaktadır.</div>`;
+            return;
+        }
+
+        faqList.innerHTML = '';
+        faqsSnapshot.forEach(doc => {
+            const faq = doc.data();
+            faqList.innerHTML += `
+                <div class="spark-card">
+                    <h4>${faq.question}</h4>
+                    <p>${faq.answer}</p>
+                </div>
+            `;
+        });
+
+    } catch (error) {
+        console.error("SSS yüklenirken hata oluştu:", error);
+        faqList.innerHTML = `<div class="empty-state" style="color:var(--c-danger);">SSS yüklenemedi.</div>`;
     }
 }

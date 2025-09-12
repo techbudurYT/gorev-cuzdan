@@ -1,3 +1,4 @@
+
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
 
 :root {
@@ -171,10 +172,14 @@ header.spark-header {
   -webkit-backdrop-filter: blur(15px);
   border-top: 1px solid rgba(159, 85, 255, 0.2);
   z-index: 1000;
+  overflow-x: auto; /* Allow horizontal scrolling for many items */
+  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+  white-space: nowrap; /* Prevent items from wrapping */
 }
 .bottom-nav .tab-btn {
   flex: 1; text-align: center; text-decoration: none; color: var(--c-text-secondary);
   font-weight: 500; position: relative; padding: 15px 0; transition: color var(--transition-fast);
+  min-width: 70px; /* Minimum width for each item */
 }
 .bottom-nav .tab-btn.active { color: var(--c-primary); font-weight: 600; }
 .bottom-nav .tab-btn.active::after {
@@ -421,10 +426,26 @@ body.auth-page #main-content {
 .submission-card .submission-header { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
 
 /* --- D. Profil Sayfası --- */
-.profile-dashboard { display: grid; grid-template-columns: 1fr; gap: 20px; }
-.stat-card { text-align: center; padding: 25px; }
-.stat-value { font-size: 2.2em; font-weight: 700; color: var(--c-secondary); margin-top: 8px; overflow-wrap: break-word; /* Metin sığmazsa kelimeyi kır */ }
-.stat-label { color: var(--c-text-secondary); font-size: 1em; }
+.profile-dashboard { 
+    display: grid; 
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); /* Daha esnek ve küçük ekranlara uyumlu */
+    gap: 20px; 
+}
+.stat-card { 
+    text-align: center; 
+    padding: 25px 15px; /* Yan paddingi azaltarak metin taşmasını engelle */
+}
+.stat-value { 
+    font-size: 2em; /* Yazı boyutunu biraz küçült */
+    font-weight: 700; 
+    color: var(--c-secondary); 
+    margin-top: 8px; 
+    word-break: break-word; /* Metin sığmazsa kelimeyi kır */
+}
+.stat-label { 
+    color: var(--c-text-secondary); 
+    font-size: 0.9em; /* Etiket boyutunu küçült */
+}
 .logout-button { background: linear-gradient(45deg, var(--c-danger), #b8233b); }
 .logout-button:hover:enabled { box-shadow: var(--shadow-danger); }
 
@@ -849,6 +870,22 @@ body.auth-page #main-content {
     text-align: right;
     display: block;
     margin-top: 10px;
+}
+
+/* FAQ Page Specific Styles */
+#faqList .spark-card {
+    margin-top: 15px;
+}
+
+#faqList .spark-card h4 {
+    color: var(--c-primary);
+    font-size: 1.1em;
+    margin-bottom: 10px;
+}
+
+#faqList .spark-card p {
+    color: var(--c-text-secondary);
+    font-size: 0.9em;
 }
 
 
