@@ -49,8 +49,12 @@ function showLoader() {
 function hideLoader() {
     const loader = document.getElementById('loader');
     const mainContent = document.getElementById('main-content');
-    if (loader) mainContent.style.display = 'flex';
-    if (loader) loader.style.display = 'none';
+    if (mainContent) { // Corrected condition
+        mainContent.style.display = 'flex';
+    }
+    if (loader) {
+        loader.style.display = 'none';
+    }
 }
 
 // IP adresini almak için yardımcı fonksiyon
@@ -63,6 +67,47 @@ async function getIpAddress() {
         console.error("IP adresi alınırken hata:", error);
         return null;
     }
+}
+
+// Add a function to handle input label floating
+function handleInputLabels() {
+    document.querySelectorAll('.input-group.spark input, .input-group.spark textarea').forEach(input => {
+        // Initial check for pre-filled values
+        if (input.value) {
+            input.classList.add('populated');
+        } else {
+            input.classList.remove('populated');
+        }
+
+        // Add event listeners for dynamic changes
+        input.addEventListener('input', () => {
+            if (input.value) {
+                input.classList.add('populated');
+            } else {
+                input.classList.remove('populated');
+            }
+        });
+        input.addEventListener('focus', () => {
+            input.parentElement.querySelector('label')?.classList.add('focused');
+        });
+        input.addEventListener('blur', () => {
+            input.parentElement.querySelector('label')?.classList.remove('focused');
+        });
+    });
+    // For select elements, ensure static-label is always up
+    document.querySelectorAll('.input-group.spark select').forEach(select => {
+        const label = select.parentElement.querySelector('label');
+        if (label) { // Check if label exists
+            label.classList.add('static-label');
+            // Add a focused class for select, similar to inputs, if needed for styling
+            select.addEventListener('focus', () => {
+                label.classList.add('focused');
+            });
+            select.addEventListener('blur', () => {
+                label.classList.remove('focused');
+            });
+        }
+    });
 }
 
 
@@ -119,12 +164,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     case 'page-announcements': await loadAnnouncementsPageData(); break;
                 }
                 hideLoader();
+                handleInputLabels(); // Call here after content is loaded
             }
         } else {
             if (!isAuthPage) { 
                 window.location.replace('login.html');
             } else { 
                 hideLoader();
+                handleInputLabels(); // Call here for auth pages too
             }
         }
     });
@@ -135,6 +182,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function initRegisterPage() {
     const registerForm = document.getElementById("registerForm");
+    handleInputLabels(); // Call for register form
 
     registerForm.addEventListener("submit", async (e) => {
         e.preventDefault();
@@ -180,6 +228,8 @@ function initRegisterPage() {
 
 function initLoginPage() {
     const loginForm = document.getElementById("loginForm");
+    handleInputLabels(); // Call for login form
+
     loginForm.addEventListener("submit", async (e) => {
         e.preventDefault();
         const email = document.getElementById("loginEmail").value;
@@ -467,6 +517,11 @@ async function loadProfilePageData(user) {
             userLevelDisplay.textContent = `Seviye: ${userData.level || 1}`;
             editUsername.value = userData.username || '';
             editEmail.value = userData.email || '';
+
+            // Manually add 'populated' class for pre-filled inputs
+            if (editUsername.value) editUsername.classList.add('populated'); else editUsername.classList.remove('populated');
+            if (editEmail.value) editEmail.classList.add('populated'); else editEmail.classList.remove('populated');
+
 
             if (userData.avatarUrl) {
                 currentAvatar.src = userData.avatarUrl;
@@ -941,10 +996,14 @@ async function loadWalletPageData(user) {
             if (userData.iban) {
                 ibanInput.value = userData.iban;
                 ibanInput.classList.add('populated'); // Label'ın yukarıda kalması için
+            } else {
+                ibanInput.classList.remove('populated');
             }
             if (userData.phoneNumber) {
                 phoneNumberInput.value = userData.phoneNumber;
                 phoneNumberInput.classList.add('populated'); // Label'ın yukarıda kalması için
+            } else {
+                phoneNumberInput.classList.remove('populated');
             }
         }
     });
