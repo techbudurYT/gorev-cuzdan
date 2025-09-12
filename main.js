@@ -1,7 +1,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail, updateProfile, updateEmail, updatePassword } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, query, where, orderBy, getDocs, runTransaction, addDoc, serverTimestamp, updateDoc, limit, deleteDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
-import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-storage.js";
+// Firebase Storage artık kullanılmayacak, bu satırı kaldırıyoruz
+// import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-storage.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyBN85bxThpJYifWAvsS0uqPD0C9D55uPpM", // KENDİ API ANAHTARINIZI GİRİN!
@@ -15,7 +16,11 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-const storage = getStorage(app);
+// Storage nesnesini artık tanımlamıyoruz
+// const storage = getStorage(app);
+
+// ImageBB API Key'inizi buraya girin!
+const IMGBB_API_KEY = "84a7c0a54294a6e8ea2ffc9bab240719"; 
 
 const categoryData = {
     "youtube": { name: "YouTube", logo: "img/logos/youtube.png" },
@@ -486,6 +491,38 @@ async function loadBonusPageData(user) {
     });
 }
 
+// ImageBB'ye resim yüklemek için yardımcı fonksiyon
+async function uploadImageToImageBB(file) {
+    if (!IMGBB_API_KEY || IMGBB_API_KEY === "YOUR_IMGBB_API_KEY") {
+        throw new Error("ImageBB API Key ayarlanmamış veya varsayılan değerde. Lütfen main.js dosyasındaki IMGBB_API_KEY değişkenini güncelleyin.");
+    }
+
+    const formData = new FormData();
+    formData.append("image", file);
+
+    try {
+        const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+            method: "POST",
+            body: formData,
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(`ImageBB yükleme hatası: ${errorData.error.message || response.statusText}`);
+        }
+
+        const result = await response.json();
+        if (result.success) {
+            return result.data.url; // Yüklenen resmin doğrudan URL'sini döndür
+        } else {
+            throw new Error(`ImageBB yüklemesi başarısız: ${result.status_txt}`);
+        }
+    } catch (error) {
+        console.error("ImageBB'ye resim yüklenirken hata:", error);
+        throw error; // Hatayı daha üst seviyeye taşı
+    }
+}
+
 async function loadProfilePageData(user) {
     const usernameDisplay = document.getElementById("usernameDisplay");
     const emailDisplay = document.getElementById("emailDisplay");
@@ -618,24 +655,8 @@ async function loadProfilePageData(user) {
             }
 
             if (selectedAvatarFile) {
-                // Önceki avatarı sil
-                const userData = (await getDoc(doc(db, "users", user.uid))).data();
-                if (userData.avatarUrl) {
-                    const oldAvatarRef = ref(storage, userData.avatarUrl);
-                    try {
-                        await deleteObject(oldAvatarRef);
-                    } catch (deleteError) {
-                        console.warn("Önceki avatar silinirken hata oluştu (önemli değilse göz ardı edilebilir):", deleteError);
-                    }
-                }
-
-                const compressedFile = await compressImage(selectedAvatarFile, { maxWidth: 200, maxHeight: 200, quality: 0.8 });
-                const avatarRef = ref(storage, `avatars/${user.uid}/${selectedAvatarFile.name}`);
-                const metadata = {
-                    contentType: compressedFile.type,
-                };
-                const snapshot = await uploadBytes(avatarRef, compressedFile, metadata);
-                const avatarUrl = await getDownloadURL(snapshot.ref);
+                // ImageBB'ye yükleme
+                const avatarUrl = await uploadImageToImageBB(selectedAvatarFile);
                 await updateDoc(doc(db, "users", user.uid), { avatarUrl: avatarUrl });
             }
 
@@ -874,15 +895,8 @@ async function loadTaskDetailPageData(user) {
         let uploadedFileURLs = [];
         try {
             for (const file of filesToUpload) {
-                // Görsel boyutunu küçültmek için Canvas kullanımı
-                const compressedFile = await compressImage(file);
-
-                const storageRef = ref(storage, `proofs/${user.uid}/${taskId}-${Date.now()}-${file.name}`);
-                const metadata = {
-                    contentType: compressedFile.type,
-                };
-                const snapshot = await uploadBytes(storageRef, compressedFile, metadata);
-                const downloadURL = await getDownloadURL(snapshot.ref);
+                // ImageBB'ye yükleme
+                const downloadURL = await uploadImageToImageBB(file);
                 uploadedFileURLs.push(downloadURL);
             }
             
@@ -943,7 +957,8 @@ async function loadTaskDetailPageData(user) {
     });
 }
 
-// Görsel sıkıştırma fonksiyonu
+// Görsel sıkıştırma fonksiyonu (bu fonksiyon hala gerekli olabilir, ancak artık ImageBB'ye yüklemeden önce çalışacak)
+// ImageBB'ye doğrudan yüklenen dosyaların boyutunu sıkıştırmak genellikle iyi bir fikirdir.
 function compressImage(file, { quality = 0.7, maxWidth = 800, maxHeight = 800 } = {}) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -974,7 +989,12 @@ function compressImage(file, { quality = 0.7, maxWidth = 800, maxHeight = 800 } 
                 ctx.drawImage(img, 0, 0, width, height);
 
                 canvas.toBlob(blob => {
-                    resolve(blob);
+                    // Blob'u File nesnesine geri dönüştür (ImageBB FormData için File bekler)
+                    const compressedFile = new File([blob], file.name, {
+                        type: file.type,
+                        lastModified: Date.now()
+                    });
+                    resolve(compressedFile);
                 }, file.type, quality);
             };
             img.onerror = error => reject(error);
@@ -1320,15 +1340,8 @@ async function loadTicketDetailPageData(user) {
         try {
             let fileURL = null;
             if (selectedFile) {
-                // Görsel boyutunu küçültmek için Canvas kullanımı
-                const compressedFile = await compressImage(selectedFile);
-
-                const storageRef = ref(storage, `ticket_attachments/${user.uid}/${ticketId}-${Date.now()}-${selectedFile.name}`);
-                const metadata = {
-                    contentType: compressedFile.type,
-                };
-                const snapshot = await uploadBytes(storageRef, compressedFile, metadata);
-                fileURL = await getDownloadURL(snapshot.ref);
+                // ImageBB'ye yükleme
+                fileURL = await uploadImageToImageBB(selectedFile);
             }
 
             await addDoc(collection(db, "tickets", ticketId, "replies"), { 
