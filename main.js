@@ -631,7 +631,10 @@ async function loadProfilePageData(user) {
 
                 const compressedFile = await compressImage(selectedAvatarFile, { maxWidth: 200, maxHeight: 200, quality: 0.8 });
                 const avatarRef = ref(storage, `avatars/${user.uid}/${selectedAvatarFile.name}`);
-                const snapshot = await uploadBytes(avatarRef, compressedFile);
+                const metadata = {
+                    contentType: compressedFile.type,
+                };
+                const snapshot = await uploadBytes(avatarRef, compressedFile, metadata);
                 const avatarUrl = await getDownloadURL(snapshot.ref);
                 await updateDoc(doc(db, "users", user.uid), { avatarUrl: avatarUrl });
             }
@@ -875,7 +878,10 @@ async function loadTaskDetailPageData(user) {
                 const compressedFile = await compressImage(file);
 
                 const storageRef = ref(storage, `proofs/${user.uid}/${taskId}-${Date.now()}-${file.name}`);
-                const snapshot = await uploadBytes(storageRef, compressedFile);
+                const metadata = {
+                    contentType: compressedFile.type,
+                };
+                const snapshot = await uploadBytes(storageRef, compressedFile, metadata);
                 const downloadURL = await getDownloadURL(snapshot.ref);
                 uploadedFileURLs.push(downloadURL);
             }
@@ -1318,7 +1324,10 @@ async function loadTicketDetailPageData(user) {
                 const compressedFile = await compressImage(selectedFile);
 
                 const storageRef = ref(storage, `ticket_attachments/${user.uid}/${ticketId}-${Date.now()}-${selectedFile.name}`);
-                const snapshot = await uploadBytes(storageRef, compressedFile);
+                const metadata = {
+                    contentType: compressedFile.type,
+                };
+                const snapshot = await uploadBytes(storageRef, compressedFile, metadata);
                 fileURL = await getDownloadURL(snapshot.ref);
             }
 
