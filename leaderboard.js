@@ -38,14 +38,12 @@ document.addEventListener('DOMContentLoaded', () => {
             let rank = 1;
             snapshot.forEach(doc => {
                 const userData = doc.data();
-                const email = userData.email;
-                // E-postanın bir kısmını gizle (ör: user****@example.com)
-                const maskedEmail = email.replace(/(.{2}).*(@.*)/, '$1****$2');
+                const username = userData.username || 'isimsiz'; // Kullanıcı adı varsa onu, yoksa 'isimsiz' göster
 
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td><span class="rank rank-${rank}">${rank}</span></td>
-                    <td>${maskedEmail}</td>
+                    <td>${username}</td>
                     <td>${userData.completedTasks}</td>
                 `;
                 leaderboardBody.appendChild(row);

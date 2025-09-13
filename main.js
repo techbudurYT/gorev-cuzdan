@@ -22,11 +22,10 @@ document.addEventListener('DOMContentLoaded', () => {
         let userDoc = await userDocRef.get();
 
         if (!userDoc.exists) {
-            // Auth'da kullanıcı var ama Firestore'da yoksa, bu bir tutarsızlıktır.
-            // Sistemi onarmak için kullanıcı belgesini burada oluşturalım.
             console.warn("Firestore'da kullanıcı verisi bulunamadı. Eksik belge oluşturuluyor...");
             const defaultUserData = {
                 email: currentUser.email,
+                username: currentUser.email.split('@')[0], // E-postadan varsayılan bir kullanıcı adı oluştur
                 balance: 0,
                 completedTasks: 0,
                 isAdmin: false,
@@ -35,23 +34,19 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             try {
-                // Eksik olan kullanıcı belgesini Firestore'a ekle
                 await userDocRef.set(defaultUserData);
-                // Yeni oluşturulan belgeyi tekrar oku
                 userDoc = await userDocRef.get();
                 userData = userDoc.data();
             } catch (error) {
                 console.error("Eksik kullanıcı belgesi oluşturulurken hata oluştu:", error);
                 alert("Hesap verileriniz yüklenemedi. Lütfen destek ile iletişime geçin.");
-                auth.signOut(); // Güvenlik için çıkış yap
-                return; // Fonksiyonun devam etmesini engelle
+                auth.signOut();
+                return;
             }
         } else {
-            // Belge varsa, veriyi al
             userData = userDoc.data();
         }
 
-        // UI ve görevleri yükle
         updateUI();
         
         if(userData && userData.isAdmin) {
@@ -69,7 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     async function loadTasks() {
-        taskList.innerHTML = ''; // Listeyi temizle
+        taskList.innerHTML = ''; 
         const tasksSnapshot = await db.collection('tasks').get();
         const userCompletedTasks = userData.completedTaskIds || [];
 
@@ -139,7 +134,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             taskButton.textContent = 'Tamamlandı';
-            // Yerel veriyi ve UI'ı güncelle
             userData.balance += reward;
             userData.completedTasks += 1;
             (userData.completedTaskIds = userData.completedTaskIds || []).push(taskId);
@@ -148,7 +142,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             console.error("Görev tamamlama hatası: ", error);
             taskButton.textContent = 'Hata Oluştu';
-            setTimeout(() => { // Kullanıcıya tekrar deneme şansı ver
+            setTimeout(() => {
                 taskButton.disabled = false;
                 taskButton.textContent = 'Görevi Yap';
             }, 2000);

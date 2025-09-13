@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const userEmailDisplay = document.getElementById('user-email');
+    const userDisplayName = document.getElementById('user-display-name');
     const profileBalanceDisplay = document.getElementById('profile-balance');
     const profileTasksCompletedDisplay = document.getElementById('profile-tasks-completed');
     const adminPanelLink = document.getElementById('admin-panel-link');
@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (doc.exists) {
             const userData = doc.data();
-            userEmailDisplay.textContent = userData.email;
+            userDisplayName.textContent = userData.username || userData.email; // Kullanıcı adı varsa onu, yoksa e-postayı göster
             profileBalanceDisplay.textContent = `${userData.balance.toFixed(2)} ₺`;
             profileTasksCompletedDisplay.textContent = userData.completedTasks;
             
