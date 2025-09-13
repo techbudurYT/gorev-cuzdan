@@ -205,8 +205,11 @@ document.addEventListener('DOMContentLoaded', () => {
         showAlert("Uygulama yüklenirken bir sorun oluştu. Lütfen internet bağlantınızı kontrol edin veya daha sonra tekrar deneyin.", false);
         hideLoader();
         // Hata durumunda, eğer auth sayfasında değilsek login'e yönlendir
-        if (!isAuthPage) {
-            window.location.replace('login.html');
+        if (!document.body.id.startsWith('page-admin')) {
+             const isAuthPage = document.body.id === 'page-login' || document.body.id === 'page-register';
+             if (!isAuthPage) {
+                window.location.replace('login.html');
+             }
         }
     });
 
@@ -219,29 +222,35 @@ document.addEventListener('DOMContentLoaded', () => {
 function initLoginPage() {
     const loginForm = document.getElementById('loginForm');
     if (!loginForm) return;
+    handleInputLabels();
 
     loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const email = document.getElementById('loginEmail').value.trim();
         const password = document.getElementById('loginPassword').value;
 
-        if (password.length < 6) return showAlert("Şifre en az 6 karakter olmalıdır.", false);
+        if (password.length < 6) {
+            return showAlert("Şifre en az 6 karakter olmalıdır.", false);
+        }
 
         try {
             showLoader();
             await signInWithEmailAndPassword(auth, email, password);
             showAlert("Giriş başarılı! Yönlendiriliyorsunuz...", true);
-            // onAuthStateChanged tetiklenecek ve index.html'ye yönlendirecek
+            // onAuthStateChanged tetiklenecek ve yönlendirmeyi halledecektir.
         } catch (error) {
             hideLoader();
             console.error("Giriş işlemi sırasında hata:", error);
-            showAlert(error.code === 'auth/wrong-password' ? "Yanlış şifre." : 
-                      error.code === 'auth/user-not-found' ? "Kullanıcı bulunamadı." : 
-                      "Giriş hatası: " + error.message, false);
+            // Firebase v9+ genellikle hem yanlış e-posta hem de şifre için 'auth/invalid-credential' döndürür
+            if (error.code === 'auth/invalid-credential') {
+                 showAlert("Hatalı e-posta veya şifre.", false);
+            } else {
+                 showAlert("Giriş hatası: " + error.message, false);
+            }
         }
     });
 
-    const forgotPasswordLink = document.getElementById('forgotPassword');
+    const forgotPasswordLink = document.getElementById('forgotPasswordLink');
     if (forgotPasswordLink) {
         forgotPasswordLink.addEventListener('click', (e) => {
             e.preventDefault();
@@ -249,7 +258,10 @@ function initLoginPage() {
             if (email) {
                 sendPasswordResetEmail(auth, email)
                     .then(() => showAlert("Şifre sıfırlama e-postası gönderildi!", true))
-                    .catch((error) => showAlert("Şifre sıfırlama hatası: " + error.message, false));
+                    .catch((error) => {
+                         console.error("Şifre sıfırlama hatası:", error);
+                         showAlert("Şifre sıfırlama hatası: " + error.message, false);
+                    });
             }
         });
     }
@@ -257,7 +269,8 @@ function initLoginPage() {
 
 async function initRegisterPage() {
     const registerForm = document.getElementById("registerForm");
-    handleInputLabels(); // Form yüklendiğinde label'ları ayarla
+    if (!registerForm) return;
+    handleInputLabels();
 
     registerForm.addEventListener("submit", async (e) => {
         e.preventDefault();
@@ -284,44 +297,6 @@ async function initRegisterPage() {
             showAlert(error.code === 'auth/email-already-in-use' ? "Bu e-posta zaten kullanımda." : "Kayıt hatası: " + error.message, false);
         }
     });
-}
-
-
-function initLoginPage() {
-    const loginForm = document.getElementById("loginForm");
-    handleInputLabels(); // Form yüklendiğinde label'ları ayarla
-
-    loginForm.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const email = document.getElementById("loginEmail").value;
-        const password = document.getElementById("loginPassword").value;
-        try {
-            showLoader();
-            await signInWithEmailAndPassword(auth, email, password);
-            // Başarılı girişten sonra onAuthStateChanged tetiklenecek ve ana sayfaya yönlendirmeyi yapacak.
-        } catch (error) {
-            hideLoader();
-            console.error("Giriş hatası:", error);
-            showAlert("Hatalı e-posta veya şifre!", false);
-        }
-    });
-
-    const forgotPasswordLink = document.getElementById('forgotPasswordLink');
-    if (forgotPasswordLink) {
-        forgotPasswordLink.addEventListener('click', async (e) => {
-            e.preventDefault();
-            const email = prompt("Şifrenizi sıfırlamak için lütfen e-posta adresinizi girin:");
-            if (email) {
-                try {
-                    await sendPasswordResetEmail(auth, email);
-                    showAlert("Şifre sıfırlama bağlantısı e-posta adresinize gönderildi.", true);
-                } catch (error) {
-                    console.error("Şifre sıfırlama hatası:", error);
-                    showAlert("Şifre sıfırlama bağlantısı gönderilirken bir sorun oluştu. Lütfen e-posta adresinizi kontrol edin veya daha sonra tekrar deneyin.", false);
-                }
-            }
-        });
-    }
 }
 
 async function loadIndexPageData(user) {
@@ -1468,7 +1443,7 @@ async function loadFaqPageData() {
         let faqsHtml = '';
         faqsSnapshot.forEach(doc => {
             const faq = doc.data();
-            faqList.innerHTML += `
+            faqsHtml += `
                 <div class="spark-card">
                     <h4>${faq.order}. ${faq.question}</h4>
                     <p>${faq.answer}</p>
