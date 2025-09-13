@@ -1,4 +1,3 @@
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail, updateProfile } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, query, where, orderBy, getDocs, runTransaction, addDoc, serverTimestamp, updateDoc, limit } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
@@ -16,7 +15,7 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-const IMGBB_API_KEY = "84a7c0a54294a6e8ea2ffc9bab240719"; // Lütfen bu anahtarı kendi ImageBB API anahtarınızla değiştirin!
+const IMGBB_API_KEY = "YOUR_IMGBB_API_KEY"; // Lütfen bu anahtarı KENDİ ImageBB API anahtarınızla değiştirin!
 const PREMIUM_MONTHLY_FEE = 50;
 const PREMIUM_BONUS_PERCENTAGE = 0.35;
 
@@ -102,9 +101,9 @@ function handleInputLabels() {
 document.addEventListener('DOMContentLoaded', () => {
     const pageId = document.body.id;
 
-    // Admin sayfaları için main.js'yi çalıştırma.
-    // Bu kontrol admin.js'de de var ama çift kontrol daha güvenli.
+    // Admin sayfaları için main.js'yi çalıştırma. Bu kontrol kritik.
     if (pageId.startsWith('page-admin')) {
+        console.log("Admin sayfası algılandı, main.js çalışmayacak.");
         return; 
     }
 
@@ -112,13 +111,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     onAuthStateChanged(auth, async (user) => {
         const isAuthPage = pageId === 'page-login' || pageId === 'page-register';
+        
         if (user) {
-            // Firestore kullanıcı belgesini kontrol et ve oluştur/güncelle
+            // Kullanıcı Auth'a kayıtlıysa, Firestore belgesini kontrol et veya oluştur
             const userRef = doc(db, "users", user.uid);
             const userDoc = await getDoc(userRef);
 
             if (!userDoc.exists()) {
-                // Kullanıcı Auth'a kayıtlı ama Firestore'da belgesi yoksa oluştur
+                // Firestore belgesi yoksa oluştur
+                console.log(`Firestore'da yeni kullanıcı belgesi oluşturuluyor: ${user.uid}`);
                 await setDoc(userRef, {
                     username: user.displayName || user.email.split('@')[0],
                     email: user.email,
@@ -132,19 +133,21 @@ document.addEventListener('DOMContentLoaded', () => {
                     totalCompletedTasks: 0,
                     totalEarned: 0
                 });
-                console.log("Yeni kullanıcı Firestore'a kaydedildi:", user.uid);
             } else {
                 // Mevcut kullanıcının verilerini güncelle/tamamla
                 const userData = userDoc.data();
                 const updates = {};
                 
-                updates.lastLoginAt = serverTimestamp(); // Her oturum açışta güncelle
+                // Her oturum açışta son giriş zamanını güncelle
+                updates.lastLoginAt = serverTimestamp();
 
+                // Premium alanları yoksa ekle
                 if (typeof userData.isPremium === 'undefined') {
                     updates.isPremium = false;
                     updates.premiumExpirationDate = null;
                     updates.lastPremiumPaymentDate = null;
                 }
+                // Diğer eksik alanları ekle
                 if (typeof userData.totalCompletedTasks === 'undefined') updates.totalCompletedTasks = 0;
                 if (typeof userData.totalEarned === 'undefined') updates.totalEarned = 0;
 
@@ -153,15 +156,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            // Kullanıcı oturum açmışsa ve bir kimlik doğrulama sayfasındaysa, ana sayfaya yönlendir
+            // Kullanıcı oturum açmışsa
             if (isAuthPage) {
-                console.log("Kullanıcı zaten oturum açık. Ana sayfaya yönlendiriliyor.");
+                // Eğer zaten login/register sayfasındaysa, ana sayfaya yönlendir
+                console.log("Kullanıcı zaten oturum açık. Auth sayfasından index.html'ye yönlendiriliyor.");
                 window.location.replace('index.html');
-                return; // Yönlendirme sonrası daha fazla işlem yapma
-            } 
-            // Kullanıcı oturum açmış ve kullanıcı sayfalarından birindeyse, ilgili verileri yükle
-            else {
-                console.log(`Kullanıcı oturum açık. ${pageId} için veri yükleniyor.`);
+                // Yönlendirme olduğu için burada hideLoader() ve diğer init fonksiyonlarını çağırmaya gerek yok
+            } else {
+                // Diğer sayfalardaysa (yani oturum açık ve kullanıcı sayfası), ilgili verileri yükle
+                console.log(`Kullanıcı oturum açık. Sayfa: ${pageId} için veri yükleniyor.`);
                 switch (pageId) {
                     case 'page-index': await loadIndexPageData(user); break;
                     case 'page-profile': await loadProfilePageData(user); break;
@@ -176,29 +179,29 @@ document.addEventListener('DOMContentLoaded', () => {
                     case 'page-premium': await loadPremiumPageData(user); break;
                     case 'page-leaderboard': await loadLeaderboardPageData(user); break;
                     default: 
-                        console.warn(`Bilinmeyen sayfa (${pageId}). Varsayılan ana sayfaya yönlendiriliyor.`);
+                        console.warn(`Bilinmeyen kullanıcı sayfası (${pageId}). index.html'ye yönlendiriliyor.`);
                         window.location.replace('index.html');
                         break;
                 }
-                hideLoader();
-                handleInputLabels();
+                hideLoader(); // Veri yüklendikten sonra loader'ı gizle
+                handleInputLabels(); // Input label'larını güncelle
             }
         } else {
             // Kullanıcı oturum açmamışsa
             if (!isAuthPage) {
-                // Eğer mevcut sayfa bir kimlik doğrulama sayfası değilse, login.html'ye yönlendir
-                console.log("Kullanıcı oturum açmamış. Giriş sayfasına yönlendiriliyor.");
+                // Eğer login/register sayfasında değilse, login.html'ye yönlendir
+                console.log("Kullanıcı oturum açmamış. Auth dışı sayfadan login.html'ye yönlendiriliyor.");
                 window.location.replace('login.html');
             } else {
-                // Eğer mevcut sayfa bir kimlik doğrulama sayfasıysa (login veya register), loader'ı gizle ve formları göster
-                console.log("Kullanıcı oturum açmamış, kimlik doğrulama sayfası gösteriliyor.");
-                hideLoader();
-                handleInputLabels();
+                // Eğer login/register sayfasındaysa, bu sayfayı göster
+                console.log(`Kullanıcı oturum açmamış. Auth sayfası: ${pageId} gösteriliyor.`);
+                hideLoader(); // Loader'ı gizle
+                handleInputLabels(); // Input label'larını güncelle
+                // initLoginPage veya initRegisterPage fonksiyonları burada DOMContentLoaded'den sonra doğrudan çağrılıyor.
             }
         }
     }, (error) => {
-        // Firebase Auth'tan gelen hataları burada yakala (örn. ağ hatası)
-        console.error("onAuthStateChanged hatası:", error);
+        console.error("onAuthStateChanged sırasında hata oluştu:", error);
         showAlert("Uygulama yüklenirken bir sorun oluştu. Lütfen internet bağlantınızı kontrol edin veya daha sonra tekrar deneyin.", false);
         hideLoader();
         // Hata durumunda, eğer auth sayfasında değilsek login'e yönlendir
@@ -207,14 +210,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Sadece ilgili sayfalar yüklendiğinde init fonksiyonlarını çağır
+    // Sayfa DOM'u yüklendiğinde auth sayfaları için init fonksiyonlarını doğrudan çağır
+    // onAuthStateChanged döngüsü, yönlendirme sonrası bu fonksiyonların tekrar çağrılmasını engellemek için tasarlandı.
     if (pageId === 'page-login') initLoginPage();
     if (pageId === 'page-register') initRegisterPage();
 });
 
 async function initRegisterPage() {
     const registerForm = document.getElementById("registerForm");
-    handleInputLabels();
+    handleInputLabels(); // Form yüklendiğinde label'ları ayarla
 
     registerForm.addEventListener("submit", async (e) => {
         e.preventDefault();
@@ -233,7 +237,7 @@ async function initRegisterPage() {
             await updateProfile(newUser, { displayName: username });
 
             showAlert("Kayıt başarılı! Yönlendiriliyorsunuz...", true);
-            // onAuthStateChanged tetiklenecek ve yeni kullanıcının Firestore belgesini oluşturup yönlendirmeyi yapacak.
+            // Başarılı kayıttan sonra onAuthStateChanged tetiklenecek ve ana sayfaya yönlendirmeyi yapacak.
             
         } catch (error) {
             hideLoader();
@@ -246,7 +250,7 @@ async function initRegisterPage() {
 
 function initLoginPage() {
     const loginForm = document.getElementById("loginForm");
-    handleInputLabels();
+    handleInputLabels(); // Form yüklendiğinde label'ları ayarla
 
     loginForm.addEventListener("submit", async (e) => {
         e.preventDefault();

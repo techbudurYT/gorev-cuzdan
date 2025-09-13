@@ -62,6 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     showLoader(); // Admin sayfaları için de loader göster
 
+    // Admin panel sayfası için auth kontrolü
     if (pageId === 'page-admin-panel') {
         onAuthStateChanged(auth, async (user) => {
             if (user) {
@@ -71,7 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         hideLoader(); // Adminse loader'ı gizle
                         initAdminPanel(user);
                     } else {
-                        console.warn("Admin yetkisi olmayan kullanıcı girişi. Çıkış yapılıyor.");
+                        console.warn("Admin yetkisi olmayan kullanıcı girişi denemesi. Çıkış yapılıyor.");
                         await auth.signOut();
                         window.location.replace('admin-login.html');
                     }
@@ -85,7 +86,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.location.replace('admin-login.html');
             }
         });
-    } else if (pageId === 'page-admin-login') {
+    } 
+    // Admin login sayfası için auth kontrolü
+    else if (pageId === 'page-admin-login') {
         hideLoader(); // Login sayfası yüklendiğinde loader'ı gizle
         const loginForm = document.getElementById('adminLoginForm');
         
@@ -126,11 +129,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     } else {
                         // Oturum açmış ama admin olmayan kullanıcıyı login sayfasında bırak
                         await auth.signOut(); // Güvenlik için oturumu kapat
+                        hideLoader(); // Auth kontrolü tamamlandığında loader'ı gizle
                     }
                 } catch (error) {
                     console.error("Admin yetki kontrolü sırasında hata:", error);
                     await auth.signOut(); // Hata durumunda oturumu kapat
+                    hideLoader(); // Hata durumunda loader'ı gizle
                 }
+            } else {
+                // Kullanıcı oturum açmamışsa, login sayfasında kalır ve loader gizlidir.
+                hideLoader();
             }
         });
     }
@@ -522,11 +530,7 @@ async function initAdminPanel(user) {
     // --- Ticket Management ---
     const ticketsQuery = query(collection(db, "tickets"), orderBy("lastUpdatedAt", "desc"));
     onSnapshot(ticketsQuery, (snapshot) => {
-        if (snapshot.empty) {
-            adminTicketsList.innerHTML = `<p class="empty-state">Henüz destek talebi bulunmamaktadır.</p>`;
-            return;
-        }
-        let ticketsHtml = '';
+        let ticketsHtml = snapshot.empty ? `<p class="empty-state">Henüz destek talebi bulunmamaktadır.</p>` : '';
         snapshot.forEach(docSnapshot => {
             const ticket = { id: docSnapshot.id, ...docSnapshot.data() };
             
