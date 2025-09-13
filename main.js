@@ -1,4 +1,3 @@
-// main.js
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail, updateProfile, updateEmail, updatePassword } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, query, where, orderBy, getDocs, runTransaction, addDoc, serverTimestamp, updateDoc, limit, deleteDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
@@ -165,7 +164,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     case 'page-my-tasks': await loadMyTasksPageData(user); break;
                     case 'page-task-detail': await loadTaskDetailPageData(user); break;
                     case 'page-wallet': await loadWalletPageData(user); break;
-                    case 'page-deposit': await loadDepositPageData(user); break;
                     case 'page-support': await loadSupportPageData(user); break;
                     case 'page-ticket-detail': await loadTicketDetailPageData(user); break;
                     case 'page-bonus': await loadBonusPageData(user); break;
@@ -1013,158 +1011,6 @@ async function loadWalletPageData(user) {
                 </div>`;
         });
     });
-}
-
-async function loadDepositPageData(user) {
-    const currentBalanceDisplay = document.getElementById('currentBalanceDisplay');
-    const depositAmountButtons = document.querySelectorAll('.deposit-amount-btn');
-    const customDepositAmountInput = document.getElementById('customDepositAmount');
-    const depositBtn = document.getElementById('depositBtn');
-    const depositHistoryList = document.getElementById('depositHistoryList');
-
-    let selectedAmount = 0;
-
-    onSnapshot(doc(db, "users", user.uid), (docSnapshot) => {
-        if (docSnapshot.exists()) {
-            const userData = docSnapshot.data();
-            currentBalanceDisplay.textContent = `${(userData.balance || 0).toFixed(2)} ₺`;
-        }
-    });
-
-    depositAmountButtons.forEach(button => {
-        button.addEventListener('click', () => {
-            document.querySelector('.deposit-amount-btn.active-amount')?.classList.remove('active-amount');
-            button.classList.add('active-amount');
-            selectedAmount = Number(button.dataset.amount);
-            customDepositAmountInput.value = '';
-            depositBtn.disabled = false;
-            depositBtn.textContent = `Seçilen Miktarı Yükle (${selectedAmount} ₺)`;
-        });
-    });
-
-    customDepositAmountInput.addEventListener('input', () => {
-        document.querySelector('.deposit-amount-btn.active-amount')?.classList.remove('active-amount');
-        const customAmount = Number(customDepositAmountInput.value);
-        if (customAmount >= 10) {
-            selectedAmount = customAmount;
-            depositBtn.disabled = false;
-            depositBtn.textContent = `Seçilen Miktarı Yükle (${selectedAmount} ₺)`;
-        } else {
-            selectedAmount = 0;
-            depositBtn.disabled = true;
-            depositBtn.textContent = "Seçilen Miktarı Yükle";
-        }
-    });
-
-    depositBtn.addEventListener('click', async () => {
-        if (selectedAmount === 0 || selectedAmount < 10) {
-            showAlert("Lütfen geçerli bir miktar seçin (min. 10 ₺).", false);
-            return;
-        }
-
-        depositBtn.disabled = true;
-        depositBtn.textContent = "Ödeme Başlatılıyor...";
-
-        try {
-            const createPaymentResponse = await fetch(`${BACKEND_URL}/api/create-payment`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${await user.getIdToken()}`
-                },
-                body: JSON.stringify({ amount: selectedAmount, userId: user.uid, userEmail: user.email })
-            });
-
-            if (!createPaymentResponse.ok) {
-                const errorData = await createPaymentResponse.json();
-                throw new Error(errorData.message || "Ödeme başlatılırken bir hata oluştu.");
-            }
-
-            const { paymentId, paymentLink } = await createPaymentResponse.json();
-            showAlert(`Ödeme başlatıldı. Ödeme sayfasına yönlendiriliyorsunuz... (Simülasyon - ID: ${paymentId})`, true);
-
-            setTimeout(async () => {
-                showAlert(`Simüle edilmiş Papara ödemesi tamamlandı. Sonuç bekleniyor...`, true);
-                const simulatePaymentResponse = await fetch(`${BACKEND_URL}/api/simulate-payment-webhook`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ paymentId: paymentId, status: 'success' })
-                });
-
-                if (!simulatePaymentResponse.ok) {
-                    const errorData = await simulatePaymentResponse.json();
-                    throw new Error(errorData.message || "Ödeme doğrulanırken bir hata oluştu.");
-                }
-
-                const result = await simulatePaymentResponse.json();
-                if (result.success) {
-                    showAlert(`Bakiye başarıyla yüklendi: ${selectedAmount} ₺`, true);
-                    selectedAmount = 0;
-                    customDepositAmountInput.value = '';
-                    depositBtn.disabled = true;
-                    depositBtn.textContent = "Seçilen Miktarı Yükle";
-                    document.querySelector('.deposit-amount-btn.active-amount')?.classList.remove('active-amount');
-                } else {
-                    showAlert(`Bakiye yüklenirken bir sorun oluştu: ${result.message}`, false);
-                }
-            }, 2000);
-
-        } catch (error) {
-            console.error("Para yükleme hatası:", error);
-            showAlert("Para yüklenirken bir hata oluştu: " + error.message, false);
-        } finally {
-            depositBtn.disabled = false;
-            depositBtn.textContent = "Seçilen Miktarı Yükle";
-        }
-    });
-
-    try {
-        const depositsQuery = query(collection(db, "deposits"), where("userId", "==", user.uid), orderBy("createdAt", "desc"));
-        onSnapshot(depositsQuery, (snapshot) => {
-            if (snapshot.empty) {
-                depositHistoryList.innerHTML = `<div class="empty-state">Henüz bir bakiye yüklemeniz bulunmamaktadır.</div>`;
-                return;
-            }
-            depositHistoryList.innerHTML = '';
-            snapshot.forEach(docSnapshot => {
-                const deposit = docSnapshot.data();
-                const depositDate = deposit.createdAt ? deposit.createdAt.toDate().toLocaleDateString('tr-TR') : 'Bilinmiyor';
-                let statusText = '', statusClass = '';
-                switch (deposit.status) {
-                    case 'pending':
-                        statusText = 'Beklemede';
-                        statusClass = 'status-pending';
-                        break;
-                    case 'completed':
-                        statusText = 'Tamamlandı';
-                        statusClass = 'status-approved';
-                        break;
-                    case 'failed':
-                        statusText = 'Başarısız';
-                        statusClass = 'status-rejected';
-                        break;
-                    default:
-                        statusText = 'Bilinmiyor';
-                        statusClass = '';
-                        break;
-                }
-                depositHistoryList.innerHTML += `
-                    <div class="spark-card deposit-history-item">
-                        <div class="deposit-info">
-                            <strong>${deposit.amount} ₺</strong>
-                            <p>Ödeme ID: ${deposit.paymentId}</p>
-                            <p>Tarih: ${depositDate}</p>
-                        </div>
-                        <span class="status-badge ${statusClass}">${statusText}</span>
-                    </div>`;
-            });
-        });
-    } catch (error) {
-        console.error("Para yükleme geçmişi yüklenirken hata:", error);
-        depositHistoryList.innerHTML = `<div class="empty-state" style="color:var(--c-danger);">Yükleme geçmişi yüklenemedi.</div>`;
-    }
 }
 
 async function loadSupportPageData(user) {

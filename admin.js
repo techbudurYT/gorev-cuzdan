@@ -127,7 +127,6 @@ async function initAdminPanel(user) {
     const announcementsAdminList = document.getElementById('announcementsAdminList'); // Duyuru listesi admin paneli
     const addFaqForm = document.getElementById('addFaqForm'); // SSS ekleme formu
     const faqAdminList = document.getElementById('faqAdminList'); // SSS listesi admin paneli
-    const adminDepositsList = document.getElementById('adminDepositsList'); // NEW: Para yükleme geçmişi listesi
 
 
     let adminUsername = 'Admin';
@@ -493,34 +492,6 @@ async function initAdminPanel(user) {
             }
         }
     });
-
-    // NEW: Deposit History Management
-    onSnapshot(query(collection(db, "deposits"), orderBy("createdAt", "desc")), (snapshot) => {
-        let depositsHtml = snapshot.empty ? `<p class="empty-state">Henüz bakiye yükleme işlemi yok.</p>` : '';
-        snapshot.forEach(doc => {
-            const deposit = { id: doc.id, ...doc.data() };
-            const depositDate = deposit.createdAt ? deposit.createdAt.toDate().toLocaleString('tr-TR') : 'Bilinmiyor';
-            let statusText = '', statusClass = '';
-            switch(deposit.status) {
-                case 'pending': statusText = 'Beklemede'; statusClass = 'status-pending'; break;
-                case 'completed': statusText = 'Tamamlandı'; statusClass = 'status-approved'; break;
-                case 'failed': statusText = 'Başarısız'; statusClass = 'status-rejected'; break;
-                default: statusText = 'Bilinmiyor'; statusClass = ''; break;
-            }
-            depositsHtml += `
-                <div class="spark-card deposit-history-item">
-                    <div class="deposit-info">
-                        <strong>${deposit.amount} ₺</strong>
-                        <p>Kullanıcı: ${deposit.userEmail}</p>
-                        <p>Ödeme ID: ${deposit.paymentId}</p>
-                        <p>Tarih: ${depositDate}</p>
-                    </div>
-                    <span class="status-badge ${statusClass}">${statusText}</span>
-                </div>`;
-        });
-        adminDepositsList.innerHTML = depositsHtml;
-    });
-
 
     // --- Ticket Management ---
     const ticketsQuery = query(collection(db, "tickets"), orderBy("lastUpdatedAt", "desc"));
