@@ -1,3 +1,4 @@
+
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
 
 :root {
@@ -303,26 +304,84 @@ body.auth-page {
     justify-content: center;
     min-height: 100vh;
     padding: 20px;
+    background: linear-gradient(135deg, var(--c-bg-dark) 0%, var(--c-bg-medium) 100%);
 }
+
 body.auth-page #main-content {
     display: flex;
     align-items: center;
     justify-content: center;
     width: 100%;
 }
+
 .auth-container-wide {
-  width: 100%; max-width: 950px; display: flex;
-  background: linear-gradient(135deg, rgba(26, 24, 35, 0.6), rgba(26, 24, 35, 0.3));
-  backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
-  border-radius: var(--border-radius); border: 1px solid rgba(159, 85, 255, 0.2);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4); overflow: hidden; min-height: 600px;
+    width: 100%;
+    max-width: 400px; /* Mobil için daha dar */
+    display: flex;
+    flex-direction: column; /* Mobil için dikey düzen */
+    background: linear-gradient(135deg, rgba(26, 24, 35, 0.6), rgba(26, 24, 35, 0.3));
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border-radius: var(--border-radius);
+    border: 1px solid rgba(159, 85, 255, 0.2);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    overflow: hidden;
+    min-height: auto; /* Mobil için otomatik yükseklik */
 }
-.auth-panel { padding: 40px; width: 100%; }
-.auth-decorative-panel { display: none; }
-.auth-form-panel { display: flex; flex-direction: column; justify-content: center; }
-.auth-form-panel h2 { text-align: center; margin-bottom: 30px; font-size: 2em; }
-.auth-switch-text { text-align: center; margin-top: 25px; color: var(--c-text-secondary); }
-.auth-switch-text a { color: var(--c-secondary); text-decoration: none; font-weight: 600; }
+
+.auth-panel {
+    padding: 30px; /* Mobil için paddingi azalt */
+    width: 100%;
+    text-align: center; /* Mobil için ortala */
+}
+
+.auth-decorative-panel {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--c-primary) 0%, #6a11cb 100%);
+    color: #fff;
+    padding: 30px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2); /* Dekoratif panel ile form arasına çizgi */
+}
+
+.auth-decorative-panel h2 {
+    font-size: 1.8em; /* Mobil için başlık boyutunu küçült */
+    margin-bottom: 10px;
+}
+
+.auth-decorative-panel p {
+    font-size: 0.9em; /* Mobil için paragraf boyutunu küçült */
+    opacity: 0.9;
+}
+
+.auth-form-panel {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding-top: 20px; /* Form ile dekoratif panel arasına boşluk */
+}
+
+.auth-form-panel h2 {
+    text-align: center;
+    margin-bottom: 25px; /* Mobil için margin-bottom azalt */
+    font-size: 1.6em; /* Mobil için başlık boyutunu küçült */
+    color: var(--c-primary);
+}
+
+.auth-switch-text {
+    text-align: center;
+    margin-top: 20px; /* Mobil için margin-top azalt */
+    color: var(--c-text-secondary);
+    font-size: 0.9em; /* Mobil için yazı boyutunu küçült */
+}
+
+.auth-switch-text a {
+    color: var(--c-secondary);
+    text-decoration: none;
+    font-weight: 600;
+}
+
 
 /* --- B. Ana Sayfa (Görevler) --- */
 .balance-card .balance-amount {
@@ -953,11 +1012,18 @@ body.auth-page #main-content {
   header.spark-header { margin-bottom: 40px; } /* Adjust margin for desktop */
   .bottom-nav { display: none; } /* Hide bottom nav on desktop */
 
-  .auth-panel { width: 50%; }
+  .auth-container-wide {
+      max-width: 950px; /* Masaüstü için genişlet */
+      flex-direction: row; /* Masaüstü için yatay düzen */
+  }
+
+  .auth-panel { padding: 40px; width: 50%; } /* Masaüstü için padding ve genişlik */
   .auth-decorative-panel { 
       display: flex; flex-direction: column; justify-content: center; 
       background: linear-gradient(135deg, var(--c-primary) 0%, #6a11cb 100%); 
       color: #fff; text-align: center; padding: 40px;
+      border-bottom: none; /* Masaüstünde bu sınıra gerek yok */
+      border-right: 1px solid rgba(255, 255, 255, 0.2); /* Dekoratif panel ile form arasına dikey çizgi */
   }
   .auth-decorative-panel h2 { font-size: 2.8em; }
   .auth-decorative-panel p { font-size: 1.2em; opacity: 0.9; }
