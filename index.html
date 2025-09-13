@@ -1,72 +1,25 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GörevCüzdan</title>
-  <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GörevCüzdan - Görev Yap, Para Kazan</title>
+    <link rel="stylesheet" href="style.css">
 </head>
-<body id="page-index">
-  <div id="loader"></div>
-  <div class="app-layout" style="display: none;" id="main-content">
-    <nav class="sidebar">
-      <h2 class="sidebar-header">GörevCüzdan</h2>
-      <div class="sidebar-nav">
-        <a href="index.html" class="tab-btn active">Görevler</a>
-        <a href="my-tasks.html" class="tab-btn">Görevlerim</a>
-        <a href="bonus.html" class="tab-btn">Bonus</a>
-        <a href="leaderboard.html" class="tab-btn">Liderlik</a>
-        <a href="wallet.html" class="tab-btn">Cüzdan</a>
-        <a href="profile.html" class="tab-btn">Profil</a>
-        <a href="premium.html" class="tab-btn">Premium</a>
-        <a href="announcements.html" class="tab-btn">Duyurular</a>
-        <a href="support.html" class="tab-btn">Destek</a>
-        <a href="faq.html" class="tab-btn">SSS</a>
-      </div>
-    </nav>
-    <main class="main-content-wrapper">
-      <div class="container">
-        <header class="spark-header"><h1>Görevler</h1></header>
-        <div class="page-wrapper">
-          <div class="spark-card balance-card">
-            <p>Toplam Bakiye</p>
-            <div class="balance-amount" id="balanceDisplay">0 ₺</div>
-          </div>
-          <div id="announcementsContainer">
-            <!-- Son duyurular buraya yüklenecek -->
-          </div>
-          <div class="category-filters-container">
-            <div class="category-filters">
-              <button class="filter-btn active" data-category="all">Tümü</button>
-              <button class="filter-btn" data-category="youtube">YouTube</button>
-              <button class="filter-btn" data-category="instagram">Instagram</button>
-              <button class="filter-btn" data-category="telegram">Telegram</button>
-              <button class="filter-btn" data-category="google-maps">Google Maps</button>
-              <button class="filter-btn" data-category="other">Diğer</option>
-            </div>
-          </div>
-          <div class="search-bar">
-            <input type="text" id="searchTaskInput" class="spark-input" placeholder="Görev ara...">
-          </div>
-          <h3 style="margin-top: 25px;">Mevcut Görevler</h3>
-          <ul id="taskList"></ul>
-          <button id="showMoreTasksBtn" class="spark-button" style="margin-top: 20px; display: none;">Daha Fazla Görev Göster</button>
-        </div>
-      </div>
-      <nav class="bottom-nav">
-        <a href="index.html" class="tab-btn">Görevler</a>
-        <a href="my-tasks.html" class="tab-btn">Görevlerim</a>
-        <a href="bonus.html" class="tab-btn">Bonus</a>
-        <a href="leaderboard.html" class="tab-btn">Liderlik</a>
-        <a href="wallet.html" class="tab-btn">Cüzdan</a>
-        <a href="profile.html" class="tab-btn">Profil</a>
-        <a href="premium.html" class="tab-btn">Premium</a>
-        <a href="announcements.html" class="tab-btn">Duyurular</a>
-        <a href="support.html" class="tab-btn">Destek</a>
-        <a href="faq.html" class="tab-btn">SSS</a>
-      </nav>
-    </main>
-  </div>
-  <script src="main.js" type="module"></script>
+<body class="landing-body">
+    <div class="landing-container">
+        <header class="landing-header">
+            <h1>GörevCüzdan</h1>
+            <nav>
+                <a href="login.html" class="btn-secondary">Giriş Yap</a>
+                <a href="register.html" class="btn-primary-landing">Kayıt Ol</a>
+            </nav>
+        </header>
+        <main class="hero-section">
+            <h2>Basit Görevleri Tamamlayın, <br> Gerçek Para Kazanın.</h2>
+            <p>Boş zamanlarınızı kazanca dönüştürmenin en kolay yolu. Sosyal medya görevleri, anketler ve daha fazlası sizi bekliyor.</p>
+            <a href="register.html" class="btn-primary-landing btn-hero">Hemen Başla</a>
+        </main>
+    </div>
 </body>
 </html>

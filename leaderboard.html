@@ -3,59 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Liderlik Tablosu</title>
+    <title>Liderlik Tablosu - GörevCüzdan</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
 </head>
-<body id="page-leaderboard">
-    <div id="loader"></div>
-    <div class="app-layout" style="display: none;" id="main-content">
+<body>
+    <div class="app-layout">
         <nav class="sidebar">
-            <h2 class="sidebar-header">GörevCüzdan</h2>
-            <div class="sidebar-nav">
-                <a href="index.html" class="tab-btn">Görevler</a>
-                <a href="my-tasks.html" class="tab-btn">Görevlerim</a>
-                <a href="bonus.html" class="tab-btn">Bonus</a>
-                <a href="leaderboard.html" class="tab-btn active">Liderlik</a>
-                <a href="wallet.html" class="tab-btn">Cüzdan</a>
-                <a href="profile.html" class="tab-btn">Profil</a>
-                <a href="premium.html" class="tab-btn">Premium</a>
-                <a href="announcements.html" class="tab-btn">Duyurular</a>
-                <a href="support.html" class="tab-btn">Destek</a>
-                <a href="faq.html" class="tab-btn">SSS</a>
+            <div class="sidebar-header">
+                <h3>GörevCüzdan</h3>
             </div>
+            <ul>
+                <li><a href="my-tasks.html"><i class="fas fa-tasks"></i> <span>Görevler</span></a></li>
+                <li class="active"><a href="leaderboard.html"><i class="fas fa-trophy"></i> <span>Liderlik Tablosu</span></a></li>
+                <li><a href="wallet.html"><i class="fas fa-wallet"></i> <span>Cüzdanım</span></a></li>
+                <li><a href="profile.html"><i class="fas fa-user"></i> <span>Profil</span></a></li>
+                <li><a href="support.html"><i class="fas fa-headset"></i> <span>Destek</span></a></li>
+                <li><a href="faq.html"><i class="fas fa-question-circle"></i> <span>SSS</span></a></li>
+                <li id="admin-panel-link" style="display: none;"><a href="admin-panel.html"><i class="fas fa-user-shield"></i> <span>Admin Panel</span></a></li>
+                <li><a href="#" id="logout-btn"><i class="fas fa-sign-out-alt"></i> <span>Çıkış Yap</span></a></li>
+            </ul>
         </nav>
-        <main class="main-content-wrapper">
-            <div class="container">
-                <header class="spark-header"><h1>Liderlik Tablosu</h1></header>
-                <div class="page-wrapper">
-                    <div class="spark-card">
-                        <h3>🏆 En Çok Kazananlar</h3>
-                        <div id="leaderboardTopEarners">
-                            <p class="empty-state">Liderlik tablosu yükleniyor...</p>
-                        </div>
-                    </div>
-                    <div class="spark-card">
-                        <h3>⭐ En Çok Görev Yapanlar</h3>
-                        <div id="leaderboardTopCompleters">
-                             <p class="empty-state">Liderlik tablosu yükleniyor...</p>
-                        </div>
-                    </div>
-                </div>
+        <main class="main-content">
+            <header class="main-header">
+                <h1>Liderlik Tablosu</h1>
+            </header>
+            <div class="leaderboard-container">
+                <table class="leaderboard-table">
+                    <thead>
+                        <tr>
+                            <th>Sıra</th>
+                            <th>Kullanıcı</th>
+                            <th>Tamamlanan Görev</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboard-body">
+                        <!-- Liderler buraya dinamik olarak eklenecek -->
+                    </tbody>
+                </table>
             </div>
-            <nav class="bottom-nav">
-                <a href="index.html" class="tab-btn">Görevler</a>
-                <a href="my-tasks.html" class="tab-btn">Görevlerim</a>
-                <a href="bonus.html" class="tab-btn">Bonus</a>
-                <a href="leaderboard.html" class="tab-btn active">Liderlik</a>
-                <a href="wallet.html" class="tab-btn">Cüzdan</a>
-                <a href="profile.html" class="tab-btn">Profil</a>
-                <a href="premium.html" class="tab-btn">Premium</a>
-                <a href="announcements.html" class="tab-btn">Duyurular</a>
-                <a href="support.html" class="tab-btn">Destek</a>
-                <a href="faq.html" class="tab-btn">SSS</a>
-            </nav>
         </main>
     </div>
-    <script src="main.js" type="module"></script>
+
+    <!-- Firebase SDK'ları -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    
+    <!-- Proje Dosyaları -->
+    <script src="firebase-config.js"></script>
+    <script src="leaderboard.js"></script>
 </body>
 </html>

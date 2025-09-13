@@ -3,74 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cüzdanım</title>
+    <title>Cüzdanım - GörevCüzdan</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
 </head>
-<body id="page-wallet">
-    <div id="loader"></div>
-    <div class="app-layout" style="display: none;" id="main-content">
+<body>
+    <div class="app-layout">
         <nav class="sidebar">
-            <h2 class="sidebar-header">GörevCüzdan</h2>
-            <div class="sidebar-nav">
-                <a href="index.html" class="tab-btn">Görevler</a>
-                <a href="my-tasks.html" class="tab-btn">Görevlerim</a>
-                <a href="bonus.html" class="tab-btn">Bonus</a>
-                <a href="leaderboard.html" class="tab-btn">Liderlik</a>
-                <a href="wallet.html" class="tab-btn active">Cüzdan</a>
-                <a href="profile.html" class="tab-btn">Profil</a>
-                <a href="premium.html" class="tab-btn">Premium</a>
-                <a href="announcements.html" class="tab-btn">Duyurular</a>
-                <a href="support.html" class="tab-btn">Destek</a>
-                <a href="faq.html" class="tab-btn">SSS</a>
+            <div class="sidebar-header">
+                <h3>GörevCüzdan</h3>
             </div>
+            <ul>
+                <li><a href="my-tasks.html"><i class="fas fa-tasks"></i> <span>Görevler</span></a></li>
+                <li><a href="leaderboard.html"><i class="fas fa-trophy"></i> <span>Liderlik Tablosu</span></a></li>
+                <li class="active"><a href="wallet.html"><i class="fas fa-wallet"></i> <span>Cüzdanım</span></a></li>
+                <li><a href="profile.html"><i class="fas fa-user"></i> <span>Profil</span></a></li>
+                <li><a href="support.html"><i class="fas fa-headset"></i> <span>Destek</span></a></li>
+                <li><a href="faq.html"><i class="fas fa-question-circle"></i> <span>SSS</span></a></li>
+                <li id="admin-panel-link" style="display: none;"><a href="admin-panel.html"><i class="fas fa-user-shield"></i> <span>Admin Panel</span></a></li>
+                <li><a href="#" id="logout-btn"><i class="fas fa-sign-out-alt"></i> <span>Çıkış Yap</span></a></li>
+            </ul>
         </nav>
-        <main class="main-content-wrapper">
-            <div class="container">
-                <header class="spark-header"><h1>Cüzdanım</h1></header>
-                <div class="page-wrapper">
-                    <div class="spark-card balance-card">
-                        <p>Mevcut Bakiye</p>
-                        <div class="balance-amount" id="currentBalance">0 ₺</div>
-                    </div>
-                    <div class="spark-card">
-                        <h3>Para Çekme Talebi Oluştur</h3>
-                        <div id="alertBox"></div>
-                        <form id="withdrawalForm">
-                            <div class="input-group spark">
-                                <input type="number" id="withdrawalAmount" required min="200" step="any">
-                                <label>Çekmek İstediğiniz Miktar (₺)</label>
-                            </div>
-                            <div class="input-group spark">
-                                <input type="text" id="iban" required pattern="TR[0-9]{24}">
-                                <label>IBAN Numaranız</label>
-                            </div>
-                            <div class="input-group spark">
-                                <input type="tel" id="phoneNumber" required pattern="[0-9]{10}">
-                                <label>Telefon (5xxxxxxxxx)</label>
-                            </div>
-                            <button type="submit" class="spark-button">Talep Oluştur</button>
-                        </form>
-                    </div>
-                    <div class="spark-card">
-                        <h3>Önceki Taleplerim</h3>
-                        <div id="previousWithdrawalsList"></div>
-                    </div>
+        <main class="main-content">
+            <header class="main-header">
+                <h1>Cüzdanım</h1>
+            </header>
+            <div class="wallet-container">
+                <div class="balance-card">
+                    <h4>Mevcut Bakiye</h4>
+                    <p id="wallet-balance">0.00 ₺</p>
+                    <button class="btn-primary" disabled>Çekim Talebi (Yakında)</button>
+                </div>
+                <div class="history-card">
+                    <h4>Son İşlemler (Tamamlanan Görevler)</h4>
+                    <ul id="transaction-history">
+                        <!-- İşlemler buraya dinamik olarak eklenecek -->
+                    </ul>
                 </div>
             </div>
-            <nav class="bottom-nav">
-                <a href="index.html" class="tab-btn">Görevler</a>
-                <a href="my-tasks.html" class="tab-btn">Görevlerim</a>
-                <a href="bonus.html" class="tab-btn">Bonus</a>
-                <a href="leaderboard.html" class="tab-btn">Liderlik</a>
-                <a href="wallet.html" class="tab-btn active">Cüzdan</a>
-                <a href="profile.html" class="tab-btn">Profil</a>
-                <a href="premium.html" class="tab-btn">Premium</a>
-                <a href="announcements.html" class="tab-btn">Duyurular</a>
-                <a href="support.html" class="tab-btn">Destek</a>
-                <a href="faq.html" class="tab-btn">SSS</a>
-            </nav>
         </main>
     </div>
-    <script src="main.js" type="module"></script>
+
+    <!-- Firebase SDK'ları -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    
+    <!-- Proje Dosyaları -->
+    <script src="firebase-config.js"></script>
+    <script src="wallet.js"></script>
 </body>
 </html>

@@ -28,6 +28,65 @@ body {
     line-height: 1.6;
 }
 
+/* --- Ana Sayfa (Landing) --- */
+.landing-body {
+    background: linear-gradient(135deg, var(--dark-bg) 0%, #20202d 100%);
+}
+.landing-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+.landing-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 0;
+}
+.landing-header h1 {
+    font-size: 2rem;
+    background: linear-gradient(to right, var(--primary-color), var(--gradient-end));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+.landing-header nav a {
+    text-decoration: none;
+    color: var(--text-primary);
+    padding: 10px 20px;
+    border-radius: 8px;
+    margin-left: 10px;
+    transition: all 0.3s ease;
+}
+.btn-secondary {
+    border: 1px solid var(--primary-color);
+}
+.btn-secondary:hover {
+    background: var(--primary-color);
+}
+.btn-primary-landing {
+    background: linear-gradient(to right, var(--gradient-start), var(--primary-color));
+}
+.hero-section {
+    text-align: center;
+    padding: 100px 0;
+}
+.hero-section h2 {
+    font-size: 3.5rem;
+    margin-bottom: 20px;
+}
+.hero-section p {
+    font-size: 1.2rem;
+    color: var(--text-secondary);
+    max-width: 600px;
+    margin: 0 auto 30px;
+}
+.btn-hero {
+    font-size: 1.2rem;
+    padding: 15px 40px;
+    border-radius: 50px;
+}
+
+
 /* --- Giriş ve Kayıt Sayfaları --- */
 .auth-container {
     display: flex;
@@ -100,7 +159,7 @@ body {
     transition: border-color 0.3s ease;
 }
 
-.input-group input:focus {
+.input-group input:focus, .input-group textarea:focus, .input-group select:focus {
     outline: none;
     border-color: var(--primary-color);
 }
@@ -119,10 +178,16 @@ body {
     margin-top: 10px;
 }
 
-.btn-primary:hover {
+.btn-primary:hover:not(:disabled) {
     opacity: 0.9;
     box-shadow: 0 5px 15px rgba(138, 43, 226, 0.4);
 }
+
+.btn-primary:disabled {
+    background: #555;
+    cursor: not-allowed;
+}
+
 
 .form-switch {
     text-align: center;
@@ -163,6 +228,7 @@ body {
     display: flex;
     flex-direction: column;
     position: fixed;
+    transition: width 0.3s ease;
 }
 
 .sidebar-header h3 {
@@ -187,6 +253,7 @@ body {
     border-radius: 8px;
     margin-bottom: 10px;
     transition: background-color 0.3s, color 0.3s;
+    white-space: nowrap;
 }
 
 .sidebar ul li a i {
@@ -205,6 +272,7 @@ body {
     flex-grow: 1;
     padding: 30px;
     overflow-y: auto;
+    transition: margin-left 0.3s ease;
 }
 
 .main-header {
@@ -212,6 +280,7 @@ body {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 30px;
+    flex-wrap: wrap;
 }
 
 .stats-container {
@@ -364,12 +433,126 @@ body {
     max-width: 700px;
     margin: 0 auto;
 }
-
+.admin-form p {
+    color: var(--text-secondary);
+    text-align: center;
+    margin-bottom: 20px;
+}
 .admin-form {
     background: var(--dark-card-bg);
     padding: 30px;
     border-radius: 10px;
     border: 1px solid var(--border-color);
+}
+
+/* --- Liderlik Tablosu --- */
+.leaderboard-table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: var(--dark-card-bg);
+    border-radius: 10px;
+    overflow: hidden;
+}
+.leaderboard-table th, .leaderboard-table td {
+    padding: 15px 20px;
+    text-align: left;
+}
+.leaderboard-table thead {
+    background-color: var(--dark-bg);
+}
+.leaderboard-table tbody tr {
+    border-bottom: 1px solid var(--border-color);
+}
+.leaderboard-table tbody tr:last-child {
+    border-bottom: none;
+}
+.rank {
+    font-weight: bold;
+    color: white;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+}
+.rank-1 { background-color: #FFD700; color: #333; } /* Altın */
+.rank-2 { background-color: #C0C0C0; color: #333; } /* Gümüş */
+.rank-3 { background-color: #CD7F32; color: #333; } /* Bronz */
+
+/* --- Cüzdan --- */
+.balance-card {
+    background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+    padding: 30px;
+    border-radius: 15px;
+    text-align: center;
+    margin-bottom: 30px;
+}
+.balance-card h4 {
+    font-size: 1.2rem;
+    opacity: 0.8;
+    margin-bottom: 10px;
+}
+.balance-card p {
+    font-size: 3rem;
+    font-weight: 700;
+    margin-bottom: 20px;
+}
+.history-card {
+    background-color: var(--dark-card-bg);
+    padding: 20px;
+    border-radius: 10px;
+}
+.history-card h4 { margin-bottom: 15px; }
+.history-card ul { list-style: none; }
+.history-card li {
+    display: flex;
+    justify-content: space-between;
+    padding: 15px 0;
+    border-bottom: 1px solid var(--border-color);
+}
+.history-card li:last-child { border-bottom: none; }
+.history-reward { color: var(--success-color); font-weight: 500; }
+
+
+/* --- SSS --- */
+.faq-container {
+    max-width: 800px;
+    margin: auto;
+}
+.faq-item {
+    background: var(--dark-card-bg);
+    margin-bottom: 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+.faq-question {
+    width: 100%;
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    padding: 20px;
+    font-size: 1.1rem;
+    text-align: left;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+}
+.faq-question i {
+    transition: transform 0.3s ease;
+}
+.faq-item.active .faq-question i {
+    transform: rotate(180deg);
+}
+.faq-answer {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+.faq-answer p {
+    padding: 0 20px 20px;
+    color: var(--text-secondary);
 }
 
 /* --- Mobil Uyum --- */
@@ -387,15 +570,16 @@ body {
         height: auto;
         position: static;
         flex-direction: row;
-        justify-content: space-around;
-        padding: 10px;
+        align-items: center;
+        padding: 5px;
+        overflow-x: auto;
     }
     
     .sidebar-header { display: none; }
-    .sidebar ul { display: flex; }
+    .sidebar ul { display: flex; flex-direction: row; }
     .sidebar ul li a { padding: 10px; }
     .sidebar ul li a i { margin: 0; }
-    .sidebar ul li span { display: none; }
+    .sidebar ul li a span { display: none; }
     
     .main-content {
         margin-left: 0;
@@ -405,13 +589,16 @@ body {
     .main-header {
         flex-direction: column;
         gap: 20px;
+        align-items: flex-start;
     }
+    .hero-section h2 { font-size: 2.5rem; }
 }
 
 @media (max-width: 768px) {
     .stats-container {
         flex-direction: column;
         width: 100%;
+        gap: 10px;
     }
     .task-card {
         flex-direction: column;
@@ -420,4 +607,12 @@ body {
     }
     .task-icon { margin: 0; }
     .task-reward { margin: 0; }
+
+    .sidebar { justify-content: flex-start; }
+    .sidebar ul { gap: 5px; }
+    .sidebar ul li a {
+        flex-direction: column;
+        font-size: 0.7rem;
+        gap: 5px;
+    }
 }
