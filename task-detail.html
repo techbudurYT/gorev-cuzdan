@@ -1,79 +1,101 @@
-
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Görev Detayları - GörevCüzdan</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Görev Detayları - GörevCüzdan</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="app-layout">
-        <nav class="sidebar">
-            <div class="sidebar-header">
-                <h3>GörevCüzdan</h3>
-            </div>
-            <ul>
-                <li class="active"><a href="my-tasks.html"><i class="fas fa-tasks"></i> <span>Görevler</span></a></li>
-                <li><a href="leaderboard.html"><i class="fas fa-trophy"></i> <span>Liderlik Tablosu</span></a></li>
-                <li><a href="wallet.html"><i class="fas fa-wallet"></i> <span>Cüzdanım</span></a></li>
-                <li><a href="profile.html"><i class="fas fa-user"></i> <span>Profil</span></a></li>
-                <li><a href="support.html"><i class="fas fa-headset"></i> <span>Destek</span></a></li>
-                <li><a href="faq.html"><i class="fas fa-question-circle"></i> <span>SSS</span></a></li>
-                <li id="admin-panel-link" style="display: none;"><a href="admin-panel.html"><i class="fas fa-user-shield"></i> <span>Admin Panel</span></a></li>
-                <li><a href="#" id="logout-btn"><i class="fas fa-sign-out-alt"></i> <span>Çıkış Yap</span></a></li>
-            </ul>
-        </nav>
-        <main class="main-content">
-            <header class="main-header">
-                <h1 id="task-detail-title-header">Görev Detayları</h1>
-            </header>
-            <div id="task-detail-content-wrapper">
-                <p id="initial-loading-message" class="info-message">Görev detayları yükleniyor...</p>
-                <div id="task-detail-card" class="task-detail-card content-hidden">
-                    <h2 id="task-card-main-title"></h2> <!-- Dinamik olarak doldurulacak -->
-                    <img id="task-detail-icon" src="img/logos/other.png" alt="Görev İkonu">
-                    <p id="task-detail-description"></p> <!-- Dinamik olarak doldurulacak -->
-                    <div class="task-detail-stats">
-                        <div class="detail-stat">
-                            <span>Ödül</span>
-                            <strong id="task-detail-reward">0.00 ₺</strong>
-                        </div>
-                        <div class="detail-stat">
-                            <span>Kalan Stok</span>
-                            <strong id="task-detail-stock" class="stock">0/0</strong>
-                        </div>
-                        <div class="detail-stat">
-                            <span>Kanıt Sayısı</span>
-                            <strong id="task-detail-proof-count">0</strong>
-                        </div>
-                    </div>
+  <div class="app-layout">
+    <nav class="sidebar">
+      <div class="sidebar-header">
+        <h3>GörevCüzdan</h3>
+      </div>
+      <ul>
+        <li class="active">
+          <a href="my-tasks.html"><i class="fas fa-tasks"></i> <span>Görevler</span></a>
+        </li>
+        <li>
+          <a href="leaderboard.html"><i class="fas fa-trophy"></i> <span>Liderlik Tablosu</span></a>
+        </li>
+        <li>
+          <a href="wallet.html"><i class="fas fa-wallet"></i> <span>Cüzdanım</span></a>
+        </li>
+        <li>
+          <a href="task-history.html"><i class="fas fa-history"></i> <span>Görev Geçmişi</span></a>
+        </li>
+        <li>
+          <a href="profile.html"><i class="fas fa-user"></i> <span>Profil</span></a>
+        </li>
+        <li>
+          <a href="support.html"><i class="fas fa-headset"></i> <span>Destek</span></a>
+        </li>
+        <li>
+          <a href="faq.html"><i class="fas fa-question-circle"></i> <span>SSS</span></a>
+        </li>
+        <li id="admin-panel-link" style="display: none;">
+          <a href="admin-panel.html"><i class="fas fa-user-shield"></i> <span>Admin Panel</span></a>
+        </li>
+        <li>
+          <a href="#" id="logout-btn"><i class="fas fa-sign-out-alt"></i> <span>Çıkış Yap</span></a>
+        </li>
+      </ul>
+    </nav>
 
-                    <div class="proof-upload-section">
-                        <h4>Görevi Tamamlamak İçin Kanıt Yükleyin</h4>
-                        <form id="proof-upload-form">
-                            <input type="file" id="proof-files" class="file-upload-input" multiple>
-                            <ul id="file-list" class="file-list">
-                                <!-- Yüklenen dosyalar buraya gelecek -->
-                            </ul>
-                            <button type="submit" class="btn-primary" id="complete-task-btn">Görevi Tamamla</button>
-                            <p id="proof-message" class="info-message"></p>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </main>
-    </div>
+    <main class="main-content">
+      <header class="main-header">
+        <h1 id="task-detail-title-header">Görev Detayları</h1>
+      </header>
 
-    <!-- Firebase SDK'ları -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
-    
-    <!-- Proje Dosyaları -->
-    <script src="firebase-config.js"></script>
-    <script src="task-detail.js"></script>
+      <div id="task-detail-content-wrapper">
+        <p id="initial-loading-message" class="info-message">Görev detayları yükleniyor...</p>
+
+        <div id="task-detail-card" class="task-detail-card content-hidden">
+          <h2 id="task-card-main-title"></h2> <!-- Dinamik olarak doldurulacak -->
+          <img id="task-detail-icon" src="img/logos/other.png" alt="Görev İkonu">
+          <p id="task-detail-description"></p> <!-- Dinamik olarak doldurulacak -->
+
+          <div class="task-detail-stats">
+            <div class="detail-stat">
+              <span>Ödül</span>
+              <strong id="task-detail-reward">0.00 ₺</strong>
+            </div>
+            <div class="detail-stat">
+              <span>Kalan Stok</span>
+              <strong id="task-detail-stock" class="stock">0/0</strong>
+            </div>
+            <div class="detail-stat">
+              <span>Kanıt Sayısı</span>
+              <strong id="task-detail-proof-count">0</strong>
+            </div>
+          </div>
+
+          <div class="proof-upload-section">
+            <h4>Görevi Tamamlamak İçin Kanıt Yükleyin</h4>
+            <form id="proof-upload-form">
+              <input type="file" id="proof-files" class="file-upload-input" multiple>
+              <ul id="file-list" class="file-list">
+                <!-- Yüklenen dosyalar buraya gelecek -->
+              </ul>
+              <button type="submit" class="btn-primary" id="complete-task-btn">Görevi Tamamla</button>
+              <p id="proof-message" class="info-message"></p>
+            </form>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Firebase SDK'ları -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+
+  <!-- Proje Dosyaları -->
+  <script src="firebase-config.js"></script>
+  <script src="task-detail.js"></script>
 </body>
 </html>
