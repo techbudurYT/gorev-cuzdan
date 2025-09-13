@@ -18,24 +18,47 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     async function loadUserDataAndTasks() {
-        // Kullanıcı verilerini çek
         const userDocRef = db.collection('users').doc(currentUser.uid);
-        const userDoc = await userDocRef.get();
+        let userDoc = await userDocRef.get();
 
-        if (userDoc.exists) {
-            userData = userDoc.data();
-            updateUI();
-            
-            // Kullanıcı admin ise admin panel linkini göster
-            if(userData.isAdmin) {
-                adminPanelLink.style.display = 'block';
+        if (!userDoc.exists) {
+            // Auth'da kullanıcı var ama Firestore'da yoksa, bu bir tutarsızlıktır.
+            // Sistemi onarmak için kullanıcı belgesini burada oluşturalım.
+            console.warn("Firestore'da kullanıcı verisi bulunamadı. Eksik belge oluşturuluyor...");
+            const defaultUserData = {
+                email: currentUser.email,
+                balance: 0,
+                completedTasks: 0,
+                isAdmin: false,
+                uid: currentUser.uid,
+                completedTaskIds: []
+            };
+
+            try {
+                // Eksik olan kullanıcı belgesini Firestore'a ekle
+                await userDocRef.set(defaultUserData);
+                // Yeni oluşturulan belgeyi tekrar oku
+                userDoc = await userDocRef.get();
+                userData = userDoc.data();
+            } catch (error) {
+                console.error("Eksik kullanıcı belgesi oluşturulurken hata oluştu:", error);
+                alert("Hesap verileriniz yüklenemedi. Lütfen destek ile iletişime geçin.");
+                auth.signOut(); // Güvenlik için çıkış yap
+                return; // Fonksiyonun devam etmesini engelle
             }
-            
-            // Görevleri yükle
-            loadTasks();
         } else {
-            console.error("Kullanıcı verisi bulunamadı!");
+            // Belge varsa, veriyi al
+            userData = userDoc.data();
         }
+
+        // UI ve görevleri yükle
+        updateUI();
+        
+        if(userData && userData.isAdmin) {
+            adminPanelLink.style.display = 'block';
+        }
+        
+        loadTasks();
     }
 
     function updateUI() {
