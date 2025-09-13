@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.warn("Firestore'da kullanıcı verisi bulunamadı. Eksik belge oluşturuluyor...");
             const defaultUserData = {
                 email: currentUser.email,
-                username: currentUser.email.split('@')[0], // E-postadan varsayılan bir kullanıcı adı oluştur
+                username: currentUser.email.split('@')[0],
                 balance: 0,
                 completedTasks: 0,
                 isAdmin: false,
@@ -73,39 +73,47 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         
+        let availableTasks = 0;
         tasksSnapshot.forEach(doc => {
             const task = doc.data();
             const taskId = doc.id;
             const isCompleted = userCompletedTasks.includes(taskId);
 
-            const taskCard = document.createElement('div');
-            taskCard.className = 'task-card';
+            // Sadece tamamlanmamış görevler için kart oluştur
+            if (!isCompleted) {
+                availableTasks++;
+                const taskCard = document.createElement('div');
+                taskCard.className = 'task-card';
 
-            taskCard.innerHTML = `
-                <img src="img/logos/${task.icon || 'other.png'}" alt="${task.title}" class="task-icon">
-                <div class="task-info">
-                    <h4>${task.title}</h4>
-                    <p>${task.description}</p>
-                </div>
-                <div class="task-reward">
-                    <span>+${task.reward.toFixed(2)} ₺</span>
-                </div>
-                <button class="btn-task" id="${taskId}" ${isCompleted ? 'disabled' : ''}>
-                    ${isCompleted ? 'Tamamlandı' : 'Görevi Yap'}
-                </button>
-            `;
-            taskList.appendChild(taskCard);
+                taskCard.innerHTML = `
+                    <img src="img/logos/${task.icon || 'other.png'}" alt="${task.title}" class="task-icon">
+                    <div class="task-info">
+                        <h4>${task.title}</h4>
+                        <p>${task.description}</p>
+                    </div>
+                    <div class="task-reward">
+                        <span>+${task.reward.toFixed(2)} ₺</span>
+                    </div>
+                    <button class="btn-task" id="${taskId}">Görevi Yap</button>
+                `;
+                taskList.appendChild(taskCard);
 
-            if(!isCompleted) {
-                 document.getElementById(taskId).addEventListener('click', () => completeTask(taskId, task.reward));
+                document.getElementById(taskId).addEventListener('click', () => completeTask(taskId, task.reward));
             }
         });
+
+        // Eğer gösterilecek hiç görev kalmadıysa bilgilendirme mesajı göster
+        if (availableTasks === 0) {
+            taskList.innerHTML = '<p>Tebrikler! Mevcut tüm görevleri tamamladınız.</p>';
+        }
     }
 
     async function completeTask(taskId, reward) {
         const taskButton = document.getElementById(taskId);
-        taskButton.disabled = true;
-        taskButton.textContent = 'İşleniyor...';
+        if (taskButton) {
+            taskButton.disabled = true;
+            taskButton.textContent = 'İşleniyor...';
+        }
 
         const userDocRef = db.collection('users').doc(currentUser.uid);
 
@@ -116,36 +124,48 @@ document.addEventListener('DOMContentLoaded', () => {
                     throw "Kullanıcı belgesi bulunamadı!";
                 }
 
-                const newBalance = (userDoc.data().balance || 0) + reward;
-                const newCompletedTasks = (userDoc.data().completedTasks || 0) + 1;
-                const completedTaskIds = userDoc.data().completedTaskIds || [];
-                
-                if (completedTaskIds.includes(taskId)) {
+                const currentCompletedTasks = userDoc.data().completedTaskIds || [];
+                if (currentCompletedTasks.includes(taskId)) {
                     throw "Bu görev zaten tamamlanmış.";
                 }
 
-                completedTaskIds.push(taskId);
+                const newBalance = (userDoc.data().balance || 0) + reward;
+                const newCompletedTasks = (userDoc.data().completedTasks || 0) + 1;
+                const newCompletedTaskIds = [...currentCompletedTasks, taskId];
 
                 transaction.update(userDocRef, {
                     balance: newBalance,
                     completedTasks: newCompletedTasks,
-                    completedTaskIds: completedTaskIds
+                    completedTaskIds: newCompletedTaskIds
                 });
             });
 
-            taskButton.textContent = 'Tamamlandı';
+            // Yerel veriyi ve UI'ı güncelle
             userData.balance += reward;
             userData.completedTasks += 1;
-            (userData.completedTaskIds = userData.completedTaskIds || []).push(taskId);
+            userData.completedTaskIds.push(taskId);
             updateUI();
+            
+            // Görev kartını DOM'dan kaldır
+            const taskCard = taskButton.closest('.task-card');
+            if (taskCard) {
+                taskCard.remove();
+            }
+
+            // Eğer görev listesi boşaldıysa mesajı güncelle
+            if (taskList.children.length === 0) {
+                 taskList.innerHTML = '<p>Tebrikler! Mevcut tüm görevleri tamamladınız.</p>';
+            }
 
         } catch (error) {
             console.error("Görev tamamlama hatası: ", error);
-            taskButton.textContent = 'Hata Oluştu';
-            setTimeout(() => {
-                taskButton.disabled = false;
-                taskButton.textContent = 'Görevi Yap';
-            }, 2000);
+            if (taskButton) {
+                taskButton.textContent = 'Hata Oluştu';
+                setTimeout(() => {
+                    taskButton.disabled = false;
+                    taskButton.textContent = 'Görevi Yap';
+                }, 2000);
+            }
         }
     }
 

@@ -14,7 +14,6 @@ document.addEventListener('DOMContentLoaded', () => {
         submitButton.disabled = true;
         submitButton.textContent = 'İşleniyor...';
 
-        // Kullanıcı adı geçerlilik kontrolü
         if (!/^[a-zA-Z0-9_]{3,15}$/.test(username)) {
             errorMessage.textContent = 'Kullanıcı adı 3-15 karakter uzunluğunda olmalı ve sadece harf, rakam veya _ içerebilir.';
             submitButton.disabled = false;
@@ -25,11 +24,10 @@ document.addEventListener('DOMContentLoaded', () => {
         let createdUser = null;
 
         try {
-            // 1. Kullanıcı adının benzersizliğini kontrol et
-            const usernameDocRef = db.collection('usernames').doc(username);
-            const usernameDoc = await usernameDocRef.get();
+            // 1. Kullanıcı adının benzersizliğini doğrudan 'users' koleksiyonunda kontrol et
+            const usernameQuery = await db.collection('users').where('username', '==', username).get();
 
-            if (usernameDoc.exists) {
+            if (!usernameQuery.empty) {
                 throw { code: 'auth/username-already-in-use' };
             }
 
@@ -37,11 +35,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const userCredential = await auth.createUserWithEmailAndPassword(email, password);
             createdUser = userCredential.user;
 
-            // 3. Firestore'a kullanıcı verilerini ve kullanıcı adını atomik olarak yaz
-            const batch = db.batch();
-
-            const userDocRef = db.collection('users').doc(createdUser.uid);
-            batch.set(userDocRef, {
+            // 3. Kullanıcı belgesini Firestore'da oluştur
+            await db.collection('users').doc(createdUser.uid).set({
                 uid: createdUser.uid,
                 username: username,
                 email: email,
@@ -50,11 +45,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 isAdmin: false,
                 completedTaskIds: []
             });
-
-            // Kullanıcı adını rezerve et
-            batch.set(usernameDocRef, { uid: createdUser.uid });
-
-            await batch.commit();
 
             // 4. Başarılı, yönlendir
             window.location.href = 'my-tasks.html';
