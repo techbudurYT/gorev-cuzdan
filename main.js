@@ -15,7 +15,7 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-const IMGBB_API_KEY = "YOUR_IMGBB_API_KEY"; // Lütfen bu anahtarı KENDİ ImageBB API anahtarınızla değiştirin!
+const IMGBB_API_KEY = "84a7c0a54294a6e8ea2ffc9bab240719"; // Lütfen bu anahtarı KENDİ ImageBB API anahtarınızla değiştirin!
 const PREMIUM_MONTHLY_FEE = 50;
 const PREMIUM_BONUS_PERCENTAGE = 0.35;
 
@@ -216,6 +216,45 @@ document.addEventListener('DOMContentLoaded', () => {
     if (pageId === 'page-register') initRegisterPage();
 });
 
+function initLoginPage() {
+    const loginForm = document.getElementById('loginForm');
+    if (!loginForm) return;
+
+    loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('loginEmail').value.trim();
+        const password = document.getElementById('loginPassword').value;
+
+        if (password.length < 6) return showAlert("Şifre en az 6 karakter olmalıdır.", false);
+
+        try {
+            showLoader();
+            await signInWithEmailAndPassword(auth, email, password);
+            showAlert("Giriş başarılı! Yönlendiriliyorsunuz...", true);
+            // onAuthStateChanged tetiklenecek ve index.html'ye yönlendirecek
+        } catch (error) {
+            hideLoader();
+            console.error("Giriş işlemi sırasında hata:", error);
+            showAlert(error.code === 'auth/wrong-password' ? "Yanlış şifre." : 
+                      error.code === 'auth/user-not-found' ? "Kullanıcı bulunamadı." : 
+                      "Giriş hatası: " + error.message, false);
+        }
+    });
+
+    const forgotPasswordLink = document.getElementById('forgotPassword');
+    if (forgotPasswordLink) {
+        forgotPasswordLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            const email = prompt("Şifre sıfırlama için e-posta adresinizi girin:");
+            if (email) {
+                sendPasswordResetEmail(auth, email)
+                    .then(() => showAlert("Şifre sıfırlama e-postası gönderildi!", true))
+                    .catch((error) => showAlert("Şifre sıfırlama hatası: " + error.message, false));
+            }
+        });
+    }
+}
+
 async function initRegisterPage() {
     const registerForm = document.getElementById("registerForm");
     handleInputLabels(); // Form yüklendiğinde label'ları ayarla
@@ -242,7 +281,7 @@ async function initRegisterPage() {
         } catch (error) {
             hideLoader();
             console.error("Kayıt işlemi sırasında hata:", error);
-            showAlert(error.code === 'auth/email-already-in-use' ? "Bu e-posta zaten kayıtlı." : "Bir hata oluştu: " + error.message, false);
+            showAlert(error.code === 'auth/email-already-in-use' ? "Bu e-posta zaten kullanımda." : "Kayıt hatası: " + error.message, false);
         }
     });
 }
