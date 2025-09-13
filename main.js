@@ -224,7 +224,7 @@ function initRegisterPage() {
                 lastLoginAt: serverTimestamp(),
                 totalCompletedTasks: 0,
                 totalEarned: 0
-            });
+            }, { merge: true });
 
             showAlert("Kayıt başarılı!", true);
             setTimeout(() => window.location.replace("index.html"), 1500);
