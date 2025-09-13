@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yönetici Paneli</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body id="page-admin-panel">
+    <div id="loader">Yükleniyor...</div>
+    <div id="main-content" style="display: none;">
+        <div class="container">
+            <header class="spark-header"><h1>Yönetici Paneli</h1></header>
+            <div class="page-wrapper">
+                <div class="spark-card">
+                    <h3>Yeni Görev Ekle</h3>
+                    <form id="addTaskForm">
+                        <div class="input-group spark">
+                            <input type="text" id="taskText" required>
+                            <label>Görev Başlığı</label>
+                        </div>
+                        <div class="input-group spark">
+                            <select id="taskCategory" required>
+                                <option value="" disabled selected>Kategori Seçin...</option>
+                                <option value="youtube">YouTube</option>
+                                <option value="instagram">Instagram</option>
+                                <option value="telegram">Telegram</option>
+                                <option value="google-maps">Google Maps</option>
+                                <option value="other">Diğer</option>
+                            </select>
+                            <label class="static-label">Kategori</label>
+                        </div>
+                        <div class="input-group spark">
+                            <input type="number" id="taskReward" required min="1">
+                            <label>Ödül (₺)</label>
+                        </div>
+                        <div class="input-group spark">
+                            <input type="url" id="taskLink">
+                            <label>Göreve Git Linki (İsteğe Bağlı)</label>
+                        </div>
+                        <div class="input-group spark">
+                            <input type="number" id="taskFileCount" required min="1" value="1">
+                            <label>Gereken Kanıt Dosyası Sayısı</label>
+                        </div>
+                        <div class="input-group spark">
+                            <input type="number" id="taskStock" required min="0" value="1">
+                            <label>Gereken Stok Sayısı</label>
+                        </div>
+                        <div class="input-group spark">
+                            <textarea id="taskDescription" required rows="3"></textarea> 
+                            <label>Görev Açıklaması</label> 
+                        </div>
+                        <button type="submit" class="spark-button">Görevi Ekle</button>
+                    </form>
+                </div>
+                <div class="spark-card">
+                    <h3>Kullanıcı Yönetimi</h3>
+                    <div class="user-management-controls">
+                        <input type="text" id="userSearchInput" placeholder="Kullanıcı e-posta veya ID ile ara..." class="spark-input">
+                        <button id="userSearchBtn" class="spark-button small-button">Ara</button>
+                    </div>
+                    <div id="userList">
+                        <p class="empty-state">Kullanıcılar yükleniyor...</p>
+                    </div>
+                    <button id="loadMoreUsersBtn" class="spark-button small-button" style="margin-top: 20px; display: none;">Daha Fazla Göster</button>
+                </div>
+
+                <div class="spark-card">
+                    <h3 style="display: flex; align-items: center; justify-content: space-between;">Destek Talepleri<button id="clearTicketsBtn" class="spark-button small-button" style="background-color: var(--c-bg-light); color: var(--c-text-secondary);">Temizle</button></h3>
+                    <div id="adminTicketsList">
+                        <p class="empty-state">Henüz destek talebi bulunmamaktadır.</p>
+                    </div>
+                </div>
+
+                <div class="spark-card">
+                    <h3>Onay Bekleyen Gönderimler</h3>
+                    <div id="adminSubmissionsList"></div>
+                </div>
+                <div class="spark-card">
+                    <h3>Bekleyen Çekme Talepleri</h3>
+                    <div id="adminWithdrawalRequestsList">
+                        <p class="empty-state">Henüz bekleyen çekme talebi bulunmamaktadır.</p>
+                    </div>
+                </div>
+
+                <!-- Yeni Duyuru Ekleme Bölümü -->
+                <div class="spark-card">
+                    <h3>Yeni Duyuru Ekle</h3>
+                    <form id="addAnnouncementForm">
+                        <div class="input-group spark">
+                            <input type="text" id="announcementTitle" required>
+                            <label>Duyuru Başlığı</label>
+                        </div>
+                        <div class="input-group spark">
+                            <textarea id="announcementContent" required rows="4"></textarea>
+                            <label>Duyuru İçeriği</label>
+                        </div>
+                        <button type="submit" class="spark-button">Duyuruyu Ekle</button>
+                    </form>
+                </div>
+
+                <!-- Duyuruları Yönetme Bölümü -->
+                <div class="spark-card">
+                    <h3>Mevcut Duyurular</h3>
+                    <div id="announcementsAdminList">
+                        <p class="empty-state">Henüz duyuru yok.</p>
+                    </div>
+                </div>
+
+                <!-- Yeni SSS Ekleme Bölümü -->
+                <div class="spark-card">
+                    <h3>Yeni Sıkça Sorulan Soru Ekle</h3>
+                    <form id="addFaqForm">
+                        <div class="input-group spark">
+                            <input type="text" id="faqQuestion" required>
+                            <label>Soru</label>
+                        </div>
+                        <div class="input-group spark">
+                            <textarea id="faqAnswer" required rows="3"></textarea>
+                            <label>Cevap</label>
+                        </div>
+                        <div class="input-group spark">
+                            <input type="number" id="faqOrder" required min="1" value="1">
+                            <label>Sıra Numarası</label>
+                        </div>
+                        <button type="submit" class="spark-button">SSS Ekle</button>
+                    </form>
+                </div>
+
+                <!-- SSS Yönetimi Bölümü -->
+                <div class="spark-card">
+                    <h3>Mevcut Sıkça Sorulan Sorular</h3>
+                    <div id="faqAdminList">
+                        <p class="empty-state">Henüz Sıkça Sorulan Soru yok.</p>
+                    </div>
+                </div>
+
+                <div class="spark-card">
+                    <h3>Mevcut Görevler</h3>
+                    <div id="existingTasksList"></div>
+                </div>
+            </div>
+            <div class="bottom-nav spark-nav">
+                <span class="tab-btn active">Panel</span>
+                <a href="#" id="logoutAdmin" class="tab-btn">Çıkış Yap</a>
+            </div>
+        </div>
+    </div>
+  <script type="module" src="admin.js"></script>
+</body>
+</html>
