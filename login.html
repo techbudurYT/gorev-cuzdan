@@ -3,42 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Giriş Yap</title>
-    <link rel="stylesheet" href="style.css">
+    <title>GörevCüzdan - Giriş Yap</title>
+    <link rel="stylesheet" href="css/spark.css">
+    <link rel="stylesheet" href="css/styles.css">
 </head>
-<body id="page-login" class="auth-page">
-    <div id="loader">Yükleniyor...</div>
-    <div id="main-content" style="display: none;">
-        <div class="auth-container-wide">
-            <!-- Sol Panel (Sadece Geniş Ekranda Görünür) -->
-            <div class="auth-panel auth-decorative-panel">
-                <h2>Tekrar Hoş Geldiniz!</h2>
+<body id="page-login">
+    <div id="loader" class="loader">
+        <div class="spinner"></div>
+        <p>Yükleniyor...</p>
+    </div>
+
+    <div id="main-content" class="auth-container">
+        <div class="auth-content">
+            <div class="auth-welcome">
+                <h1>Tekrar Hoş Geldiniz!</h1>
                 <p>Giriş yapın ve bekleyen görevlerinizi tamamlamaya devam edin.</p>
             </div>
-            <!-- Sağ Panel (Form) -->
-            <div class="auth-panel auth-form-panel">
-                <div class="form-container spark">
+
+            <div class="auth-form">
+                <form id="loginForm">
                     <h2>Giriş Yap</h2>
-                    <div id="alertBox"></div>
-                    <form id="loginForm">
-                        <div class="input-group spark">
-                            <input type="email" id="loginEmail" required>
-                            <label>E-posta</label>
-                        </div>
-                        <div class="input-group spark">
-                            <input type="password" id="loginPassword" required>
-                            <label>Şifre</label>
-                        </div>
-                        <button type="submit" class="spark-button">GİRİŞ YAP</button>
-                    </form>
-                    <p class="auth-switch-text" style="margin-top: 15px;">
-                        <a href="#" id="forgotPasswordLink">Şifremi Unuttum</a>
-                    </p>
-                    <p class="auth-switch-text">Hesabın yok mu? <a href="register.html">Kayıt Ol</a></p>
-                </div>
+
+                    <div class="input-group spark">
+                        <label>E-posta</label>
+                        <input id="loginEmail" type="email" required>
+                    </div>
+
+                    <div class="input-group spark">
+                        <label>Şifre</label>
+                        <input id="loginPassword" type="password" required>
+                    </div>
+
+                    <button type="submit" class="spark-button primary-button">GİRİŞ YAP</button>
+                </form>
+
+                <a href="#" id="forgotPassword">Şifremi Unuttum</a>
+
+                <p>Hesabın yok mu? <a href="register.html">Kayıt Ol</a></p>
             </div>
         </div>
     </div>
-    <script src="main.js" type="module"></script>
+
+    <div id="alertBox"></div>
+
+    <script type="module" src="js/main.js"></script>
 </body>
 </html>
