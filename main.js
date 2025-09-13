@@ -15,7 +15,7 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-const IMGBB_API_KEY = "84a7c0a54294a6e8ea2ffc9bab240719"; // Lütfen bu anahtarı KENDİ ImageBB API anahtarınızla değiştirin!
+const IMGBB_API_KEY = "YOUR_IMGBB_API_KEY"; // Lütfen bu anahtarı KENDİ ImageBB API anahtarınızla değiştirin!
 const PREMIUM_MONTHLY_FEE = 50;
 const PREMIUM_BONUS_PERCENTAGE = 0.35;
 
@@ -60,7 +60,7 @@ function hideLoader() {
 }
 
 function handleInputLabels() {
-    document.querySelectorAll('.input-group.spark input, .input-group.spark textarea').forEach(input => {
+    document.querySelectorAll('.input-group input, .input-group textarea').forEach(input => {
         if (input.value) {
             input.classList.add('populated');
         } else {
@@ -84,7 +84,7 @@ function handleInputLabels() {
         });
     });
 
-    document.querySelectorAll('.input-group.spark select').forEach(select => {
+    document.querySelectorAll('.input-group select').forEach(select => {
         const label = select.parentElement.querySelector('label');
         if (label) {
             label.classList.add('static-label');
@@ -212,8 +212,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Sayfa DOM'u yüklendiğinde auth sayfaları için init fonksiyonlarını doğrudan çağır
     // onAuthStateChanged döngüsü, yönlendirme sonrası bu fonksiyonların tekrar çağrılmasını engellemek için tasarlandı.
-    if (pageId === 'page-login') initLoginPage();
-    if (pageId === 'page-register') initRegisterPage();
+    if (pageId === 'page-login') {
+        initLoginPage();
+    }
+    if (pageId === 'page-register') {
+        initRegisterPage();
+    }
 });
 
 function initLoginPage() {
@@ -286,1114 +290,388 @@ async function initRegisterPage() {
     });
 }
 
+async function loadIndexPageData(user) {
+    const userRef = doc(db, 'users', user.uid);
+    const balanceDisplay = document.getElementById('balanceDisplay');
+    const tasksContainer = document.getElementById('tasksContainer');
+    const loadMoreBtn = document.getElementById('loadMoreBtn');
+    const categoryFilter = document.getElementById('categoryFilter');
+    let currentTasks = [];
+    let lastVisible = null;
+    let unsubscribeTasks = null;
+    let currentCategory = 'all';
 
-function initLoginPage() {
-    const loginForm = document.getElementById("loginForm");
-    handleInputLabels(); // Form yüklendiğinde label'ları ayarla
-
-    loginForm.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const email = document.getElementById("loginEmail").value;
-        const password = document.getElementById("loginPassword").value;
-        try {
-            showLoader();
-            await signInWithEmailAndPassword(auth, email, password);
-            // Başarılı girişten sonra onAuthStateChanged tetiklenecek ve ana sayfaya yönlendirmeyi yapacak.
-        } catch (error) {
-            hideLoader();
-            console.error("Giriş hatası:", error);
-            showAlert("Hatalı e-posta veya şifre!", false);
-        }
-    });
-
-    const forgotPasswordLink = document.getElementById('forgotPasswordLink');
-    if (forgotPasswordLink) {
-        forgotPasswordLink.addEventListener('click', async (e) => {
-            e.preventDefault();
-            const email = prompt("Şifrenizi sıfırlamak için lütfen e-posta adresinizi girin:");
-            if (email) {
-                try {
-                    await sendPasswordResetEmail(auth, email);
-                    showAlert("Şifre sıfırlama bağlantısı e-posta adresinize gönderildi.", true);
-                } catch (error) {
-                    console.error("Şifre sıfırlama hatası:", error);
-                    showAlert("Şifre sıfırlama bağlantısı gönderilirken bir sorun oluştu. Lütfen e-posta adresinizi kontrol edin veya daha sonra tekrar deneyin.", false);
+    const updateBalance = () => {
+        onSnapshot(userRef, (doc) => {
+            if (doc.exists()) {
+                const data = doc.data();
+                if (balanceDisplay) {
+                    balanceDisplay.textContent = `${(data.balance || 0).toFixed(2)} ₺`;
                 }
             }
         });
-    }
-}
-
-async function loadIndexPageData(user) {
-    const taskList = document.getElementById("taskList");
-    const balanceDisplay = document.getElementById("balanceDisplay");
-    const filterButtons = document.querySelectorAll(".filter-btn");
-    const showMoreTasksBtn = document.getElementById("showMoreTasksBtn");
-    const announcementsContainer = document.getElementById("announcementsContainer");
-    const searchTaskInput = document.getElementById("searchTaskInput");
-
-    let allTasks = [];
-    let submittedTaskIds = [];
-    const tasksPerLoad = 4;
-    let currentTaskDisplayCount = tasksPerLoad;
-    let currentFilterCategory = 'all';
-    let currentSearchTerm = '';
-    let isUserPremium = false;
-    let premiumExpiry = null;
-
-    // Kullanıcının bakiye ve premium durumunu canlı dinle
-    onSnapshot(doc(db, "users", user.uid), (docSnapshot) => {
-        if (docSnapshot.exists()) {
-            const userData = docSnapshot.data();
-            balanceDisplay.textContent = `${(userData.balance || 0).toFixed(2)} ₺`;
-            isUserPremium = userData.isPremium || false;
-            premiumExpiry = userData.premiumExpirationDate ? (userData.premiumExpirationDate.toDate ? userData.premiumExpirationDate.toDate() : new Date(userData.premiumExpirationDate)) : null;
-            renderTasks(); // Premium durumu değişince görevleri tekrar render et
-        } else {
-            balanceDisplay.textContent = `0.00 ₺`;
-        }
-    });
-
-    const fetchTasksAndSubmissions = async () => {
-        try {
-            const tasksQuery = query(collection(db, "tasks"), orderBy("createdAt", "desc"));
-            const tasksSnapshot = await getDocs(tasksQuery);
-            allTasks = tasksSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-            const submissionsQuery = query(collection(db, "submissions"),
-                where("userId", "==", user.uid),
-                where("status", "in", ["pending", "approved"])); // Hem bekleyen hem onaylananları kontrol et
-            const submissionsSnapshot = await getDocs(submissionsQuery);
-            submittedTaskIds = submissionsSnapshot.docs.map(doc => doc.data().taskId);
-
-            renderTasks();
-        } catch (error) {
-            console.error("Görevler veya gönderimler yüklenirken hata oluştu:", error);
-            taskList.innerHTML = `<li class="empty-state" style="color:var(--c-danger);">Görevler yüklenemedi. Lütfen daha sonra tekrar deneyin.</li>`;
-        }
     };
 
-    const renderTasks = () => {
-        taskList.innerHTML = "";
-        let filteredTasks = allTasks;
-
-        if (currentFilterCategory !== 'all') {
-            filteredTasks = filteredTasks.filter(task => task.category === currentFilterCategory);
+    const renderTasks = (tasks, append = false) => {
+        if (!append) {
+            tasksContainer.innerHTML = '';
         }
-
-        if (currentSearchTerm) {
-            const searchTermLower = currentSearchTerm.toLowerCase();
-            filteredTasks = filteredTasks.filter(task =>
-                task.text.toLowerCase().includes(searchTermLower) ||
-                task.description.toLowerCase().includes(searchTermLower)
-            );
-        }
-
-        // Stoğu biten görevleri filtrele
-        filteredTasks = filteredTasks.filter(task => (task.stock || 0) > 0);
-
-        if (filteredTasks.length === 0) {
-            taskList.innerHTML = `<li class="empty-state">Bu kriterlere uygun aktif görev bulunmamaktadır.</li>`;
-            showMoreTasksBtn.style.display = 'none';
+        if (tasks.length === 0) {
+            tasksContainer.innerHTML = '<div class="empty-state">Görev bulunamadı.</div>';
+            loadMoreBtn.style.display = 'none';
             return;
         }
-
-        const tasksToDisplay = filteredTasks.slice(0, currentTaskDisplayCount);
-
-        tasksToDisplay.forEach((task, index) => {
-            const isSubmitted = submittedTaskIds.includes(task.id);
-            const categoryInfo = categoryData[task.category] || categoryData["other"];
-            const li = document.createElement("li");
-            li.className = "spark-card task-card";
-            li.style.animationDelay = `${index * 0.05}s`;
-
-            let displayReward = task.reward;
-            let premiumBonusText = '';
-            const now = new Date();
-            const isPremiumActive = isUserPremium && premiumExpiry && premiumExpiry > now;
-
-            if (isPremiumActive) {
-                displayReward = (task.reward * (1 + PREMIUM_BONUS_PERCENTAGE));
-                premiumBonusText = `<span style="font-size: 0.8em; color: var(--c-success);"> (+%${PREMIUM_BONUS_PERCENTAGE * 100} Premium Bonus)</span>`;
-            }
-
-            let actionButtonsHtml = '';
-            if (isSubmitted) {
-                actionButtonsHtml += `<button class='spark-button completed' disabled>Gönderildi</button>`;
-            } else if ((task.stock || 0) <= 0) {
-                actionButtonsHtml += `<button class='spark-button disabled-stock' disabled>Stok Yok</button>`;
-            } else {
-                actionButtonsHtml += `<a href="task-detail.html?id=${task.id}" class="spark-button task-link-button">Yap</a>`;
-            }
-
-            li.innerHTML = `
-                <div class="task-logo"><img src="${categoryInfo.logo}" alt="${categoryInfo.name} logo" loading="lazy"></div>
-                <div class="task-info">
-                    <div class="task-title">${task.text}</div>
-                    <div class="task-reward">+${parseFloat(displayReward).toFixed(2)} ₺${premiumBonusText}</div>
-                </div>
-                <div class="task-action">${actionButtonsHtml}</div>`;
-            taskList.appendChild(li);
-        });
-
-        if (filteredTasks.length > currentTaskDisplayCount) {
-            showMoreTasksBtn.style.display = 'block';
-        } else {
-            showMoreTasksBtn.style.display = 'none';
-        }
-    };
-
-    filterButtons.forEach(button => {
-        button.addEventListener('click', () => {
-            document.querySelector('.filter-btn.active')?.classList.remove('active');
-            button.classList.add('active');
-            currentFilterCategory = button.dataset.category;
-            currentTaskDisplayCount = tasksPerLoad;
-            renderTasks();
-        });
-    });
-
-    searchTaskInput.addEventListener('input', () => {
-        currentSearchTerm = searchTaskInput.value.trim();
-        currentTaskDisplayCount = tasksPerLoad;
-        renderTasks();
-    });
-
-    showMoreTasksBtn.addEventListener('click', () => {
-        currentTaskDisplayCount += tasksPerLoad;
-        renderTasks();
-    });
-
-    // Sayfa yüklendiğinde görevleri ve gönderimleri bir kez al
-    await fetchTasksAndSubmissions();
-
-    // Duyuruları yükle
-    try {
-        const announcementsQuery = query(collection(db, "announcements"), orderBy("createdAt", "desc"), limit(2));
-        const announcementsSnapshot = await getDocs(announcementsQuery);
-        if (!announcementsSnapshot.empty) {
-            announcementsContainer.innerHTML = '<h3>Son Duyurular</h3>';
-            announcementsSnapshot.forEach(doc => {
-                const announcement = doc.data();
-                const date = announcement.createdAt ? (announcement.createdAt.toDate ? announcement.createdAt.toDate().toLocaleDateString('tr-TR') : new Date(announcement.createdAt).toLocaleDateString('tr-TR')) : 'Bilinmiyor';
-                announcementsContainer.innerHTML += `
-                    <div class="spark-card announcement-card">
-                        <h4>${announcement.title}</h4>
-                        <p>${announcement.content}</p>
-                        <span class="announcement-date">${date}</span>
+        tasks.forEach(task => {
+            const category = categoryData[task.category] || categoryData['other'];
+            tasksContainer.innerHTML += `
+                <div class="spark-card task-item" data-task-id="${task.id}">
+                    <div class="task-header">
+                        <img src="${category.logo}" alt="${category.name}" class="task-logo">
+                        <div class="task-title">${task.title}</div>
+                        <div class="task-reward">${task.reward} ₺</div>
                     </div>
-                `;
-            });
-            announcementsContainer.innerHTML += `
-                <div class="announcement-link">
-                    <a href="announcements.html" class="spark-button small-button">Tüm Duyurular</a>
+                    <div class="task-description">${task.description}</div>
+                    <button class="spark-button primary-button start-task-btn" data-task-id="${task.id}">Başlat</button>
                 </div>
             `;
-        } else {
-            announcementsContainer.innerHTML = `<div class="empty-state" style="color:var(--c-text-secondary);">Henüz duyuru bulunmamaktadır.</div>`;
-        }
-    } catch (error) {
-        console.error("Duyurular yüklenirken hata oluştu:", error);
-        announcementsContainer.innerHTML = `<div class="empty-state" style="color:var(--c-danger);">Duyurular yüklenemedi.</div>`;
-    }
-}
-
-async function loadBonusPageData(user) {
-    const bonusBtn = document.getElementById("claimBonusBtn");
-    const bonusStatusText = document.getElementById("bonusStatusText");
-    const userRef = doc(db, 'users', user.uid);
-
-    onSnapshot(userRef, (docSnapshot) => {
-        if (!docSnapshot.exists()) return;
-
-        const userData = docSnapshot.data();
-        // lastBonusClaimed Firestore Timestamp objesi veya doğrudan bir Date objesi olabilir.
-        const lastClaimTimestamp = userData.lastBonusClaimed ? (userData.lastBonusClaimed.toDate ? userData.lastBonusClaimed.toDate() : new Date(userData.lastBonusClaimed)) : null;
-
-        if (lastClaimTimestamp) {
-            const now = new Date();
-            const diffHours = (now - lastClaimTimestamp) / (1000 * 60 * 60);
-
-            if (diffHours >= 24) {
-                bonusBtn.disabled = false;
-                bonusBtn.textContent = "Bonusunu Al (+0.50 ₺)";
-                bonusStatusText.textContent = "Günün bonusu seni bekliyor!";
-            } else {
-                bonusBtn.disabled = true;
-                const nextClaimDate = new Date(lastClaimTimestamp.getTime() + 24 * 60 * 60 * 1000);
-                bonusBtn.textContent = `Bonus Alındı`;
-                bonusStatusText.textContent = `Sonraki bonusun ${nextClaimDate.toLocaleTimeString('tr-TR')} tarihinde aktif olacak.`;
-            }
-        } else {
-            bonusBtn.disabled = false;
-            bonusBtn.textContent = "Bonusunu Al (+0.50 ₺)";
-            bonusStatusText.textContent = "İlk bonusunu alarak kazanmaya başla!";
-        }
-    });
-
-    bonusBtn.addEventListener('click', async () => {
-        bonusBtn.disabled = true;
-
-        try {
-            await runTransaction(db, async (transaction) => {
-                const userDoc = await transaction.get(userRef);
-                if (!userDoc.exists()) throw "Kullanıcı bulunamadı!";
-
-                const userData = userDoc.data();
-                const lastClaim = userData.lastBonusClaimed ? (userData.lastBonusClaimed.toDate ? userData.lastBonusClaimed.toDate() : new Date(userData.lastBonusClaimed)) : null;
-                let isEligible = !lastClaim || ((new Date() - lastClaim) / (1000 * 60 * 60) >= 24);
-
-                if (isEligible) {
-                    const newBalance = (userData.balance || 0) + 0.5;
-                    const totalEarned = (userData.totalEarned || 0) + 0.5;
-                    transaction.update(userRef, {
-                        balance: newBalance,
-                        lastBonusClaimed: serverTimestamp(),
-                        totalEarned: totalEarned
-                    });
-                    showAlert("Bonus başarıyla eklendi!", true);
-                } else {
-                    showAlert("Günlük bonusunu zaten aldınız.", false);
-                }
-            });
-        } catch (error) {
-            console.error("Bonus alma hatası:", error);
-            showAlert("Bonus alınırken bir hata oluştu: " + error.message, false);
-        }
-    });
-}
-
-async function uploadImageToImageBB(file) {
-    if (!IMGBB_API_KEY || IMGBB_API_KEY === "YOUR_IMGBB_API_KEY") { // API Key'in boş veya varsayılan olup olmadığını kontrol edin
-        throw new Error("ImageBB API Key ayarlanmamış veya varsayılan değerde. Lütfen main.js dosyasındaki IMGBB_API_KEY değişkenini güncelleyin.");
-    }
-
-    const formData = new FormData();
-    formData.append("image", file);
-
-    try {
-        const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
-            method: "POST",
-            body: formData,
         });
+        loadMoreBtn.style.display = tasks.length === 10 ? 'block' : 'none';
+    };
 
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(`ImageBB yükleme hatası: ${errorData.error.message || response.statusText}`);
-        }
+    const loadTasks = (category = 'all', append = false) => {
+        if (unsubscribeTasks) unsubscribeTasks();
+        const tasksQuery = query(
+            collection(db, 'tasks'),
+            where('status', '==', 'active'),
+            orderBy('createdAt', 'desc'),
+            limit(10)
+        );
+        unsubscribeTasks = onSnapshot(tasksQuery, (snapshot) => {
+            currentTasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            if (category !== 'all') {
+                currentTasks = currentTasks.filter(t => t.category === category);
+            }
+            renderTasks(currentTasks, append);
+        });
+    };
 
-        const result = await response.json();
-        if (result.success) {
-            return result.data.url;
-        } else {
-            throw new Error(`ImageBB yüklemesi başarısız: ${result.status_txt}`);
+    categoryFilter.addEventListener('change', (e) => {
+        currentCategory = e.target.value;
+        loadTasks(currentCategory, false);
+    });
+
+    loadMoreBtn.addEventListener('click', () => {
+        const nextQuery = query(
+            collection(db, 'tasks'),
+            where('status', '==', 'active'),
+            orderBy('createdAt', 'desc'),
+            startAfter(lastVisible),
+            limit(10)
+        );
+        // Implement pagination logic here
+    });
+
+    tasksContainer.addEventListener('click', async (e) => {
+        if (e.target.classList.contains('start-task-btn')) {
+            const taskId = e.target.dataset.taskId;
+            window.location.href = `task-detail.html?id=${taskId}`;
         }
-    } catch (error) {
-        console.error("ImageBB'ye resim yüklenirken hata:", error);
-        throw error;
-    }
+    });
+
+    loadTasks();
+    updateBalance();
 }
 
 async function loadProfilePageData(user) {
-    const usernameDisplay = document.getElementById("usernameDisplay");
-    const balanceDisplay = document.getElementById("balanceDisplay");
-    const taskCountsDisplay = document.getElementById("task-counts");
-    const totalEarnedDisplay = document.getElementById("totalEarnedDisplay");
-    const isPremiumDisplay = document.getElementById("isPremiumDisplay");
-    const premiumExpirationSection = document.getElementById("premiumExpirationSection");
-    const premiumExpirationDisplay = document.getElementById("premiumExpirationDisplay");
-    const logoutBtn = document.getElementById("logoutBtn");
+    const userRef = doc(db, 'users', user.uid);
+    const usernameDisplay = document.getElementById('usernameDisplay');
+    const emailDisplay = document.getElementById('emailDisplay');
+    const balanceDisplay = document.getElementById('profileBalance');
+    const tasksCompleted = document.getElementById('tasksCompleted');
+    const totalEarned = document.getElementById('totalEarned');
+    const editProfileForm = document.getElementById('editProfileForm');
+    const changePasswordForm = document.getElementById('changePasswordForm');
 
-    onSnapshot(doc(db, 'users', user.uid), async (docSnapshot) => {
-        if (docSnapshot.exists()) {
-            const userData = docSnapshot.data();
-            usernameDisplay.textContent = userData.username || 'N/A';
-            balanceDisplay.textContent = `${(userData.balance || 0).toFixed(2)} ₺`;
-            totalEarnedDisplay.textContent = `${(userData.totalEarned || 0).toFixed(2)} ₺`;
-
-            const now = new Date();
-            // premiumExpirationDate'in Timestamp objesi mi yoksa Date objesi mi olduğunu kontrol et
-            const userPremiumExpirationDate = userData.premiumExpirationDate ? 
-                                              (userData.premiumExpirationDate.toDate ? userData.premiumExpirationDate.toDate() : new Date(userData.premiumExpirationDate)) 
-                                              : null;
-
-            if (userData.isPremium && userPremiumExpirationDate && userPremiumExpirationDate > now) {
-                isPremiumDisplay.textContent = 'Evet (Aktif)';
-                isPremiumDisplay.classList.remove('inactive');
-                isPremiumDisplay.classList.add('active');
-                premiumExpirationDisplay.textContent = userPremiumExpirationDate.toLocaleDateString('tr-TR');
-                premiumExpirationSection.style.display = 'block';
-            } else {
-                isPremiumDisplay.textContent = 'Hayır (Pasif)';
-                isPremiumDisplay.classList.remove('active');
-                isPremiumDisplay.classList.add('inactive');
-                premiumExpirationSection.style.display = 'none';
-                // Premium süresi dolmuşsa veya hiç premium değilse isPremium'u false yap
-                if (userData.isPremium || (userPremiumExpirationDate && userPremiumExpirationDate <= now)) {
-                    await updateDoc(doc(db, "users", user.uid), {
-                        isPremium: false,
-                        premiumExpirationDate: null,
-                        lastPremiumPaymentDate: null
-                    });
-                }
-            }
-            handleInputLabels();
-        } else {
-            console.warn("Kullanıcı belgesi bulunamadı (Profil Sayfası). Bu durum AuthStateChanged'de halledilmeliydi.");
-            // Yine de kullanıcı belgesini oluşturma mantığı burada da bulunabilir, ancak genellikle bu durumda kullanıcı login sayfasına yönlendirilir.
+    onSnapshot(userRef, (doc) => {
+        if (doc.exists()) {
+            const data = doc.data();
+            usernameDisplay.textContent = data.username || 'Kullanıcı Adı';
+            emailDisplay.textContent = data.email || 'E-posta';
+            balanceDisplay.textContent = `${(data.balance || 0).toFixed(2)} ₺`;
+            tasksCompleted.textContent = data.totalCompletedTasks || 0;
+            totalEarned.textContent = `${(data.totalEarned || 0).toFixed(2)} ₺`;
         }
     });
 
-    try {
-        const approvedSubmissionsQuery = query(collection(db, "submissions"), where('userId', '==', user.uid), where('status', '==', 'approved'));
-        const approvedSubmissionsSnapshot = await getDocs(approvedSubmissionsQuery);
-        const tasksSnapshot = await getDocs(collection(db, 'tasks')); // Tüm görev sayısını almak için
-        if (taskCountsDisplay) {
-            taskCountsDisplay.textContent = `${approvedSubmissionsSnapshot.size} / ${tasksSnapshot.size}`;
-            // Kullanıcı belgesindeki toplam tamamlanan görev sayısını güncelle
-            await updateDoc(doc(db, "users", user.uid), {
-                totalCompletedTasks: approvedSubmissionsSnapshot.size,
-            }, { merge: true }); // merge: true mevcut alanları korur
-        }
-    } catch (error) {
-        console.error("Görev sayıları alınırken hata:", error);
-        if (taskCountsDisplay) taskCountsDisplay.textContent = `Hata / Hata`;
-    }
-
-    logoutBtn.addEventListener("click", (e) => {
+    editProfileForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        signOut(auth).then(() => {
-            console.log("Kullanıcı çıkış yaptı.");
-            window.location.replace("login.html");
-        }).catch((error) => {
-            console.error("Çıkış hatası:", error);
-            showAlert("Çıkış yapılırken bir hata oluştu: " + error.message, false);
-        });
+        const newUsername = document.getElementById('newUsername').value.trim();
+        if (newUsername.length < 3) return showAlert('Kullanıcı adı en az 3 karakter olmalı.', false);
+        try {
+            await updateProfile(user, { displayName: newUsername });
+            await updateDoc(userRef, { username: newUsername });
+            showAlert('Profil güncellendi!', true);
+            editProfileForm.reset();
+        } catch (error) {
+            showAlert('Profil güncelleme hatası: ' + error.message, false);
+        }
+    });
+
+    changePasswordForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const newPassword = document.getElementById('newPassword').value;
+        const confirmPassword = document.getElementById('confirmPassword').value;
+        if (newPassword !== confirmPassword) return showAlert('Şifreler eşleşmiyor.', false);
+        if (newPassword.length < 6) return showAlert('Şifre en az 6 karakter olmalı.', false);
+        try {
+            await updatePassword(user, newPassword);
+            showAlert('Şifre değiştirildi!', true);
+            changePasswordForm.reset();
+        } catch (error) {
+            showAlert('Şifre değiştirme hatası: ' + error.message, false);
+        }
     });
 }
 
 async function loadMyTasksPageData(user) {
-    const submissionsList = document.getElementById('submissionsList');
+    const submissionsRef = collection(db, 'submissions');
+    const userSubmissionsQuery = query(submissionsRef, where('userId', '==', user.uid), orderBy('submittedAt', 'desc'));
+    const myTasksList = document.getElementById('myTasksList');
 
-    submissionsList.addEventListener('click', (e) => {
-        if (e.target.classList.contains('btn-show-reason')) {
-            alert(`Görev Reddedilme Nedeni:\n\n${e.target.dataset.reason}`);
-        }
-    });
-
-    try {
-        // Kullanıcının tüm gönderimlerini dinle
-        const submissionsQuery = query(collection(db, 'submissions'), where('userId', '==', user.uid), orderBy('submittedAt', 'desc'));
-        onSnapshot(submissionsQuery, async (snapshot) => {
-            if (snapshot.empty) {
-                submissionsList.innerHTML = `<div class="empty-state">Henüz görev göndermediniz.</div>`;
-                return;
-            }
-
-            let submissionsHtml = '';
-            for (const docSnapshot of snapshot.docs) {
-                const submission = { id: docSnapshot.id, ...docSnapshot.data() };
-                const taskDoc = await getDoc(doc(db, "tasks", submission.taskId));
-                const task = taskDoc.exists() ? taskDoc.data() : { text: 'Görev Silinmiş', reward: 0 }; // Görev silindiyse varsayılan değerler
-
-                let statusText = '', statusClass = '', reasonButtonHtml = '';
-                switch (submission.status) {
-                    case 'pending':
-                        statusText = 'Onay Bekliyor';
-                        statusClass = 'status-pending';
-                        break;
-                    case 'approved':
-                        statusText = 'Onaylandı';
-                        statusClass = 'status-approved';
-                        break;
-                    case 'rejected':
-                        statusText = 'Reddedildi';
-                        statusClass = 'status-rejected';
-                        if (submission.rejectionReason) {
-                            // HTML niteliği içine özel karakterlerin doğru şekilde kaçırıldığından emin olun
-                            const encodedReason = submission.rejectionReason.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-                            reasonButtonHtml = `<button class="spark-button small-button btn-show-reason" data-reason="${encodedReason}">İptal Nedeni</button>`;
-                        }
-                        break;
-                    case 'archived':
-                        statusText = 'Arşivlendi';
-                        statusClass = 'status-archived';
-                        break;
-                    default:
-                        statusText = 'Bilinmiyor';
-                        statusClass = '';
-                        break;
-                }
-                const submissionDate = submission.submittedAt ? (submission.submittedAt.toDate ? submission.submittedAt.toDate().toLocaleDateString('tr-TR') : new Date(submission.submittedAt).toLocaleDateString('tr-TR')) : 'Bilinmiyor';
-
-                let rewardDisplay = task.reward || 0;
-                let premiumBonusInfo = '';
-                if (submission.isPremiumBonusApplied) {
-                    rewardDisplay = (rewardDisplay * (1 + PREMIUM_BONUS_PERCENTAGE));
-                    premiumBonusInfo = ` (%${PREMIUM_BONUS_PERCENTAGE * 100} Premium Bonus)`;
-                }
-                // Reward'ı her zaman iki ondalık basamakla göster
-                rewardDisplay = parseFloat(rewardDisplay).toFixed(2);
-
-
-                submissionsHtml += `
-                    <div class="spark-card submission-card">
-                        <div class="submission-header">
-                            <h3>${task.text}</h3>
-                            <span class="submission-status ${statusClass}">${statusText}</span>
-                        </div>
-                        <div class="submission-details">
-                            <p>Gönderim Tarihi: ${submissionDate}</p>
-                            <p>Ödül: +${rewardDisplay} ₺${premiumBonusInfo}</p>
-                        </div>
-                        <div class="submission-actions">${reasonButtonHtml}</div>
-                    </div>`;
-            }
-            submissionsList.innerHTML = submissionsHtml;
+    onSnapshot(userSubmissionsQuery, (snapshot) => {
+        let html = '';
+        snapshot.forEach(doc => {
+            const sub = doc.data();
+            const status = sub.approved ? 'Onaylandı' : sub.rejected ? 'Reddedildi' : 'Beklemede';
+            html += `
+                <div class="spark-card submission-item">
+                    <h4>${sub.taskTitle}</h4>
+                    <p>Durum: <span class="status-${status.toLowerCase()}">${status}</span></p>
+                    <p>Tarih: ${sub.submittedAt.toDate().toLocaleDateString('tr-TR')}</p>
+                </div>
+            `;
         });
-    } catch (error) {
-        console.error("Gönderimler yüklenirken hata oluştu:", error);
-        submissionsList.innerHTML = `<div class="empty-state" style="color:var(--c-danger);">Gönderimler yüklenemedi: ${error.message}</div>`;
-    }
+        myTasksList.innerHTML = html || '<div class="empty-state">Henüz tamamlanmış göreviniz yok.</div>';
+    });
 }
 
 async function loadTaskDetailPageData(user) {
     const urlParams = new URLSearchParams(window.location.search);
     const taskId = urlParams.get('id');
-    if (!taskId) {
-        window.location.replace("index.html");
-        return;
-    }
+    if (!taskId) return window.location.replace('index.html');
 
+    const taskRef = doc(db, 'tasks', taskId);
+    const taskDoc = await getDoc(taskRef);
+    if (!taskDoc.exists()) return window.location.replace('index.html');
+
+    const task = taskDoc.data();
     const taskTitle = document.getElementById('taskTitle');
-    const taskReward = document.getElementById('taskReward');
-    const premiumBonusInfo = document.getElementById('premiumBonusInfo');
     const taskDescription = document.getElementById('taskDescription');
-    const taskLinkContainer = document.getElementById('taskLinkContainer');
-    const requiredFileCountSpan = document.getElementById('requiredFileCount');
-    const multipleFileUploadContainer = document.getElementById('multipleFileUploadContainer');
-    const submitTaskBtn = document.getElementById('submitTask');
-    const taskStockDisplay = document.getElementById('taskStockDisplay');
+    const taskReward = document.getElementById('taskReward');
+    const submitForm = document.getElementById('submitForm');
+    const proofInput = document.getElementById('proofInput');
 
-    let filesToUpload = [];
-    const allowedTypes = ['image/jpeg', 'image/png'];
+    taskTitle.textContent = task.title;
+    taskDescription.textContent = task.description;
+    taskReward.textContent = `${task.reward} ₺`;
 
-    let currentTask = null;
-    let isUserPremium = false;
-    let premiumExpiry = null;
+    submitForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const proof = proofInput.value.trim();
+        if (!proof) return showAlert('Kanıt girin.', false);
 
-    const userDoc = await getDoc(doc(db, "users", user.uid));
-    if (userDoc.exists()) {
-        const userData = userDoc.data();
-        isUserPremium = userData.isPremium || false;
-        premiumExpiry = userData.premiumExpirationDate ? (userData.premiumExpirationDate.toDate ? userData.premiumExpirationDate.toDate() : new Date(userData.premiumExpirationDate)) : null;
-    }
-
-    try {
-        const taskDoc = await getDoc(doc(db, "tasks", taskId));
-        if (taskDoc.exists()) {
-            currentTask = taskDoc.data();
-            taskTitle.textContent = currentTask.text;
-            taskDescription.textContent = currentTask.description;
-            taskStockDisplay.textContent = `Mevcut Stok: ${currentTask.stock || 0}`;
-
-            let displayReward = currentTask.reward || 0;
-            const now = new Date();
-            const isPremiumActive = isUserPremium && premiumExpiry && premiumExpiry > now;
-
-            if (isPremiumActive) {
-                displayReward = (currentTask.reward * (1 + PREMIUM_BONUS_PERCENTAGE));
-                taskReward.textContent = `Görev Ödülü: ${parseFloat(currentTask.reward || 0).toFixed(2)} ₺`;
-                premiumBonusInfo.textContent = `Premium ile Kazanacağınız: +${parseFloat(displayReward).toFixed(2)} ₺ (İlave %${PREMIUM_BONUS_PERCENTAGE * 100})`;
-                premiumBonusInfo.style.display = 'block';
-            } else {
-                taskReward.textContent = `Görev Ödülü: ${parseFloat(currentTask.reward || 0).toFixed(2)} ₺`;
-                premiumBonusInfo.style.display = 'none';
-            }
-
-            if ((currentTask.stock || 0) <= 0) {
-                submitTaskBtn.disabled = true;
-                submitTaskBtn.textContent = "Stok Yok";
-                showAlert("Bu görevin stoğu kalmamıştır.", false);
-            }
-
-            if (currentTask.link) {
-                const goTaskBtn = document.createElement('a');
-                goTaskBtn.href = currentTask.link;
-                goTaskBtn.target = "_blank";
-                goTaskBtn.className = "spark-button task-go-button";
-                goTaskBtn.textContent = "Göreve Git";
-                taskLinkContainer.appendChild(goTaskBtn);
-                taskLinkContainer.style.display = 'block';
-            } else {
-                taskLinkContainer.style.display = 'none';
-            }
-
-            const fileCount = currentTask.fileCount || 1;
-            requiredFileCountSpan.textContent = fileCount;
-            renderFileInputs(fileCount);
-
-        } else {
-            showAlert("Görev bulunamadı.", false);
-            setTimeout(() => { window.location.replace("index.html"); }, 1500);
-        }
-    } catch (error) {
-        console.error("Görev detayları yüklenirken hata:", error);
-        showAlert("Görev detayları yüklenirken bir hata oluştu: " + error.message, false);
-        setTimeout(() => { window.location.replace("index.html"); }, 1500);
-    }
-
-    function renderFileInputs(count) {
-        multipleFileUploadContainer.innerHTML = '';
-        filesToUpload = Array(count).fill(null);
-
-        for (let i = 0; i < count; i++) {
-            const wrapperDiv = document.createElement('div');
-            wrapperDiv.className = 'file-upload-item';
-
-            wrapperDiv.innerHTML = `
-                <div class="file-upload">
-                    <input type="file" id="taskProof-${i}" accept=".jpg,.jpeg,.png" style="display: none;">
-                    <label for="taskProof-${i}" class="spark-button small-button">Kanıt ${i + 1} Seç</label>
-                    <span id="fileName-${i}" class="file-name-display">Dosya seçilmedi</span>
-                </div>
-                <div class="upload-preview" id="imagePreview-${i}"></div>
-            `;
-            multipleFileUploadContainer.appendChild(wrapperDiv);
-
-            const currentFileInput = wrapperDiv.querySelector(`#taskProof-${i}`);
-            const currentFileNameSpan = wrapperDiv.querySelector(`#fileName-${i}`);
-            const currentImagePreviewDiv = wrapperDiv.querySelector(`#imagePreview-${i}`);
-
-            currentFileInput.addEventListener('change', (e) => {
-                const file = e.target.files[0];
-                if (file) {
-                    if (!allowedTypes.includes(file.type)) {
-                        showAlert('Lütfen sadece JPG veya PNG formatında bir resim dosyası seçin.', false);
-                        e.target.value = '';
-                        filesToUpload[i] = null;
-                        currentFileNameSpan.textContent = "Dosya seçilmedi";
-                        currentImagePreviewDiv.innerHTML = "";
-                        return;
-                    }
-                    filesToUpload[i] = file;
-                    currentFileNameSpan.textContent = file.name;
-                    const reader = new FileReader();
-                    reader.onload = e => currentImagePreviewDiv.innerHTML = `<img src="${e.target.result}" alt="Önizleme ${i + 1}" loading="lazy">`;
-                    reader.readAsDataURL(file);
-                } else {
-                    filesToUpload[i] = null;
-                    currentFileNameSpan.textContent = "Dosya seçilmedi";
-                    currentImagePreviewDiv.innerHTML = "";
-                }
-            });
-        }
-    }
-
-    submitTaskBtn.addEventListener('click', async () => {
-        if (!currentTask) {
-            showAlert("Görev bilgileri yüklenemedi, lütfen sayfayı yenileyin.", false);
-            return;
-        }
-        if ((currentTask.stock || 0) <= 0) {
-            showAlert("Bu görevin stoğu kalmamıştır.", false);
-            submitTaskBtn.disabled = true;
-            submitTaskBtn.textContent = "Stok Yok";
-            return;
-        }
-
-        const missingFiles = filesToUpload.filter(f => f === null || f === undefined);
-        if (missingFiles.length > 0) {
-            return showAlert(`Lütfen tüm ${filesToUpload.length} kanıt dosyasını seçin!`, false);
-        }
-
-        submitTaskBtn.disabled = true;
-        submitTaskBtn.textContent = "Yükleniyor...";
-
-        let uploadedFileURLs = [];
         try {
-            for (const file of filesToUpload) {
-                const downloadURL = await uploadImageToImageBB(file);
-                uploadedFileURLs.push(downloadURL);
-            }
-
-            await runTransaction(db, async (transaction) => {
-                const taskRef = doc(db, "tasks", taskId);
-                const userRef = doc(db, "users", user.uid); // Kullanıcı belgesine referans
-
-                const latestTaskDoc = await transaction.get(taskRef);
-                const currentUserDoc = await transaction.get(userRef); // Kullanıcı belgesini al
-
-                if (!latestTaskDoc.exists() || (latestTaskDoc.data().stock || 0) <= 0) {
-                    throw new Error("Görev bulunamadı veya stoğu kalmamıştır.");
-                }
-                if (!currentUserDoc.exists()) {
-                    throw new Error("Kullanıcı bulunamadı.");
-                }
-
-                const userSubmissionsQueryForCheck = query(collection(db, "submissions"),
-                    where("userId", "==", user.uid),
-                    where("taskId", "==", taskId),
-                    where("status", "in", ["pending", "approved"]));
-
-                const userSubmissionsSnapshot = await getDocs(userSubmissionsQueryForCheck);
-
-                if (!userSubmissionsSnapshot.empty) {
-                    throw new Error('Bu görevi zaten gönderdiniz.');
-                }
-
-                const currentStock = latestTaskDoc.data().stock;
-                const newStock = currentStock - 1;
-                transaction.update(taskRef, { stock: newStock });
-
-                const newSubmissionRef = doc(collection(db, "submissions"));
-                const now = new Date();
-                const isPremiumActive = isUserPremium && premiumExpiry && premiumExpiry > now;
-
-                transaction.set(newSubmissionRef, {
-                    taskId,
-                    userId: user.uid,
-                    userEmail: user.email,
-                    fileURLs: uploadedFileURLs,
-                    submittedAt: serverTimestamp(),
-                    status: 'pending',
-                    isPremiumBonusApplied: isPremiumActive
-                });
+            await addDoc(collection(db, 'submissions'), {
+                userId: user.uid,
+                taskId: task.id,
+                taskTitle: task.title,
+                proof,
+                reward: task.reward,
+                submittedAt: serverTimestamp(),
+                approved: false,
+                rejected: false
             });
-            showAlert('Göreviniz başarıyla onaya gönderildi!', true);
-            setTimeout(() => { window.location.href = 'my-tasks.html'; }, 1500);
-
+            showAlert('Görev gönderildi, inceleme bekleniyor.', true);
+            proofInput.value = '';
         } catch (error) {
-            console.error("Görev gönderilirken genel hata:", error);
-            showAlert("Hata: " + error.message, false);
-            submitTaskBtn.disabled = false;
-            submitTaskBtn.textContent = "Görevi Onaya Gönder";
-
-            if (error.message.includes("stoğu kalmamıştır")) {
-                taskStockDisplay.textContent = `Mevcut Stok: 0`;
-                submitTaskBtn.textContent = "Stok Yok";
-                submitTaskBtn.disabled = true;
-            } else if (error.message.includes("zaten gönderdiniz")) {
-                submitTaskBtn.textContent = "Gönderildi";
-                submitTaskBtn.disabled = true;
-            }
+            showAlert('Gönderim hatası: ' + error.message, false);
         }
     });
 }
 
 async function loadWalletPageData(user) {
-    const currentBalanceDisplay = document.getElementById('currentBalance');
+    const userRef = doc(db, 'users', user.uid);
+    const balanceDisplay = document.getElementById('walletBalance');
     const withdrawalForm = document.getElementById('withdrawalForm');
-    const withdrawalAmountInput = document.getElementById('withdrawalAmount');
-    const ibanInput = document.getElementById('iban');
-    const phoneNumberInput = document.getElementById('phoneNumber');
-    const previousWithdrawalsList = document.getElementById('previousWithdrawalsList');
-    let userBalance = 0;
+    const amountInput = document.getElementById('withdrawalAmount');
 
-    onSnapshot(doc(db, "users", user.uid), (docSnapshot) => {
-        if (docSnapshot.exists()) {
-            const userData = docSnapshot.data();
-            userBalance = userData.balance || 0;
-            currentBalanceDisplay.textContent = `${userBalance.toFixed(2)} ₺`;
-            withdrawalAmountInput.setAttribute('max', userBalance);
-
-            // Kayıtlı IBAN ve Telefon Numarası varsa doldur
-            if (userData.iban) {
-                ibanInput.value = userData.iban;
-                ibanInput.classList.add('populated'); // Label'ın yukarıda kalması için
-            } else {
-                ibanInput.classList.remove('populated');
-            }
-            if (userData.phoneNumber) {
-                phoneNumberInput.value = userData.phoneNumber;
-                phoneNumberInput.classList.add('populated'); // Label'ın yukarıda kalması için
-            } else {
-                phoneNumberInput.classList.remove('populated');
-            }
-        } else {
-            currentBalanceDisplay.textContent = `0.00 ₺`;
+    onSnapshot(userRef, (doc) => {
+        if (doc.exists()) {
+            balanceDisplay.textContent = `${(doc.data().balance || 0).toFixed(2)} ₺`;
         }
     });
 
     withdrawalForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const amount = Number(withdrawalAmountInput.value);
-        const iban = ibanInput.value.trim();
-        const phoneNumber = phoneNumberInput.value.trim();
-
-        if (amount < 200) return showAlert("Minimum çekim miktarı 200 ₺'dir.", false);
-        if (amount > userBalance) return showAlert("Bakiyeniz yeterli değil.", false);
-        if (!iban.match(/^TR[0-9]{24}$/)) return showAlert("Geçerli bir IBAN giriniz (örn: TR000000000000000000000000).", false);
-        if (!phoneNumber.match(/^[0-9]{10}$/)) return showAlert("Geçerli bir 10 haneli telefon numarası giriniz (örn: 5xxxxxxxxx).", false);
-
-        const btn = withdrawalForm.querySelector('button');
-        btn.disabled = true;
-        btn.textContent = "Talep Oluşturuluyor...";
+        const amount = parseFloat(amountInput.value);
+        if (amount < 10) return showAlert('Minimum çekim 10 ₺.', false);
 
         try {
-            await runTransaction(db, async (transaction) => {
-                const userRef = doc(db, 'users', user.uid);
-                const userDoc = await transaction.get(userRef);
-                if (!userDoc.exists()) throw new Error("Kullanıcı bulunamadı!");
-                const currentBalance = userDoc.data().balance || 0;
-                if (currentBalance < amount) throw new Error("Yetersiz bakiye.");
-
-                // Kullanıcının bakiyesini azalt ve IBAN/Telefon bilgilerini güncelle
-                transaction.update(userRef, { balance: currentBalance - amount, iban, phoneNumber });
-                
-                // Yeni çekme talebini oluştur
-                await addDoc(collection(db, "withdrawalRequests"), {
-                    userId: user.uid,
-                    userEmail: user.email,
-                    amount,
-                    iban,
-                    phoneNumber,
-                    status: 'pending',
-                    createdAt: serverTimestamp()
-                });
+            await addDoc(collection(db, 'withdrawalRequests'), {
+                userId: user.uid,
+                amount,
+                status: 'pending',
+                requestedAt: serverTimestamp()
             });
-            showAlert("Çekme talebiniz başarıyla oluşturuldu.", true);
-            withdrawalAmountInput.value = ''; // Inputu temizle
+            showAlert('Çekim talebi gönderildi.', true);
+            amountInput.value = '';
         } catch (error) {
-            console.error("Çekme talebi oluşturulamadı:", error);
-            showAlert("Talep oluşturulamadı: " + error.message, false);
-        } finally {
-            btn.disabled = false;
-            btn.textContent = "Talep Oluştur";
+            showAlert('Çekim talebi hatası: ' + error.message, false);
         }
-    });
-
-    // Önceki çekme taleplerini dinle
-    onSnapshot(query(collection(db, "withdrawalRequests"), where("userId", "==", user.uid), orderBy("createdAt", "desc")), (snapshot) => {
-        if (snapshot.empty) {
-            previousWithdrawalsList.innerHTML = `<div class="empty-state">Henüz para çekme talebiniz bulunmamaktadır.</div>`;
-            return;
-        }
-        let requestsHtml = '';
-        snapshot.forEach(docSnapshot => {
-            const request = docSnapshot.data();
-            const requestDate = request.createdAt ? (request.createdAt.toDate ? request.createdAt.toDate().toLocaleDateString('tr-TR') : new Date(request.createdAt).toLocaleDateString('tr-TR')) : 'Bilinmiyor';
-            let statusText = '', statusClass = '';
-            switch (request.status) {
-                case 'pending':
-                    statusText = 'Beklemede';
-                    statusClass = 'status-pending';
-                    break;
-                case 'approved':
-                    statusText = 'Onaylandı';
-                    statusClass = 'status-approved';
-                    break;
-                case 'rejected':
-                    statusText = 'Reddedildi';
-                    statusClass = 'status-rejected';
-                    break;
-                case 'archived':
-                    statusText = 'Arşivlendi';
-                    statusClass = 'status-archived';
-                    break;
-                default:
-                    statusText = 'Bilinmiyor';
-                    statusClass = '';
-                    break;
-            }
-            requestsHtml += `
-                <div class="spark-card withdrawal-request-card">
-                    <div class="request-header"><h3>${parseFloat(request.amount || 0).toFixed(2)} ₺</h3><span class="request-status ${statusClass}">${statusText}</span></div>
-                    <p>IBAN: ${request.iban}</p><p>Telefon: ${request.phoneNumber}</p><p>Talep Tarihi: ${requestDate}</p>
-                </div>`;
-        });
-        previousWithdrawalsList.innerHTML = requestsHtml;
     });
 }
 
 async function loadSupportPageData(user) {
-    const createTicketForm = document.getElementById('createTicketForm');
-    const previousTicketsList = document.getElementById('previousTicketsList');
+    const supportForm = document.getElementById('supportForm');
+    const categorySelect = document.getElementById('ticketCategory');
+    const subjectInput = document.getElementById('ticketSubject');
+    const messageInput = document.getElementById('ticketMessage');
+    const fileInput = document.getElementById('ticketFile');
 
-    let username = user.displayName || user.email.split('@')[0];
-    const userDocSnapshot = await getDoc(doc(db, "users", user.uid));
-    if (userDocSnapshot.exists() && userDocSnapshot.data().username) {
-        username = userDocSnapshot.data().username;
-    }
-
-    createTicketForm.addEventListener('submit', async (e) => {
+    supportForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const subject = document.getElementById('ticketSubject').value.trim();
-        const message = document.getElementById('ticketMessage').value.trim();
-        const category = document.getElementById('ticketCategory').value;
-        if (!subject || !message || !category) return showAlert("Lütfen tüm alanları doldurun.", false);
+        const category = categorySelect.value;
+        const subject = subjectInput.value.trim();
+        const message = messageInput.value.trim();
+        const file = fileInput.files[0];
+
+        if (!category || !subject || !message) return showAlert('Tüm alanları doldurun.', false);
 
         try {
-            const submitBtn = createTicketForm.querySelector('button[type="submit"]');
-            submitBtn.disabled = true;
-            submitBtn.textContent = "Talep Oluşturuluyor...";
+            let fileUrl = null;
+            if (file) {
+                const formData = new FormData();
+                formData.append('image', file);
+                const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                if (data.success) fileUrl = data.data.url;
+            }
 
-            // Yeni bir destek talebi belgesi oluştur
-            const newTicketRef = await addDoc(collection(db, "tickets"), {
+            await addDoc(collection(db, 'tickets'), {
                 userId: user.uid,
                 userEmail: user.email,
+                category,
                 subject,
-                status: 'open', // Başlangıç durumu 'açık'
-                createdAt: serverTimestamp(),
-                lastUpdatedAt: serverTimestamp(),
-                assignedTo: null, // Henüz bir admin atanmamış
-                assignedToName: null,
-                lastMessage: message, // İlk mesajı buraya kaydet
-                lastMessageSenderType: 'user',
-                category: category
-            });
-
-            // Talep altına ilk mesajı ekle
-            await addDoc(collection(db, "tickets", newTicketRef.id, "replies"), {
                 message,
-                senderId: user.uid,
-                senderType: 'user',
-                senderName: username,
-                sentAt: serverTimestamp()
+                fileUrl,
+                status: 'open',
+                createdAt: serverTimestamp(),
+                lastUpdatedAt: serverTimestamp()
             });
-
-            showAlert("Destek talebiniz başarıyla oluşturuldu!", true);
-            createTicketForm.reset();
-            document.getElementById('ticketCategory').value = ""; // Kategori seçimi resetle
+            showAlert('Destek talebi gönderildi!', true);
+            supportForm.reset();
         } catch (error) {
-            console.error("Talep oluşturulurken bir hata oluştu:", error);
-            showAlert("Talep oluşturulurken bir hata oluştu: " + error.message, false);
-        } finally {
-            const submitBtn = createTicketForm.querySelector('button[type="submit"]');
-            submitBtn.disabled = false;
-            submitBtn.textContent = "Talep Oluştur";
+            showAlert('Talep gönderme hatası: ' + error.message, false);
         }
-    });
-
-    // Kullanıcının önceki destek taleplerini dinle
-    const ticketsQuery = query(collection(db, "tickets"), where("userId", "==", user.uid), orderBy("lastUpdatedAt", "desc"));
-    onSnapshot(ticketsQuery, (snapshot) => {
-        if (snapshot.empty) {
-            previousTicketsList.innerHTML = `<div class="empty-state">Henüz bir destek talebiniz bulunmuyor.</div>`;
-            return;
-        }
-        let ticketsHtml = '';
-        snapshot.forEach(doc => {
-            const ticket = { id: doc.id, ...doc.data() };
-
-            // "cleared" statüsündeki ticket'ları gösterme
-            if (ticket.status === 'cleared') {
-                return;
-            }
-
-            const lastUpdate = ticket.lastUpdatedAt ? (ticket.lastUpdatedAt.toDate ? ticket.lastUpdatedAt.toDate().toLocaleDateString('tr-TR') : new Date(ticket.lastUpdatedAt).toLocaleDateString('tr-TR')) : 'Bilinmiyor';
-            let statusClass = '';
-            let statusText = '';
-            switch (ticket.status) {
-                case 'open':
-                    statusText = 'Açık';
-                    statusClass = 'status-pending'; // Açık talepler için beklemede rengi
-                    break;
-                case 'closed':
-                    statusText = 'Kapalı';
-                    statusClass = 'status-rejected'; // Kapalı talepler için reddedildi rengi
-                    break;
-                case 'archived':
-                    statusText = 'Arşivlendi';
-                    statusClass = 'status-archived'; // Arşivlenmiş talepler için özel renk
-                    break;
-                default:
-                    statusText = 'Bilinmiyor';
-                    statusClass = '';
-                    break;
-            }
-            if (ticket.assignedToName) {
-                statusText += ` (${ticket.assignedToName})`;
-            }
-
-            ticketsHtml += `
-                <a href="ticket-detail.html?id=${ticket.id}" class="spark-card ticket-list-item">
-                    <div class="ticket-info"><strong>${ticket.subject}</strong><p>Son Güncelleme: ${lastUpdate}</p></div>
-                    <span class="status-badge ${statusClass}">${statusText}</span>
-                </a>`;
-        });
-        previousTicketsList.innerHTML = ticketsHtml;
-    }, (error) => {
-        console.error("Destek talepleri yüklenirken hata oluştu:", error);
-        previousTicketsList.innerHTML = `<div class="empty-state" style="color:var(--c-danger);">Destek talepleri yüklenemedi: ${error.message}</div>`;
     });
 }
 
 async function loadTicketDetailPageData(user) {
     const urlParams = new URLSearchParams(window.location.search);
     const ticketId = urlParams.get('id');
-    if (!ticketId) {
-        window.location.replace("support.html");
-        return;
-    }
+    if (!ticketId) return window.location.replace('support.html');
 
-    const subjectHeader = document.getElementById('ticketSubjectHeader');
-    const statusSpan = document.getElementById('ticketStatus');
-    const repliesContainer = document.getElementById('ticketRepliesContainer');
-    const replyForm = document.getElementById('replyTicketForm');
-    const replyFormContainer = document.getElementById('replyFormContainer');
-    const closeTicketBtn = document.getElementById('closeTicketBtn');
-    const ticketRef = doc(db, "tickets", ticketId);
+    const ticketRef = doc(db, 'tickets', ticketId);
+    const repliesRef = collection(db, 'tickets', ticketId, 'replies');
+    const ticketSnapshot = await getDoc(ticketRef);
+    if (!ticketSnapshot.exists()) return window.location.replace('support.html');
+
+    const ticket = ticketSnapshot.data();
+    const subjectEl = document.getElementById('ticketSubject');
+    const categoryEl = document.getElementById('ticketCategory');
+    const messageEl = document.getElementById('ticketMessage');
+    const statusEl = document.getElementById('ticketStatus');
+    const createdAtEl = document.getElementById('ticketCreatedAt');
+    const repliesList = document.getElementById('repliesList');
+    const replyForm = document.getElementById('replyForm');
     const replyMessageInput = document.getElementById('replyMessage');
     const replyFileInput = document.getElementById('replyFile');
-    const replyFileNameSpan = document.getElementById('replyFileName');
-    const replyImagePreviewDiv = document.getElementById('replyImagePreview');
+    const replyBtn = document.getElementById('replyBtn');
+    const closeTicketBtn = document.getElementById('closeTicketBtn');
 
-    let selectedFile = null;
-    const allowedTypes = ['image/jpeg', 'image/png'];
+    subjectEl.textContent = ticket.subject;
+    categoryEl.textContent = ticket.category;
+    messageEl.textContent = ticket.message;
+    statusEl.textContent = ticket.status;
+    createdAtEl.textContent = ticket.createdAt.toDate().toLocaleDateString('tr-TR');
 
-    let username = user.displayName || user.email.split('@')[0];
-    const userDocSnapshot = await getDoc(doc(db, "users", user.uid));
-    if (userDocSnapshot.exists() && userDocSnapshot.data().username) {
-        username = userDocSnapshot.data().username;
+    if (ticket.fileUrl) {
+        messageEl.innerHTML += `<br><img src="${ticket.fileUrl}" alt="Ek" style="max-width: 100%; margin-top: 10px;">`;
     }
 
-    replyFileInput.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            if (!allowedTypes.includes(file.type)) {
-                showAlert('Lütfen sadece JPG veya PNG formatında bir resim dosyası seçin.', false);
-                e.target.value = '';
-                selectedFile = null;
-                replyFileNameSpan.textContent = "Dosya seçilmedi";
-                replyImagePreviewDiv.innerHTML = "";
-                return;
-            }
-            selectedFile = file;
-            replyFileNameSpan.textContent = file.name;
-            const reader = new FileReader();
-            reader.onload = e => replyImagePreviewDiv.innerHTML = `<img src="${e.target.result}" alt="Önizleme" loading="lazy">`;
-            reader.readAsDataURL(selectedFile);
-        } else {
-            selectedFile = null;
-            replyFileNameSpan.textContent = "Dosya seçilmedi";
-            replyImagePreviewDiv.innerHTML = "";
-        }
-    });
+    const renderReplies = async () => {
+        const repliesSnapshot = await getDocs(query(repliesRef, orderBy('sentAt', 'asc')));
+        let html = '';
+        repliesSnapshot.forEach(doc => {
+            const reply = doc.data();
+            const isUser = reply.senderType === 'user';
+            html += `
+                <div class="reply-item ${isUser ? 'user-reply' : 'admin-reply'}">
+                    <strong>${reply.senderName || (isUser ? 'Siz' : 'Admin')}:</strong>
+                    <p>${reply.message}</p>
+                    ${reply.fileUrl ? `<img src="${reply.fileUrl}" alt="Ek" style="max-width: 100%;">` : ''}
+                    <small>${reply.sentAt.toDate().toLocaleString('tr-TR')}</small>
+                </div>
+            `;
+        });
+        repliesList.innerHTML = html;
+    };
 
-    // Talep detaylarını dinle
-    onSnapshot(ticketRef, (docSnapshot) => {
-        if (docSnapshot.exists()) {
-            const ticket = docSnapshot.data();
-            subjectHeader.textContent = ticket.subject;
-            let statusText = '';
-            let statusClass = '';
-            switch (ticket.status) {
-                case 'open':
-                    statusText = 'Açık';
-                    statusClass = 'status-pending';
-                    break;
-                case 'closed':
-                    statusText = 'Kapalı';
-                    statusClass = 'status-rejected';
-                    break;
-                case 'archived':
-                    statusText = 'Arşivlendi';
-                    statusClass = 'status-archived';
-                    break;
-                case 'cleared':
-                    statusText = 'Temizlendi';
-                    statusClass = 'status-archived'; // 'cleared' için de arşivlenmiş stilini kullanabiliriz
-                    break;
-                default:
-                    statusText = 'Bilinmiyor';
-                    statusClass = '';
-                    break;
-            }
-            if (ticket.assignedToName) {
-                statusText += ` (${ticket.assignedToName})`;
-            }
-            statusSpan.textContent = statusText;
-            statusSpan.className = `status-badge ${statusClass}`;
-
-            // Talep kapalı, arşivlenmiş veya temizlenmiş ise cevap formunu ve kapat düğmesini gizle
-            if (ticket.status === 'closed' || ticket.status === 'archived' || ticket.status === 'cleared') {
-                replyFormContainer.style.display = 'none';
-                closeTicketBtn.style.display = 'none';
-            } else {
-                replyFormContainer.style.display = 'block';
-                closeTicketBtn.style.display = 'block';
-            }
-
-        } else {
-            console.warn("Talep belgesi bulunamadı:", ticketId);
-            showAlert("Bu destek talebi bulunamadı.", false);
-            setTimeout(() => { window.location.replace("support.html"); }, 2000);
-        }
-    }, (error) => {
-        console.error("Talep detayları yüklenirken hata oluştu:", error);
-        showAlert("Talep detayları yüklenirken bir hata oluştu: " + error.message, false);
-    });
-
-    // Talep cevaplarını dinle
-    const repliesQuery = query(collection(db, "tickets", ticketId, "replies"), orderBy("sentAt", "asc"));
-    onSnapshot(repliesQuery, (snapshot) => {
-        let repliesHtml = '';
-        if (snapshot.empty) {
-            repliesHtml = '<div class="empty-state">Henüz bir mesaj bulunmuyor.</div>';
-        } else {
-            snapshot.forEach(doc => {
-                const reply = doc.data();
-                const sentAt = reply.sentAt ? (reply.sentAt.toDate ? reply.sentAt.toDate().toLocaleTimeString('tr-TR') : new Date(reply.sentAt).toLocaleTimeString('tr-TR')) : '';
-                const senderClass = reply.senderType === 'admin' ? 'reply-admin' : 'reply-user';
-                const senderDisplay = reply.senderType === 'admin' ? `<span class="sender-name">${reply.senderName || 'Admin'}</span>` : '';
-
-                let fileAttachmentHtml = '';
-                if (reply.fileURL) {
-                    fileAttachmentHtml = `<div style="margin-top: 10px;"><img src="${reply.fileURL}" class="uploaded-image-preview" onclick="window.open(this.src, '_blank')" alt="Ek" loading="lazy"></div>`;
-                }
-
-                repliesHtml += `
-                    <div class="reply-bubble ${senderClass}">
-                        ${senderDisplay}
-                        <p>${reply.message}</p>
-                        ${fileAttachmentHtml}
-                        <span class="reply-timestamp">${sentAt}</span>
-                    </div>`;
-            });
-        }
-        repliesContainer.innerHTML = repliesHtml;
-        repliesContainer.scrollTop = repliesContainer.scrollHeight; // En alta kaydır
-    }, (error) => {
-        console.error("Talep cevapları yüklenirken hata oluştu:", error);
-        repliesContainer.innerHTML = `<div class="empty-state" style="color:var(--c-danger);">Cevaplar yüklenemedi: ${error.message}</div>`;
-    });
+    renderReplies();
 
     replyForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const message = replyMessageInput.value.trim();
-        if (!message && !selectedFile) return showAlert("Lütfen bir mesaj yazın veya bir dosya seçin.", false);
+        const file = replyFileInput.files[0];
+        if (!message && !file) return showAlert('Mesaj veya dosya ekleyin.', false);
 
-        const replyBtn = replyForm.querySelector('button[type="submit"]');
         replyBtn.disabled = true;
-        replyBtn.textContent = "Gönderiliyor...";
+        replyBtn.textContent = 'Gönderiliyor...';
 
         try {
-            let fileURL = null;
-            if (selectedFile) {
-                fileURL = await uploadImageToImageBB(selectedFile);
+            let fileUrl = null;
+            if (file) {
+                const formData = new FormData();
+                formData.append('image', file);
+                const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                if (data.success) fileUrl = data.data.url;
             }
 
-            await addDoc(collection(db, "tickets", ticketId, "replies"), {
+            await addDoc(repliesRef, {
                 message,
+                fileUrl,
                 senderId: user.uid,
                 senderType: 'user',
-                senderName: username,
-                sentAt: serverTimestamp(),
-                fileURL: fileURL
+                senderName: user.displayName || user.email,
+                sentAt: serverTimestamp()
             });
             await updateDoc(ticketRef, {
                 lastUpdatedAt: serverTimestamp(),
-                status: 'open', // Kullanıcı cevap verince talebi tekrar 'açık' yap
+                status: 'open',
                 lastMessage: message,
                 lastMessageSenderType: 'user'
             });
             replyMessageInput.value = '';
-            replyFileInput.value = ''; // Dosya inputunu temizle
-            selectedFile = null;
-            replyFileNameSpan.textContent = "Dosya seçilmedi";
-            replyImagePreviewDiv.innerHTML = "";
+            replyFileInput.value = '';
             showAlert("Cevap gönderildi!", true);
+            renderReplies();
         } catch (error) {
             console.error("Cevap gönderilirken hata oluştu:", error);
             showAlert("Cevap gönderilirken hata oluştu: " + error.message, false);
@@ -1410,6 +688,7 @@ async function loadTicketDetailPageData(user) {
             try {
                 await updateDoc(ticketRef, { status: 'closed', lastUpdatedAt: serverTimestamp() });
                 showAlert("Talep başarıyla kapatıldı.", true);
+                statusEl.textContent = 'closed';
             } catch (error) {
                 console.error("Talep kapatılırken hata oluştu:", error);
                 showAlert("Talep kapatılırken hata oluştu: " + error.message, false);
@@ -1417,6 +696,38 @@ async function loadTicketDetailPageData(user) {
                 closeTicketBtn.disabled = false;
                 closeTicketBtn.textContent = "Talebi Kapat";
             }
+        }
+    });
+}
+
+async function loadBonusPageData(user) {
+    const bonusList = document.getElementById('bonusList');
+    const userRef = doc(db, 'users', user.uid);
+
+    // Example bonuses - in real app, load from DB
+    const bonuses = [
+        { id: 1, title: 'İlk Görev Bonus', amount: 5, condition: 'İlk görevi tamamla' },
+        { id: 2, title: 'Günlük Giriş', amount: 1, condition: 'Her gün giriş yap' }
+    ];
+
+    let html = '';
+    bonuses.forEach(bonus => {
+        html += `
+            <div class="spark-card bonus-item">
+                <h4>${bonus.title}</h4>
+                <p>${bonus.condition}</p>
+                <p>Ödül: ${bonus.amount} ₺</p>
+                <button class="spark-button primary-button claim-bonus-btn" data-bonus-id="${bonus.id}">Talep Et</button>
+            </div>
+        `;
+    });
+    bonusList.innerHTML = html;
+
+    bonusList.addEventListener('click', async (e) => {
+        if (e.target.classList.contains('claim-bonus-btn')) {
+            const bonusId = e.target.dataset.bonusId;
+            // Implement bonus claiming logic
+            showAlert('Bonus talep edildi!', true);
         }
     });
 }
@@ -1468,7 +779,7 @@ async function loadFaqPageData() {
         let faqsHtml = '';
         faqsSnapshot.forEach(doc => {
             const faq = doc.data();
-            faqList.innerHTML += `
+            faqsHtml += `
                 <div class="spark-card">
                     <h4>${faq.order}. ${faq.question}</h4>
                     <p>${faq.answer}</p>
