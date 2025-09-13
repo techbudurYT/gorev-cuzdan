@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="tr">
 <head>
@@ -28,36 +29,38 @@
             <header class="main-header">
                 <h1 id="task-detail-title-header">Görev Detayları</h1>
             </header>
-            <div id="task-detail-container" class="task-detail-card">
-                <!-- Görev detayları buraya dinamik olarak yüklenecek -->
-                <h2>Görev Başlığı</h2>
-                <img id="task-detail-icon" src="img/logos/other.png" alt="Görev İkonu">
-                <p id="task-detail-description">Görev açıklaması buraya gelecek.</p>
-                <div class="task-detail-stats">
-                    <div class="detail-stat">
-                        <span>Ödül</span>
-                        <strong id="task-detail-reward">0.00 ₺</strong>
+            <div id="task-detail-content-wrapper">
+                <p id="initial-loading-message" class="info-message">Görev detayları yükleniyor...</p>
+                <div id="task-detail-card" class="task-detail-card content-hidden">
+                    <h2 id="task-card-main-title"></h2> <!-- Dinamik olarak doldurulacak -->
+                    <img id="task-detail-icon" src="img/logos/other.png" alt="Görev İkonu">
+                    <p id="task-detail-description"></p> <!-- Dinamik olarak doldurulacak -->
+                    <div class="task-detail-stats">
+                        <div class="detail-stat">
+                            <span>Ödül</span>
+                            <strong id="task-detail-reward">0.00 ₺</strong>
+                        </div>
+                        <div class="detail-stat">
+                            <span>Kalan Stok</span>
+                            <strong id="task-detail-stock" class="stock">0/0</strong>
+                        </div>
+                        <div class="detail-stat">
+                            <span>Kanıt Sayısı</span>
+                            <strong id="task-detail-proof-count">0</strong>
+                        </div>
                     </div>
-                    <div class="detail-stat">
-                        <span>Kalan Stok</span>
-                        <strong id="task-detail-stock" class="stock">0/0</strong>
-                    </div>
-                    <div class="detail-stat">
-                        <span>Kanıt Sayısı</span>
-                        <strong id="task-detail-proof-count">0</strong>
-                    </div>
-                </div>
 
-                <div class="proof-upload-section">
-                    <h4>Görevi Tamamlamak İçin Kanıt Yükleyin</h4>
-                    <form id="proof-upload-form">
-                        <input type="file" id="proof-files" class="file-upload-input" multiple>
-                        <ul id="file-list" class="file-list">
-                            <!-- Yüklenen dosyalar buraya gelecek -->
-                        </ul>
-                        <button type="submit" class="btn-primary" id="complete-task-btn">Görevi Tamamla</button>
-                        <p id="proof-message" class="info-message"></p>
-                    </form>
+                    <div class="proof-upload-section">
+                        <h4>Görevi Tamamlamak İçin Kanıt Yükleyin</h4>
+                        <form id="proof-upload-form">
+                            <input type="file" id="proof-files" class="file-upload-input" multiple>
+                            <ul id="file-list" class="file-list">
+                                <!-- Yüklenen dosyalar buraya gelecek -->
+                            </ul>
+                            <button type="submit" class="btn-primary" id="complete-task-btn">Görevi Tamamla</button>
+                            <p id="proof-message" class="info-message"></p>
+                        </form>
+                    </div>
                 </div>
             </div>
         </main>

@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="tr">
 <head>
@@ -27,23 +26,48 @@
         </nav>
         <main class="main-content">
             <header class="main-header">
-                <h1>Destek Talebi Oluştur</h1>
+                <h1>Destek</h1>
             </header>
-            <div class="admin-form-container">
-                 <form id="support-form" class="auth-form admin-form">
-                    <h3>Bizimle İletişime Geçin</h3>
-                    <p>Sorularınız veya sorunlarınız için aşağıdaki formu doldurabilirsiniz.</p>
-                    <div class="input-group">
-                        <label for="support-subject">Konu</label>
-                        <input type="text" id="support-subject" required>
+            <div class="support-container">
+                <div class="admin-section">
+                    <h2>Yeni Talep Oluştur</h2>
+                    <form id="support-form" class="admin-form">
+                        <p>Sorularınız veya sorunlarınız için aşağıdaki formu doldurabilirsiniz.</p>
+                        <div class="input-group">
+                            <label for="support-subject">Konu</label>
+                            <input type="text" id="support-subject" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="support-message">Mesajınız</label>
+                            <textarea id="support-message" rows="5" required></textarea>
+                        </div>
+                        <button type="submit" class="btn-primary">Talep Gönder</button>
+                        <p id="form-message" class="success-message"></p>
+                    </form>
+                </div>
+
+                <div class="admin-section" style="margin-top: 30px;">
+                    <h2>Mevcut Taleplerim</h2>
+                    <p id="user-tickets-loading" class="info-message">Talepleriniz yükleniyor...</p>
+                    <div id="user-tickets-list" class="user-tickets-list">
+                        <!-- Kullanıcının açık talepleri buraya dinamik olarak eklenecek -->
                     </div>
-                    <div class="input-group">
-                        <label for="support-message">Mesajınız</label>
-                        <textarea id="support-message" rows="5" required></textarea>
+                </div>
+
+                <div id="ticket-conversation-panel" class="admin-section content-hidden" style="margin-top: 30px;">
+                    <h3 id="conversation-subject"></h3>
+                    <div class="chat-area">
+                        <div id="conversation-message-list" class="message-list">
+                            <!-- Sohbet mesajları buraya dinamik olarak eklenecek -->
+                        </div>
+                        <div class="message-input-area">
+                            <textarea id="user-reply-message" placeholder="Mesajınızı yazın..." rows="3"></textarea>
+                            <button id="send-user-reply-btn" class="btn-primary">Gönder</button>
+                        </div>
                     </div>
-                    <button type="submit" class="btn-primary">Talep Gönder</button>
-                    <p id="form-message" class="success-message"></p>
-                </form>
+                    <button id="back-to-tickets-btn" class="btn-secondary" style="margin-top: 20px;">Tüm Taleplerime Geri Dön</button>
+                    <p id="conversation-message" class="success-message"></p>
+                </div>
             </div>
         </main>
     </div>

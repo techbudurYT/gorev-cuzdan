@@ -1,6 +1,12 @@
+
 document.addEventListener('DOMContentLoaded', () => {
     const taskDetailTitleHeader = document.getElementById('task-detail-title-header');
-    const taskDetailContainer = document.getElementById('task-detail-container');
+    const taskDetailContentWrapper = document.getElementById('task-detail-content-wrapper');
+    const initialLoadingMessage = document.getElementById('initial-loading-message');
+    const taskDetailCard = document.getElementById('task-detail-card');
+    
+    // Specific ID for the main title within the card
+    const taskCardMainTitle = document.getElementById('task-card-main-title'); 
     const taskDetailIcon = document.getElementById('task-detail-icon');
     const taskDetailDescription = document.getElementById('task-detail-description');
     const taskDetailReward = document.getElementById('task-detail-reward');
@@ -16,21 +22,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const logoutBtn = document.getElementById('logout-btn');
 
     let currentUser = null;
+    let userData = null; // Stored user data
     let currentTask = null;
     let selectedFiles = [];
 
     // IMGBB API Key
-    const IMGBB_API_KEY = "84a7c0a54294a6e8ea2ffc9bab240719";
+    const IMGBB_API_KEY = "84a7c0a54294a6e8ea2ffc9bab240719"; // This should ideally be in a server-side environment variable
 
     // URL'den görev ID'sini al
     const urlParams = new URLSearchParams(window.location.search);
     const taskId = urlParams.get('taskId');
 
+    // Görev ID'si yoksa erken çık
     if (!taskId) {
-        // Elemanların varlığını kontrol etmeden textContent'i değiştirmeye çalışma
-        if (taskDetailContainer) {
-            taskDetailContainer.innerHTML = '<p class="error-message">Görev bulunamadı. Lütfen geçerli bir görev seçin.</p>';
+        if (initialLoadingMessage) {
+            initialLoadingMessage.textContent = 'Görev bulunamadı. Lütfen geçerli bir görev seçin.';
+            initialLoadingMessage.className = 'error-message';
+            initialLoadingMessage.style.display = 'block';
         }
+        if (taskDetailCard) taskDetailCard.classList.add('content-hidden'); // Kartı gizle
         if (completeTaskBtn) completeTaskBtn.disabled = true;
         if (proofFilesInput) proofFilesInput.disabled = true;
         return;
@@ -39,8 +49,8 @@ document.addEventListener('DOMContentLoaded', () => {
     auth.onAuthStateChanged(user => {
         if (user) {
             currentUser = user;
+            loadUserDataAndTaskDetails(taskId, user.uid);
             checkAdminStatus(user.uid);
-            loadTaskDetails(taskId);
         } else {
             window.location.href = 'login.html';
         }
@@ -54,28 +64,44 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function loadTaskDetails(id) {
-        // Elemanların varlığını kontrol etmeden textContent'i değiştirmeye çalışma
-        if (taskDetailContainer) {
-            taskDetailContainer.innerHTML = '<p class="info-message">Görev detayları yükleniyor...</p>';
+    async function loadUserDataAndTaskDetails(id, uid) {
+        // Yükleme mesajını göster ve kartı gizle
+        if (initialLoadingMessage) {
+            initialLoadingMessage.textContent = 'Görev detayları yükleniyor...';
+            initialLoadingMessage.className = 'info-message';
+            initialLoadingMessage.style.display = 'block';
         }
+        if (taskDetailCard) taskDetailCard.classList.add('content-hidden');
+
         try {
+            const userDoc = await db.collection('users').doc(uid).get();
+            if (!userDoc.exists) {
+                throw new Error("Kullanıcı verisi bulunamadı.");
+            }
+            userData = userDoc.data();
+
             const taskDoc = await db.collection('tasks').doc(id).get();
             if (!taskDoc.exists) {
-                if (taskDetailContainer) taskDetailContainer.innerHTML = '<p class="error-message">Görev bulunamadı.</p>';
+                if (initialLoadingMessage) {
+                    initialLoadingMessage.textContent = 'Görev bulunamadı.';
+                    initialLoadingMessage.className = 'error-message';
+                }
                 if (completeTaskBtn) completeTaskBtn.disabled = true;
                 if (proofFilesInput) proofFilesInput.disabled = true;
                 return;
             }
             currentTask = { id: taskDoc.id, ...taskDoc.data() };
+            console.log("Görev verisi yüklendi:", currentTask); // Debug log
 
             // Kullanıcı bu görevi daha önce tamamladı mı kontrol et
-            const userDoc = await db.collection('users').doc(currentUser.uid).get();
-            const userData = userDoc.data();
             if (userData.completedTaskIds && userData.completedTaskIds.includes(taskId)) {
-                if (taskDetailContainer) {
-                    taskDetailContainer.innerHTML = `<p class="success-message">Bu görevi zaten tamamladınız!</p>
-                                                     <button class="btn-primary" onclick="window.location.href='my-tasks.html'">Görevlere Geri Dön</button>`;
+                if (initialLoadingMessage) {
+                    initialLoadingMessage.textContent = 'Bu görevi zaten tamamladınız!';
+                    initialLoadingMessage.className = 'success-message';
+                    initialLoadingMessage.style.display = 'block';
+                }
+                if (taskDetailContentWrapper) {
+                     taskDetailContentWrapper.innerHTML += `<button class="btn-primary" onclick="window.location.href='my-tasks.html'">Görevlere Geri Dön</button>`;
                 }
                 return;
             }
@@ -88,28 +114,42 @@ document.addEventListener('DOMContentLoaded', () => {
                                                   .get();
 
             if (!pendingProofSnapshot.empty) {
-                if (taskDetailContainer) {
-                    taskDetailContainer.innerHTML = `<p class="info-message">Bu görev için gönderdiğiniz kanıtlar onay bekliyor.</p>
-                                                     <button class="btn-primary" onclick="window.location.href='my-tasks.html'">Görevlere Geri Dön</button>`;
+                if (initialLoadingMessage) {
+                    initialLoadingMessage.textContent = 'Bu görev için gönderdiğiniz kanıtlar onay bekliyor.';
+                    initialLoadingMessage.className = 'info-message';
+                    initialLoadingMessage.style.display = 'block';
+                }
+                if (taskDetailContentWrapper) {
+                    taskDetailContentWrapper.innerHTML += `<button class="btn-primary" onclick="window.location.href='my-tasks.html'">Görevlere Geri Dön</button>`;
                 }
                 return;
             }
 
-
             // Stok kontrolü
-            const currentStock = currentTask.stock - currentTask.completedCount;
-            if (currentStock <= 0 && currentTask.stock > 0) {
-                if (taskDetailContainer) {
-                    taskDetailContainer.innerHTML = `<p class="error-message">Bu görevin stoğu bitmiştir.</p>
-                                                     <button class="btn-primary" onclick="window.location.href='my-tasks.html'">Görevlere Geri Dön</button>`;
+            const currentStock = currentTask.stock - (currentTask.completedCount || 0); // completedCount null veya undefined ise 0 al
+            if (currentTask.stock > 0 && currentStock <= 0) { // Only check if stock is explicitly set > 0
+                if (initialLoadingMessage) {
+                    initialLoadingMessage.textContent = 'Bu görevin stoğu bitmiştir.';
+                    initialLoadingMessage.className = 'error-message';
+                    initialLoadingMessage.style.display = 'block';
                 }
-                 return;
+                if (taskDetailContentWrapper) {
+                    taskDetailContentWrapper.innerHTML += `<button class="btn-primary" onclick="window.location.href='my-tasks.html'">Görevlere Geri Dön</button>`;
+                }
+                return;
             }
 
-            // Null kontrolü yaparak DOM elemanlarını güncelle
+            // Tüm kontroller geçti, şimdi detayları göster
+            if (initialLoadingMessage) initialLoadingMessage.style.display = 'none'; // Yükleme mesajını gizle
+            if (taskDetailCard) {
+                taskDetailCard.classList.remove('content-hidden'); // Kartı görünür yap
+                console.log("Task detail card visibility updated:", taskDetailCard.style.display); // Debug log
+            }
+            
+
+            // DOM elemanlarını güncelle (null kontrolü ile)
             if (taskDetailTitleHeader) taskDetailTitleHeader.textContent = currentTask.title;
-            const h2Element = taskDetailContainer ? taskDetailContainer.querySelector('h2') : null;
-            if (h2Element) h2Element.textContent = currentTask.title;
+            if (taskCardMainTitle) taskCardMainTitle.textContent = currentTask.title; // Target specific h2 inside card
             if (taskDetailIcon) taskDetailIcon.src = `img/logos/${currentTask.icon || 'other.png'}`;
             if (taskDetailDescription) taskDetailDescription.textContent = currentTask.description;
             if (taskDetailReward) taskDetailReward.textContent = `${currentTask.reward.toFixed(2)} ₺`;
@@ -123,16 +163,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 proofMessage.textContent = `Bu görev için ${currentTask.proofCount} adet kanıt dosyası yüklemelisiniz.`;
                 proofMessage.className = 'info-message';
             }
-
-            // Mevcut boşaltma (önceki yükleme mesajını temizlemek için)
-            if (taskDetailContainer) {
-                const oldMessage = taskDetailContainer.querySelector('.info-message, .error-message, .success-message');
-                if (oldMessage) oldMessage.remove();
-            }
+            renderSelectedFiles(); // Initial render for button state
 
         } catch (error) {
             console.error("Görev detayları yüklenirken hata oluştu: ", error);
-            if (taskDetailContainer) taskDetailContainer.innerHTML = '<p class="error-message">Görev detayları yüklenemedi.</p>';
+            if (initialLoadingMessage) {
+                initialLoadingMessage.textContent = `Görev detayları yüklenemedi: ${error.message}`;
+                initialLoadingMessage.className = 'error-message';
+                initialLoadingMessage.style.display = 'block';
+            }
+            if (taskDetailCard) taskDetailCard.classList.add('content-hidden');
             if (completeTaskBtn) completeTaskBtn.disabled = true;
             if (proofFilesInput) proofFilesInput.disabled = true;
         }
@@ -143,6 +183,15 @@ document.addEventListener('DOMContentLoaded', () => {
             selectedFiles = [];
             if (fileList) fileList.innerHTML = '';
             const files = Array.from(e.target.files);
+
+            if (!currentTask || !currentTask.proofCount) {
+                if (proofMessage) {
+                    proofMessage.textContent = `Görev bilgileri eksik. Lütfen sayfayı yenileyin.`;
+                    proofMessage.className = 'error-message';
+                }
+                if (proofFilesInput) proofFilesInput.value = '';
+                return;
+            }
 
             if (files.length > currentTask.proofCount) {
                 if (proofMessage) {
@@ -157,17 +206,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             files.forEach(file => {
                 selectedFiles.push(file);
-                const listItem = document.createElement('li');
-                listItem.textContent = file.name;
-                const removeButton = document.createElement('span');
-                removeButton.className = 'remove-file';
-                removeButton.innerHTML = '&times;';
-                removeButton.addEventListener('click', () => {
-                    selectedFiles = selectedFiles.filter(f => f !== file);
-                    renderSelectedFiles();
-                });
-                listItem.appendChild(removeButton);
-                if (fileList) fileList.appendChild(listItem);
             });
             renderSelectedFiles();
         });
@@ -184,12 +222,14 @@ document.addEventListener('DOMContentLoaded', () => {
             removeButton.innerHTML = '&times;';
             removeButton.addEventListener('click', () => {
                 selectedFiles = selectedFiles.filter(f => f !== file);
+                // Clear the input to allow selecting the same file again if needed
+                if (proofFilesInput) proofFilesInput.value = '';
                 renderSelectedFiles();
             });
             listItem.appendChild(removeButton);
             if (fileList) fileList.appendChild(listItem);
         });
-        if (proofMessage) {
+        if (proofMessage && currentTask) {
             if (selectedFiles.length === currentTask.proofCount) {
                 proofMessage.textContent = 'Tüm kanıt dosyaları seçildi.';
                 proofMessage.className = 'success-message';
@@ -198,7 +238,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 proofMessage.className = 'info-message';
             }
         }
-        if (completeTaskBtn) completeTaskBtn.disabled = selectedFiles.length !== currentTask.proofCount;
+        if (completeTaskBtn) completeTaskBtn.disabled = selectedFiles.length !== (currentTask ? currentTask.proofCount : 0);
     }
 
 
@@ -206,9 +246,9 @@ document.addEventListener('DOMContentLoaded', () => {
         proofUploadForm.addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            if (selectedFiles.length === 0 || selectedFiles.length !== currentTask.proofCount) {
+            if (selectedFiles.length === 0 || !currentTask || selectedFiles.length !== currentTask.proofCount) {
                 if (proofMessage) {
-                    proofMessage.textContent = `Lütfen ${currentTask.proofCount} adet kanıt dosyası yükleyin.`;
+                    proofMessage.textContent = `Lütfen ${currentTask ? currentTask.proofCount : 0} adet kanıt dosyası yükleyin.`;
                     proofMessage.className = 'error-message';
                 }
                 return;
@@ -244,9 +284,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const downloadURLs = await Promise.all(uploadPromises);
 
-                // Kullanıcı verisini çek (username için)
-                const userDoc = await db.collection('users').doc(currentUser.uid).get();
-                const userData = userDoc.data();
+                // Kullanıcı verisini çek (username için) - already fetched as userData
+                // const userDoc = await db.collection('users').doc(currentUser.uid).get();
+                // const userData = userDoc.data();
 
                 // Kanıtları ayrı bir koleksiyonda sakla ve onaya gönder
                 await db.collection('taskProofs').add({

@@ -1,0 +1,66 @@
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Destek Talebi Detayları - Admin - GörevCüzdan</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-layout">
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h3>GörevCüzdan</h3>
+            </div>
+            <ul>
+                <li><a href="my-tasks.html"><i class="fas fa-tasks"></i> <span>Görevler</span></a></li>
+                <li><a href="leaderboard.html"><i class="fas fa-trophy"></i> <span>Liderlik Tablosu</span></a></li>
+                <li><a href="wallet.html"><i class="fas fa-wallet"></i> <span>Cüzdanım</span></a></li>
+                <li><a href="profile.html"><i class="fas fa-user"></i> <span>Profil</span></a></li>
+                <li><a href="support.html"><i class="fas fa-headset"></i> <span>Destek</span></a></li>
+                <li><a href="faq.html"><i class="fas fa-question-circle"></i> <span>SSS</span></a></li>
+                <li class="active" id="admin-panel-link"><a href="admin-panel.html"><i class="fas fa-user-shield"></i> <span>Admin Panel</span></a></li>
+                <li><a href="#" id="logout-btn"><i class="fas fa-sign-out-alt"></i> <span>Çıkış Yap</span></a></li>
+            </ul>
+        </nav>
+        <main class="main-content">
+            <header class="main-header">
+                <h1 id="ticket-detail-header">Destek Talebi Detayları</h1>
+            </header>
+            <div class="support-ticket-detail-container">
+                <p id="initial-loading-message" class="info-message">Talep detayları yükleniyor...</p>
+                <div id="ticket-card" class="admin-section content-hidden">
+                    <h2 id="ticket-subject"></h2>
+                    <p><strong>Talep Eden:</strong> <span id="ticket-requester"></span></p>
+                    <p><strong>Durum:</strong> <span id="ticket-status"></span></p>
+                    <hr>
+                    <div class="chat-area">
+                        <div id="message-list" class="message-list">
+                            <!-- Mesajlar buraya dinamik olarak eklenecek -->
+                        </div>
+                        <div class="message-input-area">
+                            <textarea id="admin-reply-message" placeholder="Cevabınızı yazın..." rows="3"></textarea>
+                            <button id="send-reply-btn" class="btn-primary">Cevapla</button>
+                        </div>
+                    </div>
+                    <div class="ticket-actions">
+                        <button id="close-ticket-btn" class="btn-danger">Talebi Kapat</button>
+                    </div>
+                    <p id="ticket-message" class="success-message"></p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Firebase SDK'ları -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    
+    <!-- Proje Dosyaları -->
+    <script src="firebase-config.js"></script>
+    <script src="admin-ticket-detail.js"></script>
+</body>
+</html>

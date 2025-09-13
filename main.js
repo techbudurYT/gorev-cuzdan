@@ -68,6 +68,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const tasksSnapshot = await db.collection('tasks').get();
         const userCompletedTasks = userData.completedTaskIds || [];
 
+        // Fetch all pending proofs for the current user once
+        const allPendingProofsSnapshot = await db.collection('taskProofs')
+                                                .where('userId', '==', currentUser.uid)
+                                                .where('status', '==', 'pending')
+                                                .get();
+        const userPendingTaskIds = new Set();
+        allPendingProofsSnapshot.forEach(doc => {
+            userPendingTaskIds.add(doc.data().taskId);
+        });
+
         if (tasksSnapshot.empty) {
             taskList.innerHTML = '<p>Şu anda aktif görev bulunmamaktadır.</p>';
             return;
@@ -78,17 +88,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const task = doc.data();
             const taskId = doc.id;
             const isCompleted = userCompletedTasks.includes(taskId);
+            const hasPendingProof = userPendingTaskIds.has(taskId);
 
-            // Kullanıcının bu görev için bekleyen bir kanıtı var mı kontrol et
-            const pendingProofSnapshot = await db.collection('taskProofs')
-                                                  .where('userId', '==', currentUser.uid)
-                                                  .where('taskId', '==', taskId)
-                                                  .where('status', '==', 'pending')
-                                                  .get();
-
-            const hasPendingProof = !pendingProofSnapshot.empty;
-
-            // Sadece tamamlanmamış ve bekleyen kanıtı olmayan görevler için kart oluştur
             if (!isCompleted && !hasPendingProof) {
                 availableTasks++;
                 const taskCard = document.createElement('div');
