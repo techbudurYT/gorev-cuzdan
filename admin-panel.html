@@ -29,6 +29,7 @@
         <main class="main-content">
             <header class="main-header">
                 <h1>Admin Paneli</h1>
+                <button class="menu-toggle" id="menu-toggle"><i class="fas fa-bars"></i></button>
             </header>
             <div class="admin-sections">
                 <div class="admin-section">
@@ -75,7 +76,7 @@
                         <input type="text" id="user-search" placeholder="Kullanıcı adı veya e-posta ile ara...">
                     </div>
                     <div class="user-list-container">
-                        <table class="leaderboard-table">
+                        <table class="responsive-table">
                             <thead>
                                 <tr>
                                     <th>Kullanıcı Adı</th>
@@ -126,6 +127,27 @@
                 </div>
 
                 <div class="admin-section">
+                    <h2>Görevleri Yönet</h2>
+                    <div class="task-list-management-container">
+                        <table class="responsive-table">
+                            <thead>
+                                <tr>
+                                    <th>Başlık</th>
+                                    <th>Ödül</th>
+                                    <th>Stok</th>
+                                    <th>Tamamlanan</th>
+                                    <th>Aksiyonlar</th>
+                                </tr>
+                            </thead>
+                            <tbody id="task-management-body">
+                                <!-- Görevler buraya dinamik olarak yüklenecek -->
+                            </tbody>
+                        </table>
+                        <p id="task-management-message" class="error-message"></p>
+                    </div>
+                </div>
+
+                <div class="admin-section">
                     <h2>SSS Yönetimi</h2>
                     <form id="add-faq-form" class="admin-form">
                         <h3>Yeni SSS Ekle</h3>
@@ -141,7 +163,7 @@
                         <p id="add-faq-message" class="success-message"></p>
                     </form>
                     <div class="faq-list-container">
-                        <table class="leaderboard-table">
+                        <table class="responsive-table">
                             <thead>
                                 <tr>
                                     <th>Soru</th>
@@ -160,7 +182,7 @@
                 <div class="admin-section">
                     <h2>Görev Onayları</h2>
                     <div class="task-proofs-container">
-                        <table class="leaderboard-table">
+                        <table class="responsive-table">
                             <thead>
                                 <tr>
                                     <th>Kullanıcı</th>
@@ -181,7 +203,7 @@
                 <div class="admin-section">
                     <h2>Destek Talepleri</h2>
                     <div class="support-tickets-container">
-                        <table class="leaderboard-table">
+                        <table class="responsive-table">
                             <thead>
                                 <tr>
                                     <th>Talep Eden</th>
