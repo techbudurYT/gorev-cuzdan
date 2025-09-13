@@ -170,6 +170,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     case 'page-announcements': await loadAnnouncementsPageData(); break;
                     case 'page-faq': await loadFaqPageData(); break;
                     case 'page-premium': await loadPremiumPageData(user); break;
+                    case 'page-leaderboard': await loadLeaderboardPageData(user); break;
                 }
                 hideLoader();
                 handleInputLabels();
@@ -1455,4 +1456,49 @@ async function loadPremiumPageData(user) {
         } finally {
         }
     });
+}
+
+async function loadLeaderboardPageData(user) {
+    const topEarnersContainer = document.getElementById('leaderboardTopEarners');
+    const topCompletersContainer = document.getElementById('leaderboardTopCompleters');
+
+    const renderLeaderboard = (container, users, scoreField, unit) => {
+        if (users.length === 0) {
+            container.innerHTML = `<div class="empty-state">Gösterilecek kullanıcı bulunamadı.</div>`;
+            return;
+        }
+        let listHtml = '<ol class="leaderboard-list">';
+        users.forEach((user, index) => {
+            const score = user[scoreField] || 0;
+            listHtml += `
+                <li>
+                    <span class="leaderboard-rank">${index + 1}</span>
+                    <span class="leaderboard-name">${user.username}</span>
+                    <span class="leaderboard-score">${score.toFixed(scoreField === 'totalEarned' ? 2 : 0)} ${unit}</span>
+                </li>
+            `;
+        });
+        listHtml += '</ol>';
+        container.innerHTML = listHtml;
+    };
+
+    try {
+        const topEarnersQuery = query(collection(db, "users"), orderBy("totalEarned", "desc"), limit(10));
+        const topEarnersSnapshot = await getDocs(topEarnersQuery);
+        const topEarners = topEarnersSnapshot.docs.map(doc => doc.data());
+        renderLeaderboard(topEarnersContainer, topEarners, 'totalEarned', '₺');
+    } catch (error) {
+        console.error("En çok kazananlar yüklenirken hata oluştu:", error);
+        topEarnersContainer.innerHTML = `<div class="empty-state" style="color:var(--c-danger);">Liste yüklenemedi.</div>`;
+    }
+    
+    try {
+        const topCompletersQuery = query(collection(db, "users"), orderBy("totalCompletedTasks", "desc"), limit(10));
+        const topCompletersSnapshot = await getDocs(topCompletersQuery);
+        const topCompleters = topCompletersSnapshot.docs.map(doc => doc.data());
+        renderLeaderboard(topCompletersContainer, topCompleters, 'totalCompletedTasks', 'Görev');
+    } catch (error) {
+        console.error("En çok görev yapanlar yüklenirken hata oluştu:", error);
+        topCompletersContainer.innerHTML = `<div class="empty-state" style="color:var(--c-danger);">Liste yüklenemedi.</div>`;
+    }
 }
