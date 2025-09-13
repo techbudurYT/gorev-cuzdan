@@ -13,7 +13,7 @@
       <div class="sidebar-header">
         <h3>GörevCüzdan</h3>
       </div>
-      <ul>
+      <ul class="sidebar-menu">
         <li><a href="my-tasks.html"><i class="fas fa-tasks"></i> <span>Görevler</span></a></li>
         <li class="active"><a href="leaderboard.html"><i class="fas fa-trophy"></i> <span>Liderlik Tablosu</span></a></li>
         <li><a href="wallet.html"><i class="fas fa-wallet"></i> <span>Cüzdanım</span></a></li>
@@ -32,19 +32,21 @@
         <button class="menu-toggle" id="menu-toggle"><i class="fas fa-bars"></i></button>
       </header>
 
-      <div class="leaderboard-container">
-        <table class="responsive-table">
-          <thead>
-            <tr>
-              <th>Sıra</th>
-              <th>Kullanıcı</th>
-              <th>Tamamlanan Görev</th>
-            </tr>
-          </thead>
-          <tbody id="leaderboard-body">
-            <!-- Liderler buraya dinamik olarak eklenecek -->
-          </tbody>
-        </table>
+      <div class="leaderboard-container card">
+        <div class="table-container">
+            <table class="responsive-table">
+            <thead>
+                <tr>
+                <th>Sıra</th>
+                <th>Kullanıcı</th>
+                <th>Tamamlanan Görev</th>
+                </tr>
+            </thead>
+            <tbody id="leaderboard-body">
+                <!-- Liderler buraya dinamik olarak eklenecek -->
+            </tbody>
+            </table>
+        </div>
       </div>
     </main>
   </div>

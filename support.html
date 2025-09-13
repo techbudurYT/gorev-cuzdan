@@ -13,11 +13,11 @@
       <div class="sidebar-header">
         <h3>GörevCüzdan</h3>
       </div>
-      <ul>
+      <ul class="sidebar-menu">
         <li><a href="my-tasks.html"><i class="fas fa-tasks"></i> <span>Görevler</span></a></li>
         <li><a href="leaderboard.html"><i class="fas fa-trophy"></i> <span>Liderlik Tablosu</span></a></li>
         <li><a href="wallet.html"><i class="fas fa-wallet"></i> <span>Cüzdanım</span></a></li>
-        <li><a href="task-history.html"><i class="fas fa-history"></i> <span>Görev Geçmişi</span></a></li>
+        <li><a href="task-history.html"><i class="fas fa="fas fa-history"></i> <span>Görev Geçmişi</span></a></li>
         <li><a href="profile.html"><i class="fas fa-user"></i> <span>Profil</span></a></li>
         <li class="active"><a href="support.html"><i class="fas fa-headset"></i> <span>Destek</span></a></li>
         <li><a href="faq.html"><i class="fas fa-question-circle"></i> <span>SSS</span></a></li>
@@ -36,7 +36,7 @@
 
       <div class="support-container">
         <!-- Yeni Talep Formu -->
-        <div class="admin-section">
+        <div class="admin-section card">
           <h2>Yeni Talep Oluştur</h2>
           <form id="support-form" class="admin-form">
             <p>Sorularınız veya sorunlarınız için aşağıdaki formu doldurabilirsiniz.</p>
@@ -54,7 +54,7 @@
         </div>
 
         <!-- Kullanıcının Talepleri -->
-        <div class="admin-section" style="margin-top: 30px;">
+        <div class="admin-section card" style="margin-top: 30px;">
           <h2>Mevcut Taleplerim</h2>
           <p id="user-tickets-loading" class="info-message">Talepleriniz yükleniyor...</p>
           <div id="user-tickets-list" class="user-tickets-list">
@@ -63,7 +63,7 @@
         </div>
 
         <!-- Talep Detayları ve Sohbet -->
-        <div id="ticket-conversation-panel" class="admin-section content-hidden" style="margin-top: 30px;">
+        <div id="ticket-conversation-panel" class="admin-section card content-hidden" style="margin-top: 30px;">
           <h3 id="conversation-subject"></h3>
           <div class="chat-area">
             <div id="conversation-message-list" class="message-list">

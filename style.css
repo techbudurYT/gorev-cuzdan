@@ -1,3 +1,4 @@
+
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
 
 :root {
@@ -318,11 +319,13 @@ body {
     -webkit-text-fill-color: transparent;
 }
 
-.sidebar ul {
+.sidebar-menu {
     list-style-type: none;
+    padding: 0;
+    margin: 0;
 }
 
-.sidebar ul li a {
+.sidebar-menu li a {
     display: flex;
     align-items: center;
     padding: 15px;
@@ -334,13 +337,13 @@ body {
     white-space: nowrap;
 }
 
-.sidebar ul li a i {
+.sidebar-menu li a i {
     margin-right: 15px;
     width: 20px;
     text-align: center;
 }
 
-.sidebar ul li.active a, .sidebar ul li a:hover {
+.sidebar-menu li.active a, .sidebar-menu li a:hover {
     background-color: var(--primary-color);
     color: var(--text-primary);
 }
@@ -406,6 +409,16 @@ body {
 
 .stat-card div strong {
     font-size: 1.2rem;
+}
+
+/* --- Genel Card Stili --- */
+.card {
+    background-color: var(--dark-card-bg);
+    border-radius: 15px;
+    padding: 30px;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    margin-bottom: 20px;
 }
 
 /* --- Görev Listesi --- */
@@ -693,7 +706,7 @@ body {
     gap: 30px;
 }
 .admin-section {
-    background: var(--dark-card-bg);
+    background: var(--dark-card-bg); /* Use card style directly */
     padding: 30px;
     border-radius: 15px;
     border: 1px solid var(--border-color);
@@ -728,9 +741,9 @@ body {
     background-color: #666;
 }
 
-.user-list-container, .faq-list-container, .task-proofs-container, .support-tickets-container, .task-list-management-container {
+.table-container {
     margin-top: 30px;
-    overflow-x: auto;
+    overflow-x: auto; /* Tablolar için responsive kaydırma */
 }
 .responsive-table {
     width: 100%;
@@ -1090,6 +1103,13 @@ body {
 .ticket-actions .btn-danger {
     width: auto;
 }
+.divider {
+    border: 0;
+    height: 1px;
+    background: var(--border-color);
+    margin: 20px 0;
+}
+
 
 /* Animations */
 @keyframes fadeIn {
@@ -1128,10 +1148,10 @@ body {
     }
     
     .sidebar-header { display: block; } /* Mobil menüde başlığı göster */
-    .sidebar ul { flex-direction: column; }
-    .sidebar ul li a { margin-bottom: 10px; }
-    .sidebar ul li a span { display: inline; } /* Metni tekrar göster */
-    .sidebar ul li a i { margin-right: 15px; } /* İkon ile metin arasına boşluk */
+    .sidebar-menu { flex-direction: column; }
+    .sidebar-menu li a { margin-bottom: 10px; }
+    .sidebar-menu li a span { display: inline; } /* Metni tekrar göster */
+    .sidebar-menu li a i { margin-right: 15px; } /* İkon ile metin arasına boşluk */
 
     .main-content {
         margin-left: 0; /* Sidebar kaydığı için margin'i sıfırla */

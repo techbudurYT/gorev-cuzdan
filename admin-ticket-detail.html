@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="tr">
 <head>
@@ -14,7 +13,7 @@
             <div class="sidebar-header">
                 <h3>GörevCüzdan</h3>
             </div>
-            <ul>
+            <ul class="sidebar-menu">
                 <li><a href="my-tasks.html"><i class="fas fa-tasks"></i> <span>Görevler</span></a></li>
                 <li><a href="leaderboard.html"><i class="fas fa-trophy"></i> <span>Liderlik Tablosu</span></a></li>
                 <li><a href="wallet.html"><i class="fas fa-wallet"></i> <span>Cüzdanım</span></a></li>
@@ -28,14 +27,15 @@
         <main class="main-content">
             <header class="main-header">
                 <h1 id="ticket-detail-header">Destek Talebi Detayları</h1>
+                <button class="menu-toggle" id="menu-toggle"><i class="fas fa-bars"></i></button>
             </header>
             <div class="support-ticket-detail-container">
                 <p id="initial-loading-message" class="info-message">Talep detayları yükleniyor...</p>
-                <div id="ticket-card" class="admin-section content-hidden">
+                <div id="ticket-card" class="admin-section card content-hidden">
                     <h2 id="ticket-subject"></h2>
                     <p><strong>Talep Eden:</strong> <span id="ticket-requester"></span></p>
                     <p><strong>Durum:</strong> <span id="ticket-status"></span></p>
-                    <hr>
+                    <hr class="divider">
                     <div class="chat-area">
                         <div id="message-list" class="message-list">
                             <!-- Mesajlar buraya dinamik olarak eklenecek -->
