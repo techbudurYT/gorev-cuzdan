@@ -1,4 +1,3 @@
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, query, where, orderBy, getDocs, runTransaction, addDoc, deleteDoc, serverTimestamp, updateDoc, writeBatch } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
@@ -178,7 +177,7 @@ async function initAdminPanel(user) {
                                       `Evet (Bitiş: ${u.premiumExpirationDate.toDate().toLocaleDateString('tr-TR')})` : 'Hayır'; // NEW
                 usersHtml += `
                     <div class="user-list-item spark-card" id="user-${u.id}">
-                        <div class="user-info"><strong>${u.username}</strong> <span style="font-size:0.9em; color:var(--c-text-secondary);">(${u.email})</span><p>Bakiye: ${u.balance} ₺ | Admin: ${u.isAdmin ? 'Evet' : 'Hayır'} | Premium: ${premiumStatus} | Completed: ${u.totalCompletedTasks || 0}</p><p>IP: ${u.lastLoginIp || 'N/A'}</p></div>
+                        <div class="user-info"><strong>${u.username}</strong> <span style="font-size:0.9em; color:var(--c-text-secondary);">(${u.email})</span><p>Bakiye: ${u.balance} ₺ | Admin: ${u.isAdmin ? 'Evet' : 'Hayır'} | Premium: ${premiumStatus} | Completed: ${u.totalCompletedTasks || 0}</p></div>
                         <div class="user-actions">
                             <button class="spark-button small-button btn-edit-user" data-id="${u.id}">Düzenle</button>
                             <button class="spark-button small-button ${u.isAdmin ? 'btn-remove-admin' : 'btn-make-admin'}" data-id="${u.id}">${u.isAdmin ? 'Adminlik Al' : 'Admin Yap'}</button>
@@ -379,7 +378,6 @@ async function initAdminPanel(user) {
                     <h3>${task.text} (+${task.reward} ₺)</h3>
                     <p style="font-size: 0.95em; color: var(--c-text-secondary);"><strong>Kullanıcı:</strong> ${userDisplayName} (${sub.userEmail})</p>
                     ${premiumInfoText}
-                    <p style="font-size: 0.95em; color: var(--c-text-secondary);"><strong>IP Adresi:</strong> ${sub.userIp || 'Bilinmiyor'}</p>
                     <div class="submission-images-container" style="margin-top: 15px; display: flex; flex-wrap: wrap; gap: 10px;">${submissionImagesHtml}</div>
                     <div class="submission-actions" style="margin-top: 20px; display: flex; gap: 10px;">
                         <button class="spark-button small-button btn-approve" data-submission-id="${sub.id}" data-user-id="${sub.userId}" data-task-reward="${task.reward}" data-is-premium-bonus-applied="${sub.isPremiumBonusApplied}" style="background-color: var(--c-success);">Onayla</button>
