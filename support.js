@@ -13,6 +13,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const sendUserReplyBtn = document.getElementById('send-user-reply-btn');
     const backToTicketsBtn = document.getElementById('back-to-tickets-btn');
     const conversationMessage = document.getElementById('conversation-message');
+    const menuToggle = document.getElementById('menu-toggle');
+    const sidebar = document.querySelector('.sidebar');
 
 
     let currentUser = null;
@@ -29,6 +31,13 @@ document.addEventListener('DOMContentLoaded', () => {
             window.location.href = 'login.html';
         }
     });
+
+    // Menü Toggle
+    if (menuToggle) {
+        menuToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('active');
+        });
+    }
 
     async function loadUserData(uid) {
         const userDoc = await db.collection('users').doc(uid).get();

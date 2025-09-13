@@ -2,6 +2,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const leaderboardBody = document.getElementById('leaderboard-body');
     const adminPanelLink = document.getElementById('admin-panel-link');
     const logoutBtn = document.getElementById('logout-btn');
+    const menuToggle = document.getElementById('menu-toggle');
+    const sidebar = document.querySelector('.sidebar');
 
     auth.onAuthStateChanged(user => {
         if (user) {
@@ -11,6 +13,13 @@ document.addEventListener('DOMContentLoaded', () => {
             window.location.href = 'login.html';
         }
     });
+
+    // Menü Toggle
+    if (menuToggle) {
+        menuToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('active');
+        });
+    }
 
     async function checkAdminStatus(uid) {
         const userDocRef = db.collection('users').doc(uid);
@@ -42,9 +51,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td><span class="rank rank-${rank}">${rank}</span></td>
-                    <td>${username}</td>
-                    <td>${userData.completedTasks}</td>
+                    <td data-label="Sıra"><span class="rank rank-${rank}">${rank}</span></td>
+                    <td data-label="Kullanıcı">${username}</td>
+                    <td data-label="Tamamlanan Görev">${userData.completedTasks}</td>
                 `;
                 leaderboardBody.appendChild(row);
                 rank++;

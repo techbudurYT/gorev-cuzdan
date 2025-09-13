@@ -4,6 +4,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const taskList = document.getElementById('task-list');
     const adminPanelLink = document.getElementById('admin-panel-link');
     const logoutBtn = document.getElementById('logout-btn');
+    const menuToggle = document.getElementById('menu-toggle');
+    const sidebar = document.querySelector('.sidebar');
 
     let currentUser = null;
     let userData = null;
@@ -16,6 +18,13 @@ document.addEventListener('DOMContentLoaded', () => {
             window.location.href = 'login.html';
         }
     });
+
+    // Menü Toggle
+    if (menuToggle) {
+        menuToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('active');
+        });
+    }
 
     async function loadUserDataAndTasks() {
         const userDocRef = db.collection('users').doc(currentUser.uid);
@@ -79,7 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         if (tasksSnapshot.empty) {
-            taskList.innerHTML = '<p>Şu anda aktif görev bulunmamaktadır.</p>';
+            taskList.innerHTML = '<p class="info-message">Şu anda aktif görev bulunmamaktadır.</p>';
             return;
         }
         
@@ -129,7 +138,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Eğer gösterilecek hiç görev kalmadıysa bilgilendirme mesajı göster
         if (availableTasks === 0) {
-            taskList.innerHTML = '<p>Tebrikler! Mevcut tüm görevleri tamamladınız veya onay bekleyen görevleriniz var.</p>';
+            taskList.innerHTML = '<p class="info-message">Tebrikler! Mevcut tüm görevleri tamamladınız veya onay bekleyen görevleriniz var.</p>';
         }
     }
 

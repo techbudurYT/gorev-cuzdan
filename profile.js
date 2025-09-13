@@ -5,6 +5,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const adminPanelLink = document.getElementById('admin-panel-link');
     const logoutBtn = document.getElementById('logout-btn');
     const logoutBtnProfile = document.getElementById('logout-btn-profile');
+    const menuToggle = document.getElementById('menu-toggle');
+    const sidebar = document.querySelector('.sidebar');
 
     auth.onAuthStateChanged(user => {
         if (user) {
@@ -14,18 +16,25 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Menü Toggle
+    if (menuToggle) {
+        menuToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('active');
+        });
+    }
+
     async function loadUserProfile(user) {
         const userDocRef = db.collection('users').doc(user.uid);
         const doc = await userDocRef.get();
 
         if (doc.exists) {
             const userData = doc.data();
-            userDisplayName.textContent = userData.username || userData.email;
-            profileBalanceDisplay.textContent = `${userData.balance.toFixed(2)} ₺`;
-            profileTasksCompletedDisplay.textContent = userData.completedTasks;
+            if (userDisplayName) userDisplayName.textContent = userData.username || userData.email;
+            if (profileBalanceDisplay) profileBalanceDisplay.textContent = `${userData.balance.toFixed(2)} ₺`;
+            if (profileTasksCompletedDisplay) profileTasksCompletedDisplay.textContent = userData.completedTasks;
             
             if(userData.isAdmin) {
-                adminPanelLink.style.display = 'block';
+                if (adminPanelLink) adminPanelLink.style.display = 'block';
             }
         } else {
             console.log("Kullanıcı verisi bulunamadı!");
@@ -34,6 +43,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const handleLogout = () => auth.signOut();
     
-    logoutBtn.addEventListener('click', handleLogout);
-    logoutBtnProfile.addEventListener('click', handleLogout);
+    if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
+    if (logoutBtnProfile) logoutBtnProfile.addEventListener('click', handleLogout);
 });

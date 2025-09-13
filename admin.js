@@ -18,6 +18,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const cancelEditBtn = document.getElementById('cancel-edit');
     const deleteUserBtn = document.getElementById('delete-user-btn');
 
+    const taskManagementBody = document.getElementById('task-management-body');
+
     const addFaqForm = document.getElementById('add-faq-form');
     const addFaqMessage = document.getElementById('add-faq-message');
     const faqManagementBody = document.getElementById('faq-management-body');
@@ -27,6 +29,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const supportTicketsBody = document.getElementById('support-tickets-body');
     const supportTicketsMessage = document.getElementById('support-tickets-message');
+
+    const menuToggle = document.getElementById('menu-toggle');
+    const sidebar = document.querySelector('.sidebar');
 
 
     let allUsers = [];
@@ -41,6 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     window.location.href = 'my-tasks.html';
                 } else {
                     loadUsers();
+                    loadTasksForAdmin();
                     loadFaqs();
                     loadTaskProofs();
                     loadSupportTickets();
@@ -54,6 +60,13 @@ document.addEventListener('DOMContentLoaded', () => {
             window.location.href = 'login.html';
         }
     });
+
+    // Menü Toggle
+    if (menuToggle) {
+        menuToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('active');
+        });
+    }
 
     // Yeni Görev Ekleme
     addTaskForm.addEventListener('submit', (e) => {
@@ -80,6 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
             addTaskMessage.textContent = 'Görev başarıyla eklendi!';
             addTaskMessage.className = 'success-message';
             addTaskForm.reset();
+            loadTasksForAdmin(); // Görev listesini güncelle
             setTimeout(() => addTaskMessage.textContent = '', 3000);
         })
         .catch(error => {
@@ -88,6 +102,54 @@ document.addEventListener('DOMContentLoaded', () => {
             addTaskMessage.className = 'error-message';
         });
     });
+
+    // Görev Yönetimi (Admin)
+    async function loadTasksForAdmin() {
+        taskManagementBody.innerHTML = '<tr><td colspan="5">Yükleniyor...</td></tr>';
+        try {
+            const snapshot = await db.collection('tasks').orderBy('createdAt', 'desc').get();
+            taskManagementBody.innerHTML = '';
+            if (snapshot.empty) {
+                taskManagementBody.innerHTML = '<tr><td colspan="5">Görev bulunamadı.</td></tr>';
+                return;
+            }
+            snapshot.forEach(doc => {
+                const task = doc.data();
+                const taskId = doc.id;
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${task.title}</td>
+                    <td>${task.reward.toFixed(2)} ₺</td>
+                    <td>${task.stock === 0 ? 'Sınırsız' : task.stock}</td>
+                    <td>${task.completedCount || 0}</td>
+                    <td>
+                        <button class="btn-small btn-danger delete-task-btn" data-id="${taskId}">Sil</button>
+                    </td>
+                `;
+                taskManagementBody.appendChild(row);
+            });
+
+            document.querySelectorAll('.delete-task-btn').forEach(button => {
+                button.addEventListener('click', async (e) => {
+                    const taskIdToDelete = e.target.dataset.id;
+                    if (confirm('Bu görevi silmek istediğinize emin misiniz? Bu işlem geri alınamaz!')) {
+                        try {
+                            await db.collection('tasks').doc(taskIdToDelete).delete();
+                            loadTasksForAdmin(); // Listeyi yeniden yükle
+                        } catch (error) {
+                            console.error("Görev silinirken hata oluştu: ", error);
+                            alert("Görev silinirken bir hata oluştu.");
+                        }
+                    }
+                });
+            });
+
+        } catch (error) {
+            console.error("Görevler yüklenirken hata oluştu: ", error);
+            taskManagementBody.innerHTML = '<tr><td colspan="5">Görevler yüklenemedi.</td></tr>';
+        }
+    }
+
 
     // Kullanıcı Yönetimi
     async function loadUsers() {
@@ -115,12 +177,12 @@ document.addEventListener('DOMContentLoaded', () => {
         users.forEach(user => {
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td>${user.username || 'N/A'}</td>
-                <td>${user.email}</td>
-                <td>${user.balance.toFixed(2)} ₺</td>
-                <td>${user.completedTasks}</td>
-                <td>${user.isAdmin ? '<i class="fas fa-check-circle success-color"></i>' : '<i class="fas fa-times-circle error-color"></i>'}</td>
-                <td>
+                <td data-label="Kullanıcı Adı">${user.username || 'N/A'}</td>
+                <td data-label="E-posta">${user.email}</td>
+                <td data-label="Bakiye">${user.balance.toFixed(2)} ₺</td>
+                <td data-label="Tam. Görev">${user.completedTasks}</td>
+                <td data-label="Admin">${user.isAdmin ? '<i class="fas fa-check-circle success-color"></i>' : '<i class="fas fa-times-circle error-color"></i>'}</td>
+                <td data-label="Aksiyonlar">
                     <button class="btn-small btn-primary edit-user-btn" data-uid="${user.id}">Düzenle</button>
                 </td>
             `;
@@ -318,9 +380,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 const faq = doc.data();
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td>${faq.question}</td>
-                    <td>${faq.answer}</td>
-                    <td>
+                    <td data-label="Soru">${faq.question}</td>
+                    <td data-label="Cevap">${faq.answer}</td>
+                    <td data-label="Aksiyonlar">
                         <button class="btn-small btn-danger delete-faq-btn" data-id="${doc.id}">Sil</button>
                     </td>
                 `;
@@ -377,13 +439,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td>${proof.username || proof.email}</td>
-                    <td>${task ? task.title : 'Bilinmeyen Görev'} (${proof.taskId})</td>
-                    <td>
+                    <td data-label="Kullanıcı">${proof.username || proof.email}</td>
+                    <td data-label="Görev">${task ? task.title : 'Bilinmeyen Görev'} (${proof.taskId})</td>
+                    <td data-label="Kanıtlar">
                         ${proof.proofUrls.map(url => `<a href="${url}" target="_blank">Kanıt</a>`).join(', ')}
                     </td>
-                    <td><span class="btn-small btn-info">${proof.status}</span></td>
-                    <td>
+                    <td data-label="Durum"><span class="btn-small btn-info">${proof.status}</span></td>
+                    <td data-label="Aksiyonlar">
                         <button class="btn-small btn-success approve-proof-btn" data-id="${proofId}" data-taskid="${proof.taskId}" data-userid="${proof.userId}">Onayla</button>
                         <button class="btn-small btn-danger reject-proof-btn" data-id="${proofId}" data-taskid="${proof.taskId}" data-userid="${proof.userId}">Reddet</button>
                     </td>
@@ -530,10 +592,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td>${ticket.username || ticket.email}</td>
-                    <td>${ticket.subject}</td>
-                    <td><span class="btn-small btn-info">${ticket.status === 'open' ? 'Açık' : 'Kapalı'}</span></td>
-                    <td>
+                    <td data-label="Talep Eden">${ticket.username || ticket.email}</td>
+                    <td data-label="Konu">${ticket.subject}</td>
+                    <td data-label="Durum"><span class="btn-small btn-info">${ticket.status === 'open' ? 'Açık' : 'Kapalı'}</span></td>
+                    <td data-label="Aksiyonlar">
                         <a href="admin-ticket-detail.html?ticketId=${ticketId}" class="btn-small btn-primary">Görüntüle/Cevapla</a>
                     </td>
                 `;
@@ -547,8 +609,6 @@ document.addEventListener('DOMContentLoaded', () => {
             supportTicketsMessage.className = 'error-message';
         }
     }
-
-    // closeSupportTicket fonksiyonu artık admin-ticket-detail.js içinde olacak
 
     logoutBtn.addEventListener('click', () => auth.signOut());
 });

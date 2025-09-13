@@ -20,6 +20,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const adminPanelLink = document.getElementById('admin-panel-link');
     const logoutBtn = document.getElementById('logout-btn');
+    const menuToggle = document.getElementById('menu-toggle');
+    const sidebar = document.querySelector('.sidebar');
 
     let currentUser = null;
     let userData = null; // Stored user data
@@ -55,6 +57,13 @@ document.addEventListener('DOMContentLoaded', () => {
             window.location.href = 'login.html';
         }
     });
+
+    // Menü Toggle
+    if (menuToggle) {
+        menuToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('active');
+        });
+    }
 
     async function checkAdminStatus(uid) {
         const userDocRef = db.collection('users').doc(uid);

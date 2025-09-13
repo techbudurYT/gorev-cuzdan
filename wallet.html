@@ -18,6 +18,7 @@
                 <li><a href="my-tasks.html"><i class="fas fa-tasks"></i> <span>Görevler</span></a></li>
                 <li><a href="leaderboard.html"><i class="fas fa-trophy"></i> <span>Liderlik Tablosu</span></a></li>
                 <li class="active"><a href="wallet.html"><i class="fas fa-wallet"></i> <span>Cüzdanım</span></a></li>
+                <li><a href="task-history.html"><i class="fas fa-history"></i> <span>Görev Geçmişi</span></a></li>
                 <li><a href="profile.html"><i class="fas fa-user"></i> <span>Profil</span></a></li>
                 <li><a href="support.html"><i class="fas fa-headset"></i> <span>Destek</span></a></li>
                 <li><a href="faq.html"><i class="fas fa-question-circle"></i> <span>SSS</span></a></li>
@@ -28,18 +29,13 @@
         <main class="main-content">
             <header class="main-header">
                 <h1>Cüzdanım</h1>
+                <button class="menu-toggle" id="menu-toggle"><i class="fas fa-bars"></i></button>
             </header>
             <div class="wallet-container">
                 <div class="balance-card">
                     <h4>Mevcut Bakiye</h4>
                     <p id="wallet-balance">0.00 ₺</p>
                     <button class="btn-primary" disabled>Çekim Talebi (Yakında)</button>
-                </div>
-                <div class="history-card">
-                    <h4>Son İşlemler (Tamamlanan Görevler)</h4>
-                    <ul id="transaction-history">
-                        <!-- İşlemler buraya dinamik olarak eklenecek -->
-                    </ul>
                 </div>
             </div>
         </main>
