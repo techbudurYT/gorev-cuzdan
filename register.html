@@ -3,46 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kayıt Ol</title>
+    <title>Kayıt Ol - GörevCüzdan</title>
     <link rel="stylesheet" href="style.css">
 </head>
-<body id="page-register" class="auth-page">
-    <div id="loader">Yükleniyor...</div>
-    <div id="main-content" style="display: none;">
-        <div class="container">
-             <div class="auth-container-wide">
-                <!-- Sol Panel (Sadece Geniş Ekranda Görünür) -->
-                <div class="auth-panel auth-decorative-panel">
-                    <h2>Aramıza Katıl!</h2>
-                    <p>Basit görevleri tamamlayarak kolayca ek gelir elde etmeye başla. Kayıt ol ve ilk görevini hemen tamamla.</p>
-                </div>
-                <!-- Sağ Panel (Form) -->
-                <div class="auth-panel auth-form-panel">
-                    <div class="form-container spark">
-                        <h2>Hesap Oluştur</h2>
-                        <div id="alertBox"></div>
-                        <form id="registerForm">
-                            <div class="input-group spark">
-                                <input type="text" id="regUsername" required>
-                                <label>Kullanıcı Adı</label>
-                            </div>
-                            <div class="input-group spark">
-                                <input type="email" id="regEmail" required>
-                                <label>E-posta</label>
-                            </div>
-                            <div class="input-group spark">
-                                <input type="password" id="regPassword" required>
-                                <label>Şifre</label>
-                            </div>
-                            <button type="submit" class="spark-button">KAYIT OL</button>
-                        </form>
-                        
-                        <p class="auth-switch-text">Zaten hesabın var mı? <a href="login.html">Giriş Yap</a></p>
-                    </div>
-                </div>
+<body>
+    <div class="auth-container">
+        <div class="auth-box">
+            <div class="auth-header">
+                <h2>Aramıza Katılın!</h2>
+                <p>Hesap oluşturarak görevleri tamamlayıp kazanmaya başlayın.</p>
             </div>
+            <form id="register-form" class="auth-form">
+                <h3>Kayıt Ol</h3>
+                <div class="input-group">
+                    <label for="email">E-posta</label>
+                    <input type="email" id="email" required>
+                </div>
+                <div class="input-group">
+                    <label for="password">Şifre</label>
+                    <input type="password" id="password" minlength="6" required>
+                </div>
+                <button type="submit" class="btn-primary">Kayıt Ol</button>
+                <p class="form-switch">Zaten hesabın var mı? <a href="login.html">Giriş Yap</a></p>
+                <p id="error-message" class="error-message"></p>
+            </form>
         </div>
     </div>
-    <script src="auth.js" type="module"></script>
+
+    <!-- Firebase SDK'ları -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+
+    <!-- Proje Dosyaları -->
+    <script src="firebase-config.js"></script>
+    <script src="register.js"></script>
 </body>
 </html>
