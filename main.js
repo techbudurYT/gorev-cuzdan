@@ -1,4 +1,3 @@
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail, updateProfile, updateEmail, updatePassword } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, query, where, orderBy, getDocs, runTransaction, addDoc, serverTimestamp, updateDoc, limit, deleteDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
@@ -131,6 +130,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     totalCompletedTasks: 0,
                     totalEarned: 0
                 });
+                hideLoader(); // Yeni kullanıcı oluşturulduktan sonra loader'ı gizle
             } else {
                 // Belge varsa, giriş bilgilerini ve eksik alanları güncelle.
                 const userData = userDoc.data();
@@ -504,7 +504,7 @@ async function loadBonusPageData(user) {
 }
 
 async function uploadImageToImageBB(file) {
-    if (!IMGBB_API_KEY || IMGBB_API_KEY === "YOUR_IMGBB_API_KEY") {
+    if (!IMGBB_API_KEY || IMGBB_API_KEY === "84a7c0a54294a6e8ea2ffc9bab240719") { // Changed condition to match the actual API Key value
         throw new Error("ImageBB API Key ayarlanmamış veya varsayılan değerde. Lütfen main.js dosasındaki IMGBB_API_KEY değişkenini güncelleyin.");
     }
 
