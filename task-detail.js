@@ -1,3 +1,4 @@
+// task-detail.js
 document.addEventListener('DOMContentLoaded', () => {
     const taskDetailTitleHeader = document.getElementById('task-detail-title-header');
     const taskDetailContainer = document.getElementById('task-detail-container');
@@ -18,6 +19,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentUser = null;
     let currentTask = null;
     let selectedFiles = [];
+
+    // IMGBB API Key
+    const IMGBB_API_KEY = "84a7c0a54294a6e8ea2ffc9bab240719";
 
     // URL'den görev ID'sini al
     const urlParams = new URLSearchParams(window.location.search);
@@ -176,8 +180,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const uploadPromises = selectedFiles.map(file => {
-                const storageRef = storage.ref(`proofs/${currentUser.uid}/${taskId}/${file.name}`);
-                return storageRef.put(file).then(snapshot => snapshot.ref.getDownloadURL());
+                const formData = new FormData();
+                formData.append('image', file);
+
+                return fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        return data.data.url;
+                    } else {
+                        throw new Error('ImageBB yükleme hatası: ' + data.error.message);
+                    }
+                });
             });
 
             const downloadURLs = await Promise.all(uploadPromises);
