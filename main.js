@@ -6,11 +6,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const logoutBtn = document.getElementById('logout-btn');
     const menuToggle = document.getElementById('menu-toggle');
     const sidebar = document.querySelector('.sidebar');
-    const categoryFilter = document.getElementById('category-filter'); // Yeni: Kategori filtresi
+    const categoryFilter = document.getElementById('category-filter');
 
     let currentUser = null;
     let userData = null;
-    let allTasks = []; // Tüm görevleri saklamak için
+    let allTasks = []; 
 
     auth.onAuthStateChanged(user => {
         if (user) {
@@ -64,7 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
             adminPanelLink.style.display = 'block';
         }
         
-        await fetchAndDisplayTasks(); // Tüm görevleri çek ve görüntüle
+        await fetchAndDisplayTasks(); 
     }
 
     function updateUI() {
@@ -77,7 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function fetchAndDisplayTasks() {
         taskList.innerHTML = ''; 
         const tasksSnapshot = await db.collection('tasks').get();
-        allTasks = []; // Önceki görevleri temizle
+        allTasks = []; 
         tasksSnapshot.forEach(doc => {
             allTasks.push({ id: doc.id, ...doc.data() });
         });
@@ -90,9 +90,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const userCompletedTasks = userData.completedTaskIds || [];
         const selectedCategory = categoryFilter.value;
 
-        // Fetch all pending proofs for the current user once
-        // Bu kısım optimize edilebilir, her filtrelemede tekrar çekmek yerine bir kere çekilip saklanabilir.
-        // Ancak mevcut yapı içinde hızlı çalışması için bu şekilde bırakıldı.
         db.collection('taskProofs')
             .where('userId', '==', currentUser.uid)
             .where('status', '==', 'pending')

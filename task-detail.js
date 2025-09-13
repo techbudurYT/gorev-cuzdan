@@ -1,11 +1,9 @@
-
 document.addEventListener('DOMContentLoaded', () => {
     const taskDetailTitleHeader = document.getElementById('task-detail-title-header');
     const taskDetailContentWrapper = document.getElementById('task-detail-content-wrapper');
     const initialLoadingMessage = document.getElementById('initial-loading-message');
     const taskDetailCard = document.getElementById('task-detail-card');
     
-    // Specific ID for the main title within the card
     const taskCardMainTitle = document.getElementById('task-card-main-title'); 
     const taskDetailIcon = document.getElementById('task-detail-icon');
     const taskDetailDescription = document.getElementById('task-detail-description');
@@ -24,25 +22,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const sidebar = document.querySelector('.sidebar');
 
     let currentUser = null;
-    let userData = null; // Stored user data
+    let userData = null; 
     let currentTask = null;
     let selectedFiles = [];
 
-    // IMGBB API Key
-    const IMGBB_API_KEY = "84a7c0a54294a6e8ea2ffc9bab240719"; // This should ideally be in a server-side environment variable
+    const IMGBB_API_KEY = "84a7c0a54294a6e8ea2ffc9bab240719"; 
 
-    // URL'den görev ID'sini al
     const urlParams = new URLSearchParams(window.location.search);
     const taskId = urlParams.get('taskId');
 
-    // Görev ID'si yoksa erken çık
     if (!taskId) {
         if (initialLoadingMessage) {
             initialLoadingMessage.textContent = 'Görev bulunamadı. Lütfen geçerli bir görev seçin.';
             initialLoadingMessage.className = 'error-message';
             initialLoadingMessage.style.display = 'block';
         }
-        if (taskDetailCard) taskDetailCard.classList.add('content-hidden'); // Kartı gizle
+        if (taskDetailCard) taskDetailCard.classList.add('content-hidden'); 
         if (completeTaskBtn) completeTaskBtn.disabled = true;
         if (proofFilesInput) proofFilesInput.disabled = true;
         return;
@@ -58,7 +53,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Menü Toggle
     if (menuToggle) {
         menuToggle.addEventListener('click', () => {
             sidebar.classList.toggle('active');
@@ -74,7 +68,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function loadUserDataAndTaskDetails(id, uid) {
-        // Yükleme mesajını göster ve kartı gizle
         if (initialLoadingMessage) {
             initialLoadingMessage.textContent = 'Görev detayları yükleniyor...';
             initialLoadingMessage.className = 'info-message';
@@ -100,9 +93,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             currentTask = { id: taskDoc.id, ...taskDoc.data() };
-            console.log("Görev verisi yüklendi:", currentTask); // Debug log
+            console.log("Görev verisi yüklendi:", currentTask); 
 
-            // Kullanıcı bu görevi daha önce tamamladı mı kontrol et
             if (userData.completedTaskIds && userData.completedTaskIds.includes(taskId)) {
                 if (initialLoadingMessage) {
                     initialLoadingMessage.textContent = 'Bu görevi zaten tamamladınız!';
@@ -115,7 +107,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // Kullanıcının bu görev için bekleyen bir kanıtı var mı kontrol et
             const pendingProofSnapshot = await db.collection('taskProofs')
                                                   .where('userId', '==', currentUser.uid)
                                                   .where('taskId', '==', taskId)
@@ -134,9 +125,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // Stok kontrolü
-            const currentStock = currentTask.stock - (currentTask.completedCount || 0); // completedCount null veya undefined ise 0 al
-            if (currentTask.stock > 0 && currentStock <= 0) { // Only check if stock is explicitly set > 0
+            const currentStock = currentTask.stock - (currentTask.completedCount || 0); 
+            if (currentTask.stock > 0 && currentStock <= 0) { 
                 if (initialLoadingMessage) {
                     initialLoadingMessage.textContent = 'Bu görevin stoğu bitmiştir.';
                     initialLoadingMessage.className = 'error-message';
@@ -148,31 +138,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // Tüm kontroller geçti, şimdi detayları göster
-            if (initialLoadingMessage) initialLoadingMessage.style.display = 'none'; // Yükleme mesajını gizle
+            if (initialLoadingMessage) initialLoadingMessage.style.display = 'none'; 
             if (taskDetailCard) {
-                taskDetailCard.classList.remove('content-hidden'); // Kartı görünür yap
-                console.log("Task detail card visibility updated:", taskDetailCard.style.display); // Debug log
+                taskDetailCard.classList.remove('content-hidden'); 
+                console.log("Task detail card visibility updated:", taskDetailCard.style.display); 
             }
             
-
-            // DOM elemanlarını güncelle (null kontrolü ile)
             if (taskDetailTitleHeader) taskDetailTitleHeader.textContent = currentTask.title;
-            if (taskCardMainTitle) taskCardMainTitle.textContent = currentTask.title; // Target specific h2 inside card
+            if (taskCardMainTitle) taskCardMainTitle.textContent = currentTask.title; 
             if (taskDetailIcon) taskDetailIcon.src = `img/logos/${currentTask.icon || 'other.png'}`;
             if (taskDetailDescription) taskDetailDescription.textContent = currentTask.description;
             if (taskDetailReward) taskDetailReward.textContent = `${currentTask.reward.toFixed(2)} ₺`;
-            if (taskDetailStock) taskDetailStock.textContent = `${currentStock}/${currentTask.stock}`;
+            if (taskDetailStock) taskDetailStock.textContent = `${currentStock === 0 ? 'Sınırsız' : currentStock}/${currentTask.stock === 0 ? 'Sınırsız' : currentTask.stock}`;
             if (taskDetailProofCount) taskDetailProofCount.textContent = currentTask.proofCount;
 
-            // Form ve buton durumunu güncelle
             if (completeTaskBtn) completeTaskBtn.disabled = false;
             if (proofFilesInput) proofFilesInput.disabled = false;
             if (proofMessage) {
                 proofMessage.textContent = `Bu görev için ${currentTask.proofCount} adet kanıt dosyası yüklemelisiniz.`;
                 proofMessage.className = 'info-message';
             }
-            renderSelectedFiles(); // Initial render for button state
+            renderSelectedFiles(); 
 
         } catch (error) {
             console.error("Görev detayları yüklenirken hata oluştu: ", error);
@@ -207,11 +193,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     proofMessage.textContent = `En fazla ${currentTask.proofCount} dosya yükleyebilirsiniz. Lütfen dosya sayısını azaltın.`;
                     proofMessage.className = 'error-message';
                 }
-                if (proofFilesInput) proofFilesInput.value = ''; // Seçimi sıfırla
+                if (proofFilesInput) proofFilesInput.value = ''; 
                 return;
             }
             
-            if (proofMessage) proofMessage.textContent = ''; // Hata mesajını temizle
+            if (proofMessage) proofMessage.textContent = ''; 
 
             files.forEach(file => {
                 selectedFiles.push(file);
@@ -231,7 +217,6 @@ document.addEventListener('DOMContentLoaded', () => {
             removeButton.innerHTML = '&times;';
             removeButton.addEventListener('click', () => {
                 selectedFiles = selectedFiles.filter(f => f !== file);
-                // Clear the input to allow selecting the same file again if needed
                 if (proofFilesInput) proofFilesInput.value = '';
                 renderSelectedFiles();
             });
@@ -293,19 +278,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const downloadURLs = await Promise.all(uploadPromises);
 
-                // Kullanıcı verisini çek (username için) - already fetched as userData
-                // const userDoc = await db.collection('users').doc(currentUser.uid).get();
-                // const userData = userDoc.data();
-
-                // Kanıtları ayrı bir koleksiyonda sakla ve onaya gönder
                 await db.collection('taskProofs').add({
                     taskId: taskId,
-                    taskTitle: currentTask.title, // Admin panelinde kolaylık için görev başlığını da ekle
+                    taskTitle: currentTask.title, 
                     userId: currentUser.uid,
                     username: userData.username || currentUser.email,
                     proofUrls: downloadURLs,
                     submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    status: 'pending' // pending, approved, rejected
+                    status: 'pending' 
                 });
 
                 if (proofMessage) {

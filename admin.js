@@ -1,4 +1,3 @@
-
 document.addEventListener('DOMContentLoaded', () => {
     const addTaskForm = document.getElementById('add-task-form');
     const addTaskMessage = document.getElementById('add-task-message');
@@ -77,25 +76,24 @@ document.addEventListener('DOMContentLoaded', () => {
         const reward = parseFloat(document.getElementById('task-reward').value);
         const stock = parseInt(document.getElementById('task-stock').value);
         const proofCount = parseInt(document.getElementById('task-proof-count').value);
-        const icon = document.getElementById('task-icon').value;
-        const category = document.getElementById('task-category').value; // Yeni: Kategori
+        const category = document.getElementById('task-category').value; 
 
         db.collection('tasks').add({
             title: title,
             description: description,
             reward: reward,
-            stock: stock, // Eklenen stok
-            completedCount: 0, // Başlangıçta tamamlanan sayısı
-            proofCount: proofCount, // Kanıt dosyası sayısı
-            icon: icon,
-            category: category, // Yeni: Kategori
+            stock: stock, 
+            completedCount: 0, 
+            proofCount: proofCount, 
+            category: category, 
+            icon: category + '.png', // Kategoriye göre ikon ismi belirle
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         })
         .then(() => {
             addTaskMessage.textContent = 'Görev başarıyla eklendi!';
             addTaskMessage.className = 'success-message';
             addTaskForm.reset();
-            loadTasksForAdmin(); // Görev listesini güncelle
+            loadTasksForAdmin(); 
             setTimeout(() => addTaskMessage.textContent = '', 3000);
         })
         .catch(error => {
@@ -138,7 +136,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (confirm('Bu görevi silmek istediğinize emin misiniz? Bu işlem geri alınamaz!')) {
                         try {
                             await db.collection('tasks').doc(taskIdToDelete).delete();
-                            loadTasksForAdmin(); // Listeyi yeniden yükle
+                            loadTasksForAdmin(); 
                         } catch (error) {
                             console.error("Görev silinirken hata oluştu: ", error);
                             alert("Görev silinirken bir hata oluştu.");
@@ -225,8 +223,8 @@ document.addEventListener('DOMContentLoaded', () => {
         editIsAdmin.checked = user.isAdmin;
         
         userEditPanel.style.display = 'block';
-        editUserMessage.textContent = ''; // Mesajı temizle
-        editUsername.disabled = user.isAdmin; // Admin kendi kullanıcı adını değiştirmesin
+        editUserMessage.textContent = ''; 
+        editUsername.disabled = user.isAdmin; 
     }
 
     cancelEditBtn.addEventListener('click', () => {
@@ -249,7 +247,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const batch = db.batch();
             const originalUser = allUsers.find(u => u.id === uid);
 
-            // Kullanıcı adı değiştiyse benzersizliği kontrol et
             if (originalUser.username !== newUsername) {
                 if (!/^[a-zA-Z0-9_]{3,15}$/.test(newUsername)) {
                     throw new Error('Kullanıcı adı 3-15 karakter uzunluğunda olmalı ve sadece harf, rakam veya _ içerebilir.');
@@ -261,11 +258,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     throw new Error('Bu kullanıcı adı zaten alınmış.');
                 }
                 
-                // Eski kullanıcı adını usernames koleksiyonundan sil
                 if (originalUser.username) {
                     batch.delete(db.collection('usernames').doc(originalUser.username));
                 }
-                // Yeni kullanıcı adını usernames koleksiyonuna ekle
                 batch.set(usernameDocRef, { uid: uid });
             }
 
@@ -283,7 +278,7 @@ document.addEventListener('DOMContentLoaded', () => {
             editUserMessage.className = 'success-message';
             setTimeout(() => {
                 userEditPanel.style.display = 'none';
-                loadUsers(); // Listeyi yeniden yükle
+                loadUsers(); 
             }, 1500);
 
         } catch (error) {
@@ -306,7 +301,6 @@ document.addEventListener('DOMContentLoaded', () => {
             editUserMessage.textContent = 'Siliniyor...';
             editUserMessage.className = 'info-message';
             try {
-                // Firestore verilerini sil
                 const batch = db.batch();
                 batch.delete(db.collection('users').doc(uidToDelete));
                 if (userToDelete.username) {
@@ -314,17 +308,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 await batch.commit();
 
-                // Auth kullanıcısını sil (sunucu tarafında veya Cloud Functions ile daha güvenli)
-                // Tarayıcıdan doğrudan kullanıcı silme işlemi güvenlik riski taşıdığı için genellikle önerilmez.
-                // Firebase Admin SDK kullanılarak sunucu tarafında yapılmalıdır.
-                // Örnek olarak burada gösteriliyor, gerçek projede dikkatli kullanılmalı.
-                
                 const userAuth = firebase.auth().currentUser;
                 if (userAuth && userAuth.uid === uidToDelete) {
-                    await userAuth.delete(); // Eğer admin kendini siliyorsa bu sorun çıkarır.
+                    await userAuth.delete(); 
                 } else {
-                    // Diğer kullanıcıları silmek için bir Cloud Function tetiklemek daha iyidir.
-                    // Şimdilik sadece Firestore'dan siliyoruz.
                     console.warn("Frontend'den başka bir kullanıcıyı silmek doğrudan desteklenmez, Cloud Function kullanın.");
                 }
 
@@ -398,7 +385,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (confirm('Bu SSS öğesini silmek istediğinize emin misiniz?')) {
                         try {
                             await db.collection('faqs').doc(faqId).delete();
-                            loadFaqs(); // Listeyi yeniden yükle
+                            loadFaqs(); 
                         } catch (error) {
                             console.error("SSS silinirken hata oluştu: ", error);
                             alert("SSS silinirken bir hata oluştu.");
@@ -418,7 +405,6 @@ document.addEventListener('DOMContentLoaded', () => {
         taskProofsBody.innerHTML = '<tr><td colspan="5">Yükleniyor...</td></tr>';
         taskProofsMessage.textContent = '';
         try {
-            // Tüm görevleri bir kere çekip allTasks objesine kaydet
             const tasksSnapshot = await db.collection('tasks').get();
             allTasks = {};
             tasksSnapshot.forEach(doc => {
@@ -438,7 +424,7 @@ document.addEventListener('DOMContentLoaded', () => {
             snapshot.forEach(doc => {
                 const proof = doc.data();
                 const proofId = doc.id;
-                const task = allTasks[proof.taskId]; // Görev detaylarını al
+                const task = allTasks[proof.taskId]; 
 
                 const row = document.createElement('tr');
                 row.innerHTML = `
@@ -499,7 +485,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     throw new Error("Bu kanıt zaten işlenmiş.");
                 }
 
-                // Kullanıcının bakiyesini ve tamamlanan görev sayısını güncelle
                 const newBalance = (userData.balance || 0) + taskData.reward;
                 const newCompletedTasksCount = (userData.completedTasks || 0) + 1;
                 const newCompletedTaskIds = [...(userData.completedTaskIds || []), taskId];
@@ -510,13 +495,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     completedTaskIds: newCompletedTaskIds
                 });
 
-                // Görevdeki completedCount'u artır
                 const newCompletedCount = (taskData.completedCount || 0) + 1;
                 transaction.update(taskDocRef, {
                     completedCount: newCompletedCount
                 });
 
-                // Kanıtın durumunu 'approved' olarak güncelle
                 transaction.update(proofDocRef, {
                     status: 'approved',
                     reviewedAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -525,16 +508,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
             taskProofsMessage.textContent = 'Görev başarıyla onaylandı!';
             taskProofsMessage.className = 'success-message';
-            loadTaskProofs(); // Listeyi yeniden yükle
-            loadUsers(); // Kullanıcı listesini de güncelle (bakiye ve görev sayısı değişti)
+            loadTaskProofs(); 
+            loadUsers(); 
             setTimeout(() => taskProofsMessage.textContent = '', 3000);
 
         } catch (error) {
-                // Check if the error is due to a race condition (already processed)
                 if (error.message && error.message.includes("Bu kanıt zaten işlenmiş.")) {
                     taskProofsMessage.textContent = 'Bu kanıt zaten onaylanmış veya reddedilmiş.';
                     taskProofsMessage.className = 'error-message';
-                    loadTaskProofs(); // Reload to reflect latest status
+                    loadTaskProofs(); 
                 } else {
                     console.error("Görev onaylama hatası: ", error);
                     taskProofsMessage.textContent = `Hata: ${error.message}`;
@@ -562,7 +544,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     throw new Error("Bu kanıt zaten işlenmiş.");
                 }
 
-                // Kanıtın durumunu 'rejected' olarak güncelle
                 transaction.update(proofDocRef, {
                     status: 'rejected',
                     reviewedAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -571,14 +552,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
             taskProofsMessage.textContent = 'Görev başarıyla reddedildi!';
             taskProofsMessage.className = 'success-message';
-            loadTaskProofs(); // Listeyi yeniden yükle
+            loadTaskProofs(); 
             setTimeout(() => taskProofsMessage.textContent = '', 3000);
 
         } catch (error) {
             if (error.message && error.message.includes("Bu kanıt zaten işlenmiş.")) {
                 taskProofsMessage.textContent = 'Bu kanıt zaten onaylanmış veya reddedilmiş.';
                 taskProofsMessage.className = 'error-message';
-                loadTaskProofs(); // Reload to reflect latest status
+                loadTaskProofs(); 
             } else {
                 console.error("Görev reddetme hatası: ", error);
                 taskProofsMessage.textContent = `Hata: ${error.message}`;
