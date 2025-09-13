@@ -34,6 +34,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const userDoc = await db.collection('users').doc(uid).get();
         if (userDoc.exists) {
             currentUserData = userDoc.data();
+        } else {
+            console.error("Kullanıcı verisi bulunamadı!");
+            // Handle case where user data might be missing, e.g., redirect or show error
         }
     }
 
@@ -41,7 +44,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const userDocRef = db.collection('users').doc(uid);
         const doc = await userDocRef.get();
         if (doc.exists && doc.data().isAdmin) {
-            adminPanelLink.style.display = 'block';
+            if (adminPanelLink) {
+                adminPanelLink.style.display = 'block';
+            }
         }
     }
 
@@ -53,14 +58,18 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        messages.sort((a, b) => a.timestamp.toDate() - b.timestamp.toDate());
+        messages.sort((a, b) => {
+            const timeA = a.timestamp && typeof a.timestamp.toDate === 'function' ? a.timestamp.toDate() : new Date(0);
+            const timeB = b.timestamp && typeof b.timestamp.toDate === 'function' ? b.timestamp.toDate() : new Date(0);
+            return timeA - timeB;
+        });
 
         messages.forEach(msg => {
             const messageDiv = document.createElement('div');
             messageDiv.className = `message-bubble ${msg.senderId === requesterUid ? 'user-message' : 'admin-message'}`;
             
-            const senderName = msg.senderName || (msg.senderId === requesterUid ? currentUserData.username || currentUser.email : 'Destek Ekibi');
-            const timestamp = msg.timestamp ? new Date(msg.timestamp.toDate()).toLocaleString() : 'Tarih Yok';
+            const senderName = msg.senderName || (msg.senderId === requesterUid ? currentUserData?.username || currentUser?.email || 'Kullanıcı' : 'Destek Ekibi');
+            const timestamp = msg.timestamp && typeof msg.timestamp.toDate === 'function' ? new Date(msg.timestamp.toDate()).toLocaleString() : 'Tarih Yok';
 
             messageDiv.innerHTML = `
                 <div class="message-header">
@@ -79,128 +88,166 @@ document.addEventListener('DOMContentLoaded', () => {
         activeTicketId = ticketId;
         conversationSubject.textContent = subject;
         renderConversationMessages(messages, requesterUid);
-        ticketConversationPanel.classList.remove('content-hidden');
-        userTicketsList.closest('.admin-section').classList.add('content-hidden'); // Hide the ticket list section
-        supportForm.closest('.admin-section').classList.add('content-hidden'); // Hide the create new ticket section
+        if (ticketConversationPanel) ticketConversationPanel.classList.remove('content-hidden');
+        if (userTicketsList.closest('.admin-section')) userTicketsList.closest('.admin-section').classList.add('content-hidden'); // Hide the ticket list section
+        if (supportForm.closest('.admin-section')) supportForm.closest('.admin-section').classList.add('content-hidden'); // Hide the create new ticket section
 
         if (status === 'closed') {
-            userReplyMessageInput.disabled = true;
-            sendUserReplyBtn.disabled = true;
-            conversationMessage.textContent = 'Bu talep kapatılmıştır. Yeni mesaj gönderemezsiniz.';
-            conversationMessage.className = 'info-message';
+            if (userReplyMessageInput) userReplyMessageInput.disabled = true;
+            if (sendUserReplyBtn) sendUserReplyBtn.disabled = true;
+            if (conversationMessage) {
+                conversationMessage.textContent = 'Bu talep kapatılmıştır. Yeni mesaj gönderemezsiniz.';
+                conversationMessage.className = 'info-message';
+            }
         } else {
-            userReplyMessageInput.disabled = false;
-            sendUserReplyBtn.disabled = false;
-            conversationMessage.textContent = '';
+            if (userReplyMessageInput) userReplyMessageInput.disabled = false;
+            if (sendUserReplyBtn) sendUserReplyBtn.disabled = false;
+            if (conversationMessage) conversationMessage.textContent = '';
         }
     }
 
     // Function to hide conversation panel and show ticket list
-    backToTicketsBtn.addEventListener('click', () => {
-        ticketConversationPanel.classList.add('content-hidden');
-        userTicketsList.closest('.admin-section').classList.remove('content-hidden');
-        supportForm.closest('.admin-section').classList.remove('content-hidden');
-        activeTicketId = null;
-        conversationMessage.textContent = '';
-        loadUserTickets(); // Reload tickets in case status changed
-    });
+    if (backToTicketsBtn) {
+        backToTicketsBtn.addEventListener('click', () => {
+            if (ticketConversationPanel) ticketConversationPanel.classList.add('content-hidden');
+            if (userTicketsList.closest('.admin-section')) userTicketsList.closest('.admin-section').classList.remove('content-hidden');
+            if (supportForm.closest('.admin-section')) supportForm.closest('.admin-section').classList.remove('content-hidden');
+            activeTicketId = null;
+            if (conversationMessage) conversationMessage.textContent = '';
+            loadUserTickets(); // Reload tickets in case status changed
+        });
+    }
 
-    supportForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const subject = document.getElementById('support-subject').value;
-        const message = document.getElementById('support-message').value;
-        
-        if (!currentUser || !currentUserData) {
-            formMessage.textContent = 'Lütfen önce giriş yapın ve kullanıcı verilerinizin yüklendiğinden emin olun.';
-            formMessage.className = 'error-message';
-            return;
-        }
+    if (supportForm) {
+        supportForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const subject = document.getElementById('support-subject')?.value.trim();
+            const message = document.getElementById('support-message')?.value.trim();
+            
+            if (!currentUser || !currentUserData) {
+                if (formMessage) {
+                    formMessage.textContent = 'Lütfen önce giriş yapın ve kullanıcı verilerinizin yüklendiğinden emin olun.';
+                    formMessage.className = 'error-message';
+                }
+                return;
+            }
+            if (!subject || !message) {
+                if (formMessage) {
+                    formMessage.textContent = 'Lütfen konu ve mesaj alanlarını doldurun.';
+                    formMessage.className = 'error-message';
+                }
+                return;
+            }
 
-        formMessage.textContent = 'Talep gönderiliyor...';
-        formMessage.className = 'info-message';
+            if (formMessage) {
+                formMessage.textContent = 'Talep gönderiliyor...';
+                formMessage.className = 'info-message';
+            }
 
-        try {
-            await db.collection('tickets').add({
-                uid: currentUser.uid,
-                email: currentUser.email,
-                username: currentUserData.username, // Store username for easier display
-                subject: subject,
-                status: 'open', // open, closed
-                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                messages: [{ // Store initial message in an array
+            try {
+                // Firebase'in FieldValue.serverTimestamp() 'ı doğrudan bir dizinin içine kabul etmediği için,
+                // timestamp'ı istemci tarafında Date objesi olarak oluşturup Firestore'a gönderiyoruz.
+                // Firestore bunu otomatik olarak sunucu zaman damgasına dönüştürecektir.
+                const initialMessage = {
                     senderId: currentUser.uid,
                     senderName: currentUserData.username || currentUser.email,
                     message: message,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                }]
-            })
-            .then(() => {
-                supportForm.reset();
-                formMessage.textContent = 'Destek talebiniz başarıyla gönderildi!';
-                formMessage.className = 'success-message';
+                    timestamp: new Date() // Use client-side date for array element, Firestore converts it
+                };
+
+                await db.collection('tickets').add({
+                    uid: currentUser.uid,
+                    email: currentUser.email,
+                    username: currentUserData.username, // Store username for easier display
+                    subject: subject,
+                    status: 'open', // open, closed
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(), // This is fine for top-level field
+                    messages: [initialMessage] // Store initial message in an array
+                });
+                
+                if (supportForm) supportForm.reset();
+                if (formMessage) {
+                    formMessage.textContent = 'Destek talebiniz başarıyla gönderildi!';
+                    formMessage.className = 'success-message';
+                }
                 loadUserTickets(); // Reload tickets to show the new one
-                setTimeout(() => formMessage.textContent = '', 4000);
-            })
+                setTimeout(() => { if (formMessage) formMessage.textContent = ''; }, 4000);
 
-        } catch (error) {
-            console.error("Destek talebi hatası: ", error);
-            formMessage.textContent = 'Talep gönderilirken bir hata oluştu.';
-            formMessage.className = 'error-message';
-        }
-    });
+            } catch (error) {
+                console.error("Destek talebi hatası: ", error);
+                if (formMessage) {
+                    formMessage.textContent = `Talep gönderilirken bir hata oluştu: ${error.message}`;
+                    formMessage.className = 'error-message';
+                }
+            }
+        });
+    }
 
-    sendUserReplyBtn.addEventListener('click', async () => {
-        const replyText = userReplyMessageInput.value.trim();
-        if (!replyText || !currentUser || !activeTicketId || !currentUserData) {
-            conversationMessage.textContent = 'Lütfen bir mesaj yazın ve giriş yaptığınızdan emin olun.';
-            conversationMessage.className = 'error-message';
-            return;
-        }
+    if (sendUserReplyBtn) {
+        sendUserReplyBtn.addEventListener('click', async () => {
+            const replyText = userReplyMessageInput.value.trim();
+            if (!replyText || !currentUser || !activeTicketId || !currentUserData) {
+                if (conversationMessage) {
+                    conversationMessage.textContent = 'Lütfen bir mesaj yazın ve giriş yaptığınızdan emin olun.';
+                    conversationMessage.className = 'error-message';
+                }
+                return;
+            }
 
-        conversationMessage.textContent = 'Mesaj gönderiliyor...';
-        conversationMessage.className = 'info-message';
-        sendUserReplyBtn.disabled = true;
-        userReplyMessageInput.disabled = true;
+            if (conversationMessage) {
+                conversationMessage.textContent = 'Mesaj gönderiliyor...';
+                conversationMessage.className = 'info-message';
+            }
+            if (sendUserReplyBtn) sendUserReplyBtn.disabled = true;
+            if (userReplyMessageInput) userReplyMessageInput.disabled = true;
 
-        try {
-            const ticketDocRef = db.collection('tickets').doc(activeTicketId);
-            const doc = await ticketDocRef.get();
-            if (!doc.exists) throw new Error("Talep bulunamadı.");
+            try {
+                const ticketDocRef = db.collection('tickets').doc(activeTicketId);
+                const doc = await ticketDocRef.get();
+                if (!doc.exists) throw new Error("Talep bulunamadı.");
 
-            const ticketData = doc.data();
-            const updatedMessages = [...(ticketData.messages || []), {
-                senderId: currentUser.uid,
-                senderName: currentUserData.username || currentUser.email,
-                message: replyText,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            }];
+                const ticketData = doc.data();
+                const newMessage = {
+                    senderId: currentUser.uid,
+                    senderName: currentUserData.username || currentUser.email,
+                    message: replyText,
+                    timestamp: new Date() // Use client-side date for array element
+                };
+                const updatedMessages = [...(ticketData.messages || []), newMessage];
 
-            await ticketDocRef.update({ messages: updatedMessages });
+                await ticketDocRef.update({ messages: updatedMessages });
 
-            userReplyMessageInput.value = '';
-            conversationMessage.textContent = 'Mesaj başarıyla gönderildi!';
-            conversationMessage.className = 'success-message';
-            setTimeout(() => conversationMessage.textContent = '', 3000);
+                if (userReplyMessageInput) userReplyMessageInput.value = '';
+                if (conversationMessage) {
+                    conversationMessage.textContent = 'Mesaj başarıyla gönderildi!';
+                    conversationMessage.className = 'success-message';
+                }
+                setTimeout(() => { if (conversationMessage) conversationMessage.textContent = ''; }, 3000);
 
-        } catch (error) {
-            console.error("Mesaj gönderme hatası: ", error);
-            conversationMessage.textContent = `Hata: ${error.message}`;
-            conversationMessage.className = 'error-message';
-        } finally {
-            sendUserReplyBtn.disabled = false;
-            userReplyMessageInput.disabled = false;
-        }
-    });
+            } catch (error) {
+                console.error("Mesaj gönderme hatası: ", error);
+                if (conversationMessage) {
+                    conversationMessage.textContent = `Hata: ${error.message}`;
+                    conversationMessage.className = 'error-message';
+                }
+            } finally {
+                if (sendUserReplyBtn) sendUserReplyBtn.disabled = false;
+                if (userReplyMessageInput) userReplyMessageInput.disabled = false;
+            }
+        });
+    }
 
     async function loadUserTickets() {
         if (!currentUser) {
-            userTicketsLoading.textContent = 'Giriş yapınız.';
+            if (userTicketsLoading) userTicketsLoading.textContent = 'Giriş yapınız.';
             return;
         }
-        userTicketsList.innerHTML = '';
-        userTicketsLoading.textContent = 'Talepleriniz yükleniyor...';
-        userTicketsLoading.style.display = 'block';
+        if (userTicketsList) userTicketsList.innerHTML = '';
+        if (userTicketsLoading) {
+            userTicketsLoading.textContent = 'Talepleriniz yükleniyor...';
+            userTicketsLoading.style.display = 'block';
+        }
 
         try {
             const snapshot = await db.collection('tickets')
@@ -208,10 +255,10 @@ document.addEventListener('DOMContentLoaded', () => {
                                      .orderBy('createdAt', 'desc')
                                      .get();
             
-            userTicketsLoading.style.display = 'none';
+            if (userTicketsLoading) userTicketsLoading.style.display = 'none';
 
             if (snapshot.empty) {
-                userTicketsList.innerHTML = '<p class="info-message">Henüz bir destek talebiniz bulunmamaktadır.</p>';
+                if (userTicketsList) userTicketsList.innerHTML = '<p class="info-message">Henüz bir destek talebiniz bulunmamaktadır.</p>';
                 return;
             }
 
@@ -219,10 +266,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 const ticket = doc.data();
                 const ticketId = doc.id;
                 const statusText = ticket.status === 'open' ? 'Açık' : 'Kapalı';
-                const statusClass = ticket.status === 'open' ? 'btn-info' : 'btn-secondary'; // Assuming btn-secondary for closed
+                const statusClass = ticket.status === 'open' ? 'btn-info' : 'btn-secondary';
 
                 const ticketItem = document.createElement('div');
-                ticketItem.className = 'support-ticket-item'; // New class for styling
+                ticketItem.className = 'support-ticket-item';
                 ticketItem.innerHTML = `
                     <div class="ticket-item-header">
                         <h4>${ticket.subject}</h4>
@@ -231,7 +278,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <p class="ticket-last-message">Son mesaj: ${(ticket.messages && ticket.messages.length > 0) ? ticket.messages[ticket.messages.length - 1].message : 'Yok'}</p>
                     <button class="btn-primary-landing btn-small view-ticket-btn" data-id="${ticketId}" data-subject="${ticket.subject}" data-status="${ticket.status}">Görüntüle</button>
                 `;
-                userTicketsList.appendChild(ticketItem);
+                if (userTicketsList) userTicketsList.appendChild(ticketItem);
             });
 
             document.querySelectorAll('.view-ticket-btn').forEach(button => {
@@ -250,11 +297,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (error) {
             console.error("Kullanıcı talepleri yüklenirken hata oluştu: ", error);
-            userTicketsLoading.textContent = 'Talepleriniz yüklenirken bir hata oluştu.';
-            userTicketsLoading.className = 'error-message';
-            userTicketsLoading.style.display = 'block';
+            if (userTicketsLoading) {
+                userTicketsLoading.textContent = 'Talepleriniz yüklenirken bir hata oluştu.';
+                userTicketsLoading.className = 'error-message';
+                userTicketsLoading.style.display = 'block';
+            }
         }
     }
 
-    logoutBtn.addEventListener('click', () => auth.signOut());
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => auth.signOut());
+    }
 });

@@ -64,6 +64,8 @@ body {
     border: 1px solid var(--primary-color);
     background-color: transparent;
     color: var(--primary-color);
+    text-decoration: none; /* Add this for anchor tags */
+    display: inline-block; /* Ensure proper padding for anchor tags */
 }
 .btn-secondary:hover {
     background: var(--primary-color);
@@ -71,6 +73,13 @@ body {
 }
 .btn-primary-landing {
     background: linear-gradient(to right, var(--gradient-start), var(--primary-color));
+    text-decoration: none; /* Add this for anchor tags */
+    display: inline-block; /* Ensure proper padding for anchor tags */
+    color: white; /* Ensure text color is white for gradient buttons */
+}
+.btn-primary-landing:hover {
+    opacity: 0.9;
+    box-shadow: 0 5px 15px rgba(138, 43, 226, 0.4);
 }
 .hero-section {
     text-align: center;
@@ -182,6 +191,9 @@ body {
     cursor: pointer;
     transition: all 0.3s ease;
     margin-top: 10px;
+    text-decoration: none; /* Ensure consistency for anchor tags */
+    display: inline-block; /* Ensure consistent sizing */
+    text-align: center; /* Center text if button is also a link */
 }
 .btn-primary.btn-small {
     padding: 8px 15px;
@@ -210,6 +222,9 @@ body {
     cursor: pointer;
     transition: background-color 0.3s ease;
     margin-top: 10px;
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
 }
 .btn-danger:hover {
     background-color: #bd2130;
@@ -230,6 +245,9 @@ body {
     cursor: pointer;
     transition: background-color 0.3s ease;
     margin-top: 10px;
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
 }
 .btn-info:hover {
     background-color: #1a7bbd;

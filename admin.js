@@ -511,7 +511,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Destek Talepleri Yönetimi
     async function loadSupportTickets() {
-        supportTicketsBody.innerHTML = '<tr><td colspan="5">Yükleniyor...</td></tr>';
+        supportTicketsBody.innerHTML = '<tr><td colspan="4">Yükleniyor...</td></tr>';
         supportTicketsMessage.textContent = '';
         try {
             const snapshot = await db.collection('tickets')
@@ -520,7 +520,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                      .get();
             supportTicketsBody.innerHTML = '';
             if (snapshot.empty) {
-                supportTicketsBody.innerHTML = '<tr><td colspan="5">Açık destek talebi bulunmamaktadır.</td></tr>';
+                supportTicketsBody.innerHTML = '<tr><td colspan="4">Açık destek talebi bulunmamaktadır.</td></tr>';
                 return;
             }
 
@@ -532,51 +532,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 row.innerHTML = `
                     <td>${ticket.username || ticket.email}</td>
                     <td>${ticket.subject}</td>
-                    <td>${ticket.message}</td>
                     <td><span class="btn-small btn-info">${ticket.status === 'open' ? 'Açık' : 'Kapalı'}</span></td>
                     <td>
-                        <button class="btn-small btn-success close-ticket-btn" data-id="${ticketId}">Kapat</button>
+                        <a href="admin-ticket-detail.html?ticketId=${ticketId}" class="btn-small btn-primary">Görüntüle/Cevapla</a>
                     </td>
                 `;
                 supportTicketsBody.appendChild(row);
             });
 
-            document.querySelectorAll('.close-ticket-btn').forEach(button => {
-                button.addEventListener('click', (e) => closeSupportTicket(e.target.dataset.id));
-            });
-
         } catch (error) {
             console.error("Destek talepleri yüklenirken hata oluştu: ", error);
-            supportTicketsBody.innerHTML = '<tr><td colspan="5">Destek talepleri yüklenemedi.</td></tr>';
+            supportTicketsBody.innerHTML = '<tr><td colspan="4">Destek talepleri yüklenemedi.</td></tr>';
             supportTicketsMessage.textContent = 'Hata: Destek talepleri yüklenemedi.';
             supportTicketsMessage.className = 'error-message';
         }
     }
 
-    async function closeSupportTicket(ticketId) {
-        if (!confirm('Bu destek talebini kapatmak istediğinize emin misiniz?')) return;
-
-        supportTicketsMessage.textContent = 'Kapatılıyor...';
-        supportTicketsMessage.className = 'info-message';
-
-        try {
-            await db.collection('tickets').doc(ticketId).update({
-                status: 'closed',
-                closedAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-
-            supportTicketsMessage.textContent = 'Destek talebi başarıyla kapatıldı!';
-            supportTicketsMessage.className = 'success-message';
-            loadSupportTickets();
-            setTimeout(() => supportTicketsMessage.textContent = '', 3000);
-
-        } catch (error) {
-            console.error("Destek talebi kapatılırken hata oluştu: ", error);
-            supportTicketsMessage.textContent = `Hata: ${error.message}`;
-            supportTicketsMessage.className = 'error-message';
-        }
-    }
-
+    // closeSupportTicket fonksiyonu artık admin-ticket-detail.js içinde olacak
 
     logoutBtn.addEventListener('click', () => auth.signOut());
 });

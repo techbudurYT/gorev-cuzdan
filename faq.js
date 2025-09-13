@@ -1,5 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     const faqContainer = document.getElementById('faq-container');
+    const faqLoadingMessage = document.getElementById('faq-loading-message');
     const adminPanelLink = document.getElementById('admin-panel-link');
     const logoutBtn = document.getElementById('logout-btn');
 
@@ -16,17 +17,33 @@ document.addEventListener('DOMContentLoaded', () => {
         const userDocRef = db.collection('users').doc(uid);
         const doc = await userDocRef.get();
         if (doc.exists && doc.data().isAdmin) {
-            adminPanelLink.style.display = 'block';
+            if (adminPanelLink) {
+                adminPanelLink.style.display = 'block';
+            }
         }
     }
 
     async function loadFaqs() {
-        faqContainer.innerHTML = '<p>Yükleniyor...</p>';
+        if (faqLoadingMessage) {
+            faqLoadingMessage.textContent = 'SSS yükleniyor...';
+            faqLoadingMessage.className = 'info-message';
+            faqLoadingMessage.style.display = 'block';
+        }
+        if (faqContainer) {
+            faqContainer.innerHTML = ''; // Clear previous content, keeping loading message if exists
+        }
+
         try {
             const snapshot = await db.collection('faqs').orderBy('createdAt', 'desc').get();
-            faqContainer.innerHTML = '';
+            
+            if (faqLoadingMessage) {
+                faqLoadingMessage.style.display = 'none'; // Hide loading message
+            }
+
             if (snapshot.empty) {
-                faqContainer.innerHTML = '<p>Şu anda Sıkça Sorulan Soru bulunmamaktadır.</p>';
+                if (faqContainer) {
+                    faqContainer.innerHTML = '<p class="info-message">Şu anda Sıkça Sorulan Soru bulunmamaktadır.</p>';
+                }
                 return;
             }
 
@@ -43,25 +60,38 @@ document.addEventListener('DOMContentLoaded', () => {
                         <p>${faq.answer}</p>
                     </div>
                 `;
-                faqContainer.appendChild(faqItem);
+                if (faqContainer) {
+                    faqContainer.appendChild(faqItem);
+                }
             });
 
             document.querySelectorAll('.faq-question').forEach(button => {
                 button.addEventListener('click', () => {
                     const faqItem = button.closest('.faq-item');
-                    faqItem.classList.toggle('active');
-                    const answer = faqItem.querySelector('.faq-answer');
-                    if (faqItem.classList.contains('active')) {
-                        answer.style.maxHeight = answer.scrollHeight + 'px';
-                    } else {
-                        answer.style.maxHeight = null;
+                    if (faqItem) {
+                        faqItem.classList.toggle('active');
+                        const answer = faqItem.querySelector('.faq-answer');
+                        if (answer) {
+                            if (faqItem.classList.contains('active')) {
+                                answer.style.maxHeight = answer.scrollHeight + 'px';
+                            } else {
+                                answer.style.maxHeight = null;
+                            }
+                        }
                     }
                 });
             });
 
         } catch (error) {
             console.error("SSS yüklenirken hata oluştu: ", error);
-            faqContainer.innerHTML = '<p>SSS yüklenemedi.</p>';
+            if (faqLoadingMessage) {
+                faqLoadingMessage.textContent = 'SSS yüklenemedi. Lütfen daha sonra tekrar deneyin.';
+                faqLoadingMessage.className = 'error-message';
+                faqLoadingMessage.style.display = 'block';
+            }
+            if (faqContainer) {
+                faqContainer.innerHTML = ''; // Clear any partial content
+            }
         }
     }
 
