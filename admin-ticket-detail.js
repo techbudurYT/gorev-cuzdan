@@ -1,3 +1,4 @@
+
 document.addEventListener('DOMContentLoaded', () => {
     const initialLoadingMessage = document.getElementById('initial-loading-message');
     const ticketCard = document.getElementById('ticket-card');
@@ -60,7 +61,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const ticketDocRef = db.collection('tickets').doc(ticketId);
-            ticketDocRef.onSnapshot(docSnapshot => { // Real-time updates
+            // Use onSnapshot for real-time updates to messages
+            ticketDocRef.onSnapshot(docSnapshot => {
                 if (docSnapshot.exists) {
                     const ticketData = docSnapshot.data();
                     if (initialLoadingMessage) initialLoadingMessage.style.display = 'none';
@@ -73,16 +75,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     renderMessages(ticketData.messages, ticketData.uid);
 
                     if (ticketData.status === 'closed') {
-                        adminReplyMessageInput.disabled = true;
-                        sendReplyBtn.disabled = true;
-                        closeTicketBtn.disabled = true;
-                        ticketMessage.textContent = 'Bu talep kapatılmıştır.';
-                        ticketMessage.className = 'info-message';
+                        if (adminReplyMessageInput) adminReplyMessageInput.disabled = true;
+                        if (sendReplyBtn) sendReplyBtn.disabled = true;
+                        if (closeTicketBtn) closeTicketBtn.disabled = true;
+                        if (ticketMessage) {
+                            ticketMessage.textContent = 'Bu talep kapatılmıştır.';
+                            ticketMessage.className = 'info-message';
+                        }
                     } else {
-                        adminReplyMessageInput.disabled = false;
-                        sendReplyBtn.disabled = false;
-                        closeTicketBtn.disabled = false;
-                        ticketMessage.textContent = '';
+                        if (adminReplyMessageInput) adminReplyMessageInput.disabled = false;
+                        if (sendReplyBtn) sendReplyBtn.disabled = false;
+                        if (closeTicketBtn) closeTicketBtn.disabled = false;
+                        if (ticketMessage) ticketMessage.textContent = '';
                     }
                 } else {
                     if (initialLoadingMessage) {
@@ -105,20 +109,24 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderMessages(messages, requesterUid) {
-        messageList.innerHTML = '';
+        if (messageList) messageList.innerHTML = '';
         if (!messages || messages.length === 0) {
-            messageList.innerHTML = '<p class="info-message">Henüz mesaj yok.</p>';
+            if (messageList) messageList.innerHTML = '<p class="info-message">Henüz mesaj yok.</p>';
             return;
         }
 
-        messages.sort((a, b) => a.timestamp.toDate() - b.timestamp.toDate());
+        messages.sort((a, b) => {
+            const timeA = a.timestamp && typeof a.timestamp.toDate === 'function' ? a.timestamp.toDate() : new Date(0);
+            const timeB = b.timestamp && typeof b.timestamp.toDate === 'function' ? b.timestamp.toDate() : new Date(0);
+            return timeA - timeB;
+        });
 
         messages.forEach(msg => {
             const messageDiv = document.createElement('div');
             messageDiv.className = `message-bubble ${msg.senderId === requesterUid ? 'user-message' : 'admin-message'}`;
             
             const senderName = msg.senderName || (msg.senderId === requesterUid ? 'Kullanıcı' : 'Admin');
-            const timestamp = msg.timestamp ? new Date(msg.timestamp.toDate()).toLocaleString() : 'Tarih Yok';
+            const timestamp = msg.timestamp && typeof msg.timestamp.toDate === 'function' ? new Date(msg.timestamp.toDate()).toLocaleString() : 'Tarih Yok';
 
             messageDiv.innerHTML = `
                 <div class="message-header">
@@ -127,85 +135,106 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                 <p class="message-text">${msg.message}</p>
             `;
-            messageList.appendChild(messageDiv);
+            if (messageList) messageList.appendChild(messageDiv);
         });
-        messageList.scrollTop = messageList.scrollHeight; // Scroll to bottom
+        if (messageList) messageList.scrollTop = messageList.scrollHeight; // Scroll to bottom
     }
 
-    sendReplyBtn.addEventListener('click', async () => {
-        const replyText = adminReplyMessageInput.value.trim();
-        if (!replyText || !currentUser || !currentTicketId || !currentAdminData) {
-            ticketMessage.textContent = 'Lütfen bir mesaj yazın ve giriş yaptığınızdan emin olun.';
-            ticketMessage.className = 'error-message';
-            return;
-        }
+    if (sendReplyBtn) {
+        sendReplyBtn.addEventListener('click', async () => {
+            const replyText = adminReplyMessageInput.value.trim();
+            if (!replyText || !currentUser || !currentTicketId || !currentAdminData) {
+                if (ticketMessage) {
+                    ticketMessage.textContent = 'Lütfen bir mesaj yazın ve giriş yaptığınızdan emin olun.';
+                    ticketMessage.className = 'error-message';
+                }
+                return;
+            }
 
-        ticketMessage.textContent = 'Cevap gönderiliyor...';
-        ticketMessage.className = 'info-message';
-        sendReplyBtn.disabled = true;
-        adminReplyMessageInput.disabled = true;
+            if (ticketMessage) {
+                ticketMessage.textContent = 'Cevap gönderiliyor...';
+                ticketMessage.className = 'info-message';
+            }
+            if (sendReplyBtn) sendReplyBtn.disabled = true;
+            if (adminReplyMessageInput) adminReplyMessageInput.disabled = true;
 
-        try {
-            const ticketDocRef = db.collection('tickets').doc(currentTicketId);
-            const doc = await ticketDocRef.get();
-            if (!doc.exists) throw new Error("Talep bulunamadı.");
+            try {
+                const ticketDocRef = db.collection('tickets').doc(currentTicketId);
+                const doc = await ticketDocRef.get();
+                if (!doc.exists) throw new Error("Talep bulunamadı.");
 
-            const ticketData = doc.data();
-            const updatedMessages = [...(ticketData.messages || []), {
-                senderId: currentUser.uid,
-                senderName: currentAdminData.username || currentUser.email,
-                message: replyText,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            }];
+                const ticketData = doc.data();
+                const newMessage = {
+                    senderId: currentUser.uid,
+                    senderName: currentAdminData.username || currentUser.email,
+                    message: replyText,
+                    timestamp: new Date() // Use client-side date for array element, Firestore converts it upon update.
+                };
+                const updatedMessages = [...(ticketData.messages || []), newMessage];
 
-            await ticketDocRef.update({ messages: updatedMessages });
+                await ticketDocRef.update({ messages: updatedMessages });
 
-            adminReplyMessageInput.value = '';
-            ticketMessage.textContent = 'Cevap başarıyla gönderildi!';
-            ticketMessage.className = 'success-message';
-            setTimeout(() => ticketMessage.textContent = '', 3000);
+                if (adminReplyMessageInput) adminReplyMessageInput.value = '';
+                if (ticketMessage) {
+                    ticketMessage.textContent = 'Cevap başarıyla gönderildi!';
+                    ticketMessage.className = 'success-message';
+                }
+                setTimeout(() => { if (ticketMessage) ticketMessage.textContent = ''; }, 3000);
 
-        } catch (error) {
-            console.error("Cevap gönderme hatası: ", error);
-            ticketMessage.textContent = `Hata: ${error.message}`;
-            ticketMessage.className = 'error-message';
-        } finally {
-            sendReplyBtn.disabled = false;
-            adminReplyMessageInput.disabled = false;
-        }
-    });
+            } catch (error) {
+                console.error("Cevap gönderme hatası: ", error);
+                if (ticketMessage) {
+                    ticketMessage.textContent = `Hata: ${error.message}`;
+                    ticketMessage.className = 'error-message';
+                }
+            } finally {
+                if (sendReplyBtn) sendReplyBtn.disabled = false;
+                if (adminReplyMessageInput) adminReplyMessageInput.disabled = false;
+            }
+        });
+    }
 
-    closeTicketBtn.addEventListener('click', async () => {
-        if (!confirm('Bu destek talebini kapatmak istediğinize emin misiniz?')) return;
+    if (closeTicketBtn) {
+        closeTicketBtn.addEventListener('click', async () => {
+            if (!confirm('Bu destek talebini kapatmak istediğinize emin misiniz?')) return;
 
-        ticketMessage.textContent = 'Kapatılıyor...';
-        ticketMessage.className = 'info-message';
-        closeTicketBtn.disabled = true;
-        sendReplyBtn.disabled = true;
-        adminReplyMessageInput.disabled = true;
+            if (ticketMessage) {
+                ticketMessage.textContent = 'Kapatılıyor...';
+                ticketMessage.className = 'info-message';
+            }
+            if (closeTicketBtn) closeTicketBtn.disabled = true;
+            if (sendReplyBtn) sendReplyBtn.disabled = true;
+            if (adminReplyMessageInput) adminReplyMessageInput.disabled = true;
 
-        try {
-            await db.collection('tickets').doc(currentTicketId).update({
-                status: 'closed',
-                closedAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
+            try {
+                await db.collection('tickets').doc(currentTicketId).update({
+                    status: 'closed',
+                    closedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
 
-            ticketMessage.textContent = 'Destek talebi başarıyla kapatıldı!';
-            ticketMessage.className = 'success-message';
-            setTimeout(() => {
-                window.location.href = 'admin-panel.html'; // Yönlendirme
-            }, 2000);
+                if (ticketMessage) {
+                    ticketMessage.textContent = 'Destek talebi başarıyla kapatıldı!';
+                    ticketMessage.className = 'success-message';
+                }
+                setTimeout(() => {
+                    window.location.href = 'admin-panel.html'; // Yönlendirme
+                }, 2000);
 
-        } catch (error) {
-            console.error("Destek talebi kapatılırken hata oluştu: ", error);
-            ticketMessage.textContent = `Hata: ${error.message}`;
-            ticketMessage.className = 'error-message';
-        } finally {
-            closeTicketBtn.disabled = false;
-            sendReplyBtn.disabled = false;
-            adminReplyMessageInput.disabled = false;
-        }
-    });
+            } catch (error) {
+                console.error("Destek talebi kapatılırken hata oluştu: ", error);
+                if (ticketMessage) {
+                    ticketMessage.textContent = `Hata: ${error.message}`;
+                    ticketMessage.className = 'error-message';
+                }
+            } finally {
+                if (closeTicketBtn) closeTicketBtn.disabled = false;
+                if (sendReplyBtn) sendReplyBtn.disabled = false;
+                if (adminReplyMessageInput) adminReplyMessageInput.disabled = false;
+            }
+        });
+    }
 
-    logoutBtn.addEventListener('click', () => auth.signOut());
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => auth.signOut());
+    }
 });
