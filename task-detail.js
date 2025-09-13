@@ -1,4 +1,3 @@
-
 document.addEventListener('DOMContentLoaded', () => {
     const taskDetailTitleHeader = document.getElementById('task-detail-title-header');
     const taskDetailContainer = document.getElementById('task-detail-container');
@@ -28,6 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const taskId = urlParams.get('taskId');
 
     if (!taskId) {
+        // Elemanların varlığını kontrol etmeden textContent'i değiştirmeye çalışma
         if (taskDetailContainer) {
             taskDetailContainer.innerHTML = '<p class="error-message">Görev bulunamadı. Lütfen geçerli bir görev seçin.</p>';
         }
@@ -55,6 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function loadTaskDetails(id) {
+        // Elemanların varlığını kontrol etmeden textContent'i değiştirmeye çalışma
         if (taskDetailContainer) {
             taskDetailContainer.innerHTML = '<p class="info-message">Görev detayları yükleniyor...</p>';
         }
@@ -148,7 +149,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     proofMessage.textContent = `En fazla ${currentTask.proofCount} dosya yükleyebilirsiniz. Lütfen dosya sayısını azaltın.`;
                     proofMessage.className = 'error-message';
                 }
-                proofFilesInput.value = ''; // Seçimi sıfırla
+                if (proofFilesInput) proofFilesInput.value = ''; // Seçimi sıfırla
                 return;
             }
             

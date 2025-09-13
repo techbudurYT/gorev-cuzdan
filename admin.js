@@ -25,6 +25,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const taskProofsBody = document.getElementById('task-proofs-body');
     const taskProofsMessage = document.getElementById('task-proofs-message');
 
+    const supportTicketsBody = document.getElementById('support-tickets-body');
+    const supportTicketsMessage = document.getElementById('support-tickets-message');
+
+
     let allUsers = [];
     let allTasks = {}; // Görev detaylarını depolamak için
 
@@ -39,6 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     loadUsers();
                     loadFaqs();
                     loadTaskProofs();
+                    loadSupportTickets();
                 }
             }).catch(error => {
                 console.error("Admin yetkisi kontrol edilirken hata oluştu: ", error);
@@ -490,22 +495,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     status: 'rejected',
                     reviewedAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
-
-                // Kullanıcının tamamlanmış görev ID'lerinden bu görevi kaldır (eğer eklenmişse)
-                // Reddedilen bir görevin user.completedTaskIds içinde olmaması gerektiği için bu gerekli olmayabilir
-                // Ancak sağlamlık için kontrol edilebilir.
-                // Eğer kullanıcı bu görevi tamamlamış gibi görünüyorsa ve şimdi reddediliyorsa,
-                // completedTaskIds'ten çıkarmak mantıklı olabilir.
-                // const userDocRef = db.collection('users').doc(userId);
-                // const userDoc = await transaction.get(userDocRef);
-                // if (userDoc.exists) {
-                //     const userData = userDoc.data();
-                //     const currentCompletedTaskIds = userData.completedTaskIds || [];
-                //     const updatedCompletedTaskIds = currentCompletedTaskIds.filter(id => id !== taskId);
-                //     if (updatedCompletedTaskIds.length !== currentCompletedTaskIds.length) {
-                //         transaction.update(userDocRef, { completedTaskIds: updatedCompletedTaskIds });
-                //     }
-                // }
             });
 
             taskProofsMessage.textContent = 'Görev başarıyla reddedildi!';
@@ -517,6 +506,74 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error("Görev reddetme hatası: ", error);
             taskProofsMessage.textContent = `Hata: ${error.message}`;
             taskProofsMessage.className = 'error-message';
+        }
+    }
+
+    // Destek Talepleri Yönetimi
+    async function loadSupportTickets() {
+        supportTicketsBody.innerHTML = '<tr><td colspan="5">Yükleniyor...</td></tr>';
+        supportTicketsMessage.textContent = '';
+        try {
+            const snapshot = await db.collection('tickets')
+                                     .where('status', '==', 'open')
+                                     .orderBy('createdAt', 'asc')
+                                     .get();
+            supportTicketsBody.innerHTML = '';
+            if (snapshot.empty) {
+                supportTicketsBody.innerHTML = '<tr><td colspan="5">Açık destek talebi bulunmamaktadır.</td></tr>';
+                return;
+            }
+
+            snapshot.forEach(doc => {
+                const ticket = doc.data();
+                const ticketId = doc.id;
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${ticket.username || ticket.email}</td>
+                    <td>${ticket.subject}</td>
+                    <td>${ticket.message}</td>
+                    <td><span class="btn-small btn-info">${ticket.status === 'open' ? 'Açık' : 'Kapalı'}</span></td>
+                    <td>
+                        <button class="btn-small btn-success close-ticket-btn" data-id="${ticketId}">Kapat</button>
+                    </td>
+                `;
+                supportTicketsBody.appendChild(row);
+            });
+
+            document.querySelectorAll('.close-ticket-btn').forEach(button => {
+                button.addEventListener('click', (e) => closeSupportTicket(e.target.dataset.id));
+            });
+
+        } catch (error) {
+            console.error("Destek talepleri yüklenirken hata oluştu: ", error);
+            supportTicketsBody.innerHTML = '<tr><td colspan="5">Destek talepleri yüklenemedi.</td></tr>';
+            supportTicketsMessage.textContent = 'Hata: Destek talepleri yüklenemedi.';
+            supportTicketsMessage.className = 'error-message';
+        }
+    }
+
+    async function closeSupportTicket(ticketId) {
+        if (!confirm('Bu destek talebini kapatmak istediğinize emin misiniz?')) return;
+
+        supportTicketsMessage.textContent = 'Kapatılıyor...';
+        supportTicketsMessage.className = 'info-message';
+
+        try {
+            await db.collection('tickets').doc(ticketId).update({
+                status: 'closed',
+                closedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            supportTicketsMessage.textContent = 'Destek talebi başarıyla kapatıldı!';
+            supportTicketsMessage.className = 'success-message';
+            loadSupportTickets();
+            setTimeout(() => supportTicketsMessage.textContent = '', 3000);
+
+        } catch (error) {
+            console.error("Destek talebi kapatılırken hata oluştu: ", error);
+            supportTicketsMessage.textContent = `Hata: ${error.message}`;
+            supportTicketsMessage.className = 'error-message';
         }
     }
 

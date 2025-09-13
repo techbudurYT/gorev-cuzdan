@@ -1,3 +1,4 @@
+
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
 
 :root {
@@ -656,7 +657,8 @@ body {
 /* --- Admin Paneli --- */
 .admin-sections {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    /* Eski: grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); */
+    grid-template-columns: 1fr; /* Her bölümü tek sütun ve tam genişlik yap */
     gap: 30px;
 }
 .admin-section {
@@ -695,11 +697,11 @@ body {
     background-color: #666;
 }
 
-.user-list-container, .faq-list-container, .task-proofs-container {
+.user-list-container, .faq-list-container, .task-proofs-container, .support-tickets-container {
     margin-top: 30px;
     overflow-x: auto;
 }
-.user-list-container table, .faq-list-container table, .task-proofs-container table {
+.user-list-container table, .faq-list-container table, .task-proofs-container table, .support-tickets-container table {
     min-width: 600px; /* Küçük ekranlarda kaydırma çubuğu için */
 }
 
@@ -957,7 +959,7 @@ body {
     .admin-sections {
         grid-template-columns: 1fr;
     }
-    .user-list-container table, .faq-list-container table, .task-proofs-container table {
+    .user-list-container table, .faq-list-container table, .task-proofs-container table, .support-tickets-container table {
         min-width: 500px;
     }
     
