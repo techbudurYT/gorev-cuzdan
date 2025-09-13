@@ -1,3 +1,4 @@
+// main.js dosyası
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail, updateProfile, updateEmail, updatePassword } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, query, where, orderBy, getDocs, runTransaction, addDoc, serverTimestamp, updateDoc, limit, deleteDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
@@ -185,9 +186,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 handleInputLabels();
             }
         } else {
+            // Kullanıcı oturum açmamışsa
             if (!isAuthPage) {
+                // Eğer mevcut sayfa bir kimlik doğrulama sayfası değilse, login.html'ye yönlendir
                 window.location.replace('login.html');
             } else {
+                // Eğer mevcut sayfa bir kimlik doğrulama sayfasıysa (login veya register), loader'ı gizle ve formları göster
                 hideLoader();
                 handleInputLabels();
             }
