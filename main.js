@@ -92,12 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     showLoader();
 
-    let initialized = false;
-
     onAuthStateChanged(auth, async (user) => {
-        if (initialized) return;
-        initialized = true;
-
         const isAuthPage = pageId === 'page-login' || pageId === 'page-register';
 
         if (user) {
