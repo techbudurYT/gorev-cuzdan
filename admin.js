@@ -34,22 +34,41 @@ function showAlert(message, isSuccess = false) {
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    const pageId = document.body.id;
+function showLoader() {
     const loader = document.getElementById('loader');
     const mainContent = document.getElementById('main-content');
+    if (loader) loader.style.display = 'flex';
+    if (mainContent) mainContent.style.display = 'none';
+}
+
+function hideLoader() {
+    const loader = document.getElementById('loader');
+    const mainContent = document.getElementById('main-content');
+    if (mainContent) {
+        mainContent.style.display = 'flex';
+    }
+    if (loader) {
+        loader.style.display = 'none';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const pageId = document.body.id;
+
+    // Sadece admin sayfaları için bu script çalışmalı
+    if (!pageId.startsWith('page-admin')) {
+        return; // Admin dışı sayfalarda admin.js'yi çalıştırma
+    }
+
+    showLoader(); // Admin sayfaları için de loader göster
 
     if (pageId === 'page-admin-panel') {
-        if (loader) loader.style.display = 'block';
-        if (mainContent) mainContent.style.display = 'none';
-
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 try {
                     const userDoc = await getDoc(doc(db, "users", user.uid));
                     if (userDoc.exists() && userDoc.data().isAdmin) {
-                        if (loader) loader.style.display = 'none';
-                        if (mainContent) mainContent.style.display = 'flex'; // Use flex for app-layout
+                        hideLoader(); // Adminse loader'ı gizle
                         initAdminPanel(user);
                     } else {
                         console.warn("Admin yetkisi olmayan kullanıcı girişi. Çıkış yapılıyor.");
@@ -67,17 +86,15 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     } else if (pageId === 'page-admin-login') {
+        hideLoader(); // Login sayfası yüklendiğinde loader'ı gizle
         const loginForm = document.getElementById('adminLoginForm');
         
-        // Hide loader and show content initially for login page
-        if (loader) loader.style.display = 'none';
-        if (mainContent) mainContent.style.display = 'flex';
-
         loginForm.addEventListener('submit', async function(e) {
             e.preventDefault();
             const email = document.getElementById('adminEmail').value;
             const password = document.getElementById('adminPassword').value;
             
+            showLoader(); // Giriş denemesi yaparken loader göster
             try {
               const userCredential = await signInWithEmailAndPassword(auth, email, password);
               const user = userCredential.user;
@@ -90,10 +107,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.warn("Giriş yapan kullanıcı admin değil. Oturum kapatılıyor.");
                 await auth.signOut();
                 showAlert("Bu hesap yönetici değil!", false);
+                hideLoader(); // Hata durumunda loader'ı gizle
               }
             } catch (error) {
                 console.error("Admin giriş hatası:", error);
                 showAlert("Hatalı e-posta veya şifre!", false);
+                hideLoader(); // Hata durumunda loader'ı gizle
             }
         });
 
@@ -110,7 +129,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 } catch (error) {
                     console.error("Admin yetki kontrolü sırasında hata:", error);
-                    await auth.signOut();
+                    await auth.signOut(); // Hata durumunda oturumu kapat
                 }
             }
         });

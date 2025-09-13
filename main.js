@@ -1,3 +1,4 @@
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail, updateProfile } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, query, where, orderBy, getDocs, runTransaction, addDoc, serverTimestamp, updateDoc, limit } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
@@ -101,9 +102,10 @@ function handleInputLabels() {
 document.addEventListener('DOMContentLoaded', () => {
     const pageId = document.body.id;
 
+    // Admin sayfaları için main.js'yi çalıştırma.
+    // Bu kontrol admin.js'de de var ama çift kontrol daha güvenli.
     if (pageId.startsWith('page-admin')) {
-        // Admin sayfaları admin.js tarafından yönetilecek, bu dosya onları atlar.
-        return;
+        return; 
     }
 
     showLoader();
@@ -111,11 +113,12 @@ document.addEventListener('DOMContentLoaded', () => {
     onAuthStateChanged(auth, async (user) => {
         const isAuthPage = pageId === 'page-login' || pageId === 'page-register';
         if (user) {
+            // Firestore kullanıcı belgesini kontrol et ve oluştur/güncelle
             const userRef = doc(db, "users", user.uid);
             const userDoc = await getDoc(userRef);
 
             if (!userDoc.exists()) {
-                // Veritabanı belgesi yoksa oluştur. Bu, yeni kayıt olmuş bir kullanıcı için çalışacaktır.
+                // Kullanıcı Auth'a kayıtlı ama Firestore'da belgesi yoksa oluştur
                 await setDoc(userRef, {
                     username: user.displayName || user.email.split('@')[0],
                     email: user.email,
@@ -125,24 +128,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     premiumExpirationDate: null,
                     lastPremiumPaymentDate: null,
                     createdAt: serverTimestamp(),
-                    lastLoginAt: serverTimestamp(), // İlk kez oturum açıldığında ayarla
+                    lastLoginAt: serverTimestamp(),
                     totalCompletedTasks: 0,
                     totalEarned: 0
                 });
                 console.log("Yeni kullanıcı Firestore'a kaydedildi:", user.uid);
-                // Yeni kullanıcı oluşturulduktan sonra loader'ı gizle ve ana içeriği göster
-                hideLoader();
-                handleInputLabels();
-                if (isAuthPage) { // Eğer kayıt sayfasındaysa, index'e yönlendir
-                    window.location.replace('index.html');
-                }
-                return; // Diğer işlemleri yapma, sayfa yükleme fonksiyonları onAuthStateChanged'in bir sonraki tetiklemesinde çalışacak
             } else {
-                // Belge varsa, giriş bilgilerini ve eksik alanları güncelle.
+                // Mevcut kullanıcının verilerini güncelle/tamamla
                 const userData = userDoc.data();
                 const updates = {};
                 
-                updates.lastLoginAt = serverTimestamp(); // Her oturum açışta son giriş zamanını güncelle
+                updates.lastLoginAt = serverTimestamp(); // Her oturum açışta güncelle
 
                 if (typeof userData.isPremium === 'undefined') {
                     updates.isPremium = false;
@@ -157,11 +153,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
+            // Kullanıcı oturum açmışsa ve bir kimlik doğrulama sayfasındaysa, ana sayfaya yönlendir
             if (isAuthPage) {
-                // Kullanıcı Auth oldu ve auth sayfasında, ana sayfaya yönlendir
+                console.log("Kullanıcı zaten oturum açık. Ana sayfaya yönlendiriliyor.");
                 window.location.replace('index.html');
-            } else {
-                // Auth oldu ve Auth olmayan bir sayfada, o sayfanın verilerini yükle
+                return; // Yönlendirme sonrası daha fazla işlem yapma
+            } 
+            // Kullanıcı oturum açmış ve kullanıcı sayfalarından birindeyse, ilgili verileri yükle
+            else {
+                console.log(`Kullanıcı oturum açık. ${pageId} için veri yükleniyor.`);
                 switch (pageId) {
                     case 'page-index': await loadIndexPageData(user); break;
                     case 'page-profile': await loadProfilePageData(user); break;
@@ -175,7 +175,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     case 'page-faq': await loadFaqPageData(); break;
                     case 'page-premium': await loadPremiumPageData(user); break;
                     case 'page-leaderboard': await loadLeaderboardPageData(user); break;
-                    default: break;
+                    default: 
+                        console.warn(`Bilinmeyen sayfa (${pageId}). Varsayılan ana sayfaya yönlendiriliyor.`);
+                        window.location.replace('index.html');
+                        break;
                 }
                 hideLoader();
                 handleInputLabels();
@@ -184,26 +187,27 @@ document.addEventListener('DOMContentLoaded', () => {
             // Kullanıcı oturum açmamışsa
             if (!isAuthPage) {
                 // Eğer mevcut sayfa bir kimlik doğrulama sayfası değilse, login.html'ye yönlendir
-                console.log("Kullanıcı oturum açmamış, giriş sayfasına yönlendiriliyor.");
+                console.log("Kullanıcı oturum açmamış. Giriş sayfasına yönlendiriliyor.");
                 window.location.replace('login.html');
             } else {
                 // Eğer mevcut sayfa bir kimlik doğrulama sayfasıysa (login veya register), loader'ı gizle ve formları göster
+                console.log("Kullanıcı oturum açmamış, kimlik doğrulama sayfası gösteriliyor.");
                 hideLoader();
                 handleInputLabels();
             }
         }
     }, (error) => {
+        // Firebase Auth'tan gelen hataları burada yakala (örn. ağ hatası)
         console.error("onAuthStateChanged hatası:", error);
+        showAlert("Uygulama yüklenirken bir sorun oluştu. Lütfen internet bağlantınızı kontrol edin veya daha sonra tekrar deneyin.", false);
         hideLoader();
-        // Hata durumunda da auth sayfalarını göster
-        if (pageId === 'page-login' || pageId === 'page-register') {
-            handleInputLabels();
-        } else {
+        // Hata durumunda, eğer auth sayfasında değilsek login'e yönlendir
+        if (!isAuthPage) {
             window.location.replace('login.html');
         }
     });
 
-    // Sayfa yüklenmeden önce çalışacak init fonksiyonları
+    // Sadece ilgili sayfalar yüklendiğinde init fonksiyonlarını çağır
     if (pageId === 'page-login') initLoginPage();
     if (pageId === 'page-register') initRegisterPage();
 });
@@ -229,7 +233,7 @@ async function initRegisterPage() {
             await updateProfile(newUser, { displayName: username });
 
             showAlert("Kayıt başarılı! Yönlendiriliyorsunuz...", true);
-            // onAuthStateChanged tetiklenecek ve yönlendirmeyi o yapacak.
+            // onAuthStateChanged tetiklenecek ve yeni kullanıcının Firestore belgesini oluşturup yönlendirmeyi yapacak.
             
         } catch (error) {
             hideLoader();
@@ -251,7 +255,7 @@ function initLoginPage() {
         try {
             showLoader();
             await signInWithEmailAndPassword(auth, email, password);
-            // Başarılı girişten sonra onAuthStateChanged tetiklenecek ve yönlendirmeyi yapacak.
+            // Başarılı girişten sonra onAuthStateChanged tetiklenecek ve ana sayfaya yönlendirmeyi yapacak.
         } catch (error) {
             hideLoader();
             console.error("Giriş hatası:", error);
@@ -300,7 +304,7 @@ async function loadIndexPageData(user) {
             const userData = docSnapshot.data();
             balanceDisplay.textContent = `${(userData.balance || 0).toFixed(2)} ₺`;
             isUserPremium = userData.isPremium || false;
-            premiumExpiry = userData.premiumExpirationDate ? userData.premiumExpirationDate.toDate() : null;
+            premiumExpiry = userData.premiumExpirationDate ? (userData.premiumExpirationDate.toDate ? userData.premiumExpirationDate.toDate() : new Date(userData.premiumExpirationDate)) : null;
             renderTasks(); // Premium durumu değişince görevleri tekrar render et
         } else {
             balanceDisplay.textContent = `0.00 ₺`;
@@ -366,7 +370,7 @@ async function loadIndexPageData(user) {
             const isPremiumActive = isUserPremium && premiumExpiry && premiumExpiry > now;
 
             if (isPremiumActive) {
-                displayReward = (task.reward * (1 + PREMIUM_BONUS_PERCENTAGE)).toFixed(2);
+                displayReward = (task.reward * (1 + PREMIUM_BONUS_PERCENTAGE));
                 premiumBonusText = `<span style="font-size: 0.8em; color: var(--c-success);"> (+%${PREMIUM_BONUS_PERCENTAGE * 100} Premium Bonus)</span>`;
             }
 
@@ -517,7 +521,7 @@ async function loadBonusPageData(user) {
 }
 
 async function uploadImageToImageBB(file) {
-    if (!IMGBB_API_KEY || IMGBB_API_KEY === "84a7c0a54294a6e8ea2ffc9bab240719") { // API Key'in boş veya varsayılan olup olmadığını kontrol edin
+    if (!IMGBB_API_KEY || IMGBB_API_KEY === "YOUR_IMGBB_API_KEY") { // API Key'in boş veya varsayılan olup olmadığını kontrol edin
         throw new Error("ImageBB API Key ayarlanmamış veya varsayılan değerde. Lütfen main.js dosyasındaki IMGBB_API_KEY değişkenini güncelleyin.");
     }
 
@@ -582,7 +586,7 @@ async function loadProfilePageData(user) {
                 isPremiumDisplay.classList.add('inactive');
                 premiumExpirationSection.style.display = 'none';
                 // Premium süresi dolmuşsa veya hiç premium değilse isPremium'u false yap
-                if (userData.isPremium || userPremiumExpirationDate && userPremiumExpirationDate <= now) {
+                if (userData.isPremium || (userPremiumExpirationDate && userPremiumExpirationDate <= now)) {
                     await updateDoc(doc(db, "users", user.uid), {
                         isPremium: false,
                         premiumExpirationDate: null,
@@ -682,11 +686,11 @@ async function loadMyTasksPageData(user) {
                 let rewardDisplay = task.reward || 0;
                 let premiumBonusInfo = '';
                 if (submission.isPremiumBonusApplied) {
-                    rewardDisplay = (rewardDisplay * (1 + PREMIUM_BONUS_PERCENTAGE)).toFixed(2);
+                    rewardDisplay = (rewardDisplay * (1 + PREMIUM_BONUS_PERCENTAGE));
                     premiumBonusInfo = ` (%${PREMIUM_BONUS_PERCENTAGE * 100} Premium Bonus)`;
-                } else {
-                    rewardDisplay = parseFloat(rewardDisplay).toFixed(2); // Premium yoksa da 2 ondalık basamak göster
                 }
+                // Reward'ı her zaman iki ondalık basamakla göster
+                rewardDisplay = parseFloat(rewardDisplay).toFixed(2);
 
 
                 submissionsHtml += `
