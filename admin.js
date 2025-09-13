@@ -1,50 +1,345 @@
+
 document.addEventListener('DOMContentLoaded', () => {
     const addTaskForm = document.getElementById('add-task-form');
-    const successMessage = document.getElementById('success-message');
+    const addTaskMessage = document.getElementById('add-task-message');
     const logoutBtn = document.getElementById('logout-btn');
+    const userManagementBody = document.getElementById('user-management-body');
+    const userSearchInput = document.getElementById('user-search');
+    const userEditPanel = document.getElementById('user-edit-panel');
+    const editingUsername = document.getElementById('editing-username');
+    const editUserForm = document.getElementById('edit-user-form');
+    const editUserUid = document.getElementById('edit-user-uid');
+    const editUsername = document.getElementById('edit-username');
+    const editEmail = document.getElementById('edit-email');
+    const editBalance = document.getElementById('edit-balance');
+    const editCompletedTasks = document.getElementById('edit-completed-tasks');
+    const editIsAdmin = document.getElementById('edit-is-admin');
+    const editUserMessage = document.getElementById('edit-user-message');
+    const cancelEditBtn = document.getElementById('cancel-edit');
+    const deleteUserBtn = document.getElementById('delete-user-btn');
+
+    const addFaqForm = document.getElementById('add-faq-form');
+    const addFaqMessage = document.getElementById('add-faq-message');
+    const faqManagementBody = document.getElementById('faq-management-body');
+
+    let allUsers = [];
 
     // Admin kontrolü
     auth.onAuthStateChanged(user => {
         if (user) {
             db.collection('users').doc(user.uid).get().then(doc => {
                 if (!doc.exists || !doc.data().isAdmin) {
-                    // Kullanıcı admin değilse ana sayfaya yönlendir
                     alert("Bu alana erişim yetkiniz yok.");
                     window.location.href = 'my-tasks.html';
+                } else {
+                    loadUsers();
+                    loadFaqs();
                 }
+            }).catch(error => {
+                console.error("Admin yetkisi kontrol edilirken hata oluştu: ", error);
+                alert("Yetki kontrolünde bir hata oluştu.");
+                auth.signOut();
             });
         } else {
-            // Giriş yapılmamışsa login sayfasına yönlendir
             window.location.href = 'login.html';
         }
     });
 
+    // Yeni Görev Ekleme
     addTaskForm.addEventListener('submit', (e) => {
         e.preventDefault();
 
         const title = document.getElementById('task-title').value;
         const description = document.getElementById('task-description').value;
         const reward = parseFloat(document.getElementById('task-reward').value);
+        const stock = parseInt(document.getElementById('task-stock').value);
+        const proofCount = parseInt(document.getElementById('task-proof-count').value);
         const icon = document.getElementById('task-icon').value;
 
         db.collection('tasks').add({
             title: title,
             description: description,
             reward: reward,
+            stock: stock, // Eklenen stok
+            completedCount: 0, // Başlangıçta tamamlanan sayısı
+            proofCount: proofCount, // Kanıt dosyası sayısı
             icon: icon,
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         })
         .then(() => {
-            successMessage.textContent = 'Görev başarıyla eklendi!';
+            addTaskMessage.textContent = 'Görev başarıyla eklendi!';
+            addTaskMessage.className = 'success-message';
             addTaskForm.reset();
-            setTimeout(() => successMessage.textContent = '', 3000);
+            setTimeout(() => addTaskMessage.textContent = '', 3000);
         })
         .catch(error => {
             console.error("Görev ekleme hatası: ", error);
-            successMessage.textContent = 'Bir hata oluştu.';
-            successMessage.style.color = 'red';
+            addTaskMessage.textContent = 'Bir hata oluştu.';
+            addTaskMessage.className = 'error-message';
         });
     });
-    
+
+    // Kullanıcı Yönetimi
+    async function loadUsers() {
+        userManagementBody.innerHTML = '<tr><td colspan="6">Yükleniyor...</td></tr>';
+        try {
+            const snapshot = await db.collection('users').get();
+            allUsers = [];
+            snapshot.forEach(doc => {
+                allUsers.push({ id: doc.id, ...doc.data() });
+            });
+            displayUsers(allUsers);
+        } catch (error) {
+            console.error("Kullanıcılar yüklenirken hata oluştu: ", error);
+            userManagementBody.innerHTML = '<tr><td colspan="6">Kullanıcılar yüklenemedi.</td></tr>';
+        }
+    }
+
+    function displayUsers(users) {
+        userManagementBody.innerHTML = '';
+        if (users.length === 0) {
+            userManagementBody.innerHTML = '<tr><td colspan="6">Kullanıcı bulunamadı.</td></tr>';
+            return;
+        }
+
+        users.forEach(user => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${user.username || 'N/A'}</td>
+                <td>${user.email}</td>
+                <td>${user.balance.toFixed(2)} ₺</td>
+                <td>${user.completedTasks}</td>
+                <td>${user.isAdmin ? '<i class="fas fa-check-circle success-color"></i>' : '<i class="fas fa-times-circle error-color"></i>'}</td>
+                <td>
+                    <button class="btn-small btn-primary edit-user-btn" data-uid="${user.id}">Düzenle</button>
+                </td>
+            `;
+            userManagementBody.appendChild(row);
+        });
+
+        document.querySelectorAll('.edit-user-btn').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const uid = e.target.dataset.uid;
+                openEditUserPanel(uid);
+            });
+        });
+    }
+
+    userSearchInput.addEventListener('input', (e) => {
+        const searchTerm = e.target.value.toLowerCase();
+        const filteredUsers = allUsers.filter(user => 
+            (user.username && user.username.toLowerCase().includes(searchTerm)) ||
+            (user.email && user.email.toLowerCase().includes(searchTerm))
+        );
+        displayUsers(filteredUsers);
+    });
+
+    async function openEditUserPanel(uid) {
+        const user = allUsers.find(u => u.id === uid);
+        if (!user) {
+            alert('Kullanıcı bulunamadı!');
+            return;
+        }
+
+        editingUsername.textContent = user.username || user.email;
+        editUserUid.value = user.id;
+        editUsername.value = user.username || '';
+        editEmail.value = user.email;
+        editBalance.value = user.balance.toFixed(2);
+        editCompletedTasks.value = user.completedTasks;
+        editIsAdmin.checked = user.isAdmin;
+        
+        userEditPanel.style.display = 'block';
+        editUserMessage.textContent = ''; // Mesajı temizle
+        editUsername.disabled = user.isAdmin; // Admin kendi kullanıcı adını değiştirmesin
+    }
+
+    cancelEditBtn.addEventListener('click', () => {
+        userEditPanel.style.display = 'none';
+    });
+
+    editUserForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const uid = editUserUid.value;
+        const newUsername = editUsername.value.trim().toLowerCase();
+        const newBalance = parseFloat(editBalance.value);
+        const newCompletedTasks = parseInt(editCompletedTasks.value);
+        const newIsAdmin = editIsAdmin.checked;
+
+        editUserMessage.textContent = 'Kaydediliyor...';
+        editUserMessage.className = 'info-message';
+
+        try {
+            const userDocRef = db.collection('users').doc(uid);
+            const batch = db.batch();
+            const originalUser = allUsers.find(u => u.id === uid);
+
+            // Kullanıcı adı değiştiyse benzersizliği kontrol et
+            if (originalUser.username !== newUsername) {
+                if (!/^[a-zA-Z0-9_]{3,15}$/.test(newUsername)) {
+                    throw new Error('Kullanıcı adı 3-15 karakter uzunluğunda olmalı ve sadece harf, rakam veya _ içerebilir.');
+                }
+
+                const usernameDocRef = db.collection('usernames').doc(newUsername);
+                const usernameDoc = await usernameDocRef.get();
+                if (usernameDoc.exists) {
+                    throw new Error('Bu kullanıcı adı zaten alınmış.');
+                }
+                
+                // Eski kullanıcı adını usernames koleksiyonundan sil
+                if (originalUser.username) {
+                    batch.delete(db.collection('usernames').doc(originalUser.username));
+                }
+                // Yeni kullanıcı adını usernames koleksiyonuna ekle
+                batch.set(usernameDocRef, { uid: uid });
+            }
+
+
+            batch.update(userDocRef, {
+                username: newUsername,
+                balance: newBalance,
+                completedTasks: newCompletedTasks,
+                isAdmin: newIsAdmin
+            });
+
+            await batch.commit();
+
+            editUserMessage.textContent = 'Kullanıcı başarıyla güncellendi!';
+            editUserMessage.className = 'success-message';
+            setTimeout(() => {
+                userEditPanel.style.display = 'none';
+                loadUsers(); // Listeyi yeniden yükle
+            }, 1500);
+
+        } catch (error) {
+            console.error("Kullanıcı güncelleme hatası: ", error);
+            editUserMessage.textContent = `Hata: ${error.message}`;
+            editUserMessage.className = 'error-message';
+        }
+    });
+
+    deleteUserBtn.addEventListener('click', async () => {
+        const uidToDelete = editUserUid.value;
+        const userToDelete = allUsers.find(u => u.id === uidToDelete);
+
+        if (!userToDelete) {
+            alert("Silinecek kullanıcı bulunamadı.");
+            return;
+        }
+
+        if (confirm(`"${userToDelete.username || userToDelete.email}" adlı kullanıcıyı silmek istediğinize emin misiniz? Bu işlem geri alınamaz!`)) {
+            editUserMessage.textContent = 'Siliniyor...';
+            editUserMessage.className = 'info-message';
+            try {
+                // Firestore verilerini sil
+                const batch = db.batch();
+                batch.delete(db.collection('users').doc(uidToDelete));
+                if (userToDelete.username) {
+                    batch.delete(db.collection('usernames').doc(userToDelete.username));
+                }
+                await batch.commit();
+
+                // Auth kullanıcısını sil (sunucu tarafında veya Cloud Functions ile daha güvenli)
+                // Tarayıcıdan doğrudan kullanıcı silme işlemi güvenlik riski taşıdığı için genellikle önerilmez.
+                // Firebase Admin SDK kullanılarak sunucu tarafında yapılmalıdır.
+                // Örnek olarak burada gösteriliyor, gerçek projede dikkatli kullanılmalı.
+                
+                const userAuth = firebase.auth().currentUser;
+                if (userAuth && userAuth.uid === uidToDelete) {
+                    await userAuth.delete(); // Eğer admin kendini siliyorsa bu sorun çıkarır.
+                } else {
+                    // Diğer kullanıcıları silmek için bir Cloud Function tetiklemek daha iyidir.
+                    // Şimdilik sadece Firestore'dan siliyoruz.
+                    console.warn("Frontend'den başka bir kullanıcıyı silmek doğrudan desteklenmez, Cloud Function kullanın.");
+                }
+
+                editUserMessage.textContent = 'Kullanıcı başarıyla silindi!';
+                editUserMessage.className = 'success-message';
+                setTimeout(() => {
+                    userEditPanel.style.display = 'none';
+                    loadUsers();
+                }, 1500);
+
+            } catch (error) {
+                console.error("Kullanıcı silme hatası: ", error);
+                editUserMessage.textContent = `Hata: ${error.message}`;
+                editUserMessage.className = 'error-message';
+            }
+        }
+    });
+
+    // SSS Yönetimi
+    addFaqForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const question = document.getElementById('faq-question').value;
+        const answer = document.getElementById('faq-answer').value;
+
+        addFaqMessage.textContent = 'Ekleniyor...';
+        addFaqMessage.className = 'info-message';
+
+        try {
+            await db.collection('faqs').add({
+                question,
+                answer,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            addFaqMessage.textContent = 'SSS başarıyla eklendi!';
+            addFaqMessage.className = 'success-message';
+            addFaqForm.reset();
+            loadFaqs();
+            setTimeout(() => addFaqMessage.textContent = '', 3000);
+        } catch (error) {
+            console.error("SSS ekleme hatası: ", error);
+            addFaqMessage.textContent = 'Hata: SSS eklenemedi.';
+            addFaqMessage.className = 'error-message';
+        }
+    });
+
+    async function loadFaqs() {
+        faqManagementBody.innerHTML = '<tr><td colspan="3">Yükleniyor...</td></tr>';
+        try {
+            const snapshot = await db.collection('faqs').orderBy('createdAt', 'desc').get();
+            faqManagementBody.innerHTML = '';
+            if (snapshot.empty) {
+                faqManagementBody.innerHTML = '<tr><td colspan="3">SSS bulunamadı.</td></tr>';
+                return;
+            }
+            snapshot.forEach(doc => {
+                const faq = doc.data();
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${faq.question}</td>
+                    <td>${faq.answer}</td>
+                    <td>
+                        <button class="btn-small btn-danger delete-faq-btn" data-id="${doc.id}">Sil</button>
+                    </td>
+                `;
+                faqManagementBody.appendChild(row);
+            });
+
+            document.querySelectorAll('.delete-faq-btn').forEach(button => {
+                button.addEventListener('click', async (e) => {
+                    const faqId = e.target.dataset.id;
+                    if (confirm('Bu SSS öğesini silmek istediğinize emin misiniz?')) {
+                        try {
+                            await db.collection('faqs').doc(faqId).delete();
+                            loadFaqs(); // Listeyi yeniden yükle
+                        } catch (error) {
+                            console.error("SSS silinirken hata oluştu: ", error);
+                            alert("SSS silinirken bir hata oluştu.");
+                        }
+                    }
+                });
+            });
+
+        } catch (error) {
+            console.error("SSS yüklenirken hata oluştu: ", error);
+            faqManagementBody.innerHTML = '<tr><td colspan="3">SSS yüklenemedi.</td></tr>';
+        }
+    }
+
     logoutBtn.addEventListener('click', () => auth.signOut());
 });
+
+
+

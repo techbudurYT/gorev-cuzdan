@@ -1,3 +1,4 @@
+
 document.addEventListener('DOMContentLoaded', () => {
     const walletBalance = document.getElementById('wallet-balance');
     const transactionHistory = document.getElementById('transaction-history');
@@ -24,7 +25,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 adminPanelLink.style.display = 'block';
             }
 
-            // İşlem geçmişini (tamamlanan görevleri) yükle
             loadTransactionHistory(userData.completedTaskIds || []);
         } else {
             console.error("Kullanıcı verisi bulunamadı!");
@@ -39,8 +39,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            // Firestore 'in' sorguları 10 elemanla sınırlıdır. Bu yüzden tüm görevleri çekip filtrelemek daha basit olabilir.
-            // Büyük projelerde bu yaklaşım optimize edilmelidir.
+            // Task IDs'nin benzersiz olduğundan ve sıranın önemli olduğundan emin olalım
+            const uniqueTaskIds = [...new Set(taskIds)]; // Yinelenen ID'leri kaldır
+
+            // Firebase 'in' sorguları 10 elemanla sınırlıdır.
+            // Eğer taskIds çok büyük olursa birden fazla sorgu yapmak gerekir.
+            // Basitlik adına, şimdilik tüm görevleri çekip filtreleyelim.
             const tasksSnapshot = await db.collection('tasks').get();
             const allTasks = {};
             tasksSnapshot.forEach(doc => {
@@ -48,14 +52,22 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             transactionHistory.innerHTML = '';
-            // Görevleri en yeniden eskiye göstermek için ID listesini ters çevir
-            taskIds.reverse().forEach(taskId => {
+            
+            // Kullanıcının tamamladığı görevlerin kaydını ters sırada göster (en yeni en üstte)
+            // Bu, 'completedTaskIds' dizisinin sırasına göre yapılır, bu diziye eklenme sırası önemli olmalıdır.
+            const reversedTaskIds = [...taskIds].reverse(); 
+
+            reversedTaskIds.forEach(taskId => {
                 const task = allTasks[taskId];
                 if (task) {
                     const li = document.createElement('li');
+                    const timestamp = task.completedAt ? new Date(task.completedAt.toDate()).toLocaleString() : 'Tarih Yok';
                     li.innerHTML = `
                         <span>${task.title}</span>
-                        <span class="history-reward">+${task.reward.toFixed(2)} ₺</span>
+                        <div>
+                            <span class="history-reward">+${task.reward.toFixed(2)} ₺</span>
+                            <span class="history-date">${timestamp}</span>
+                        </div>
                     `;
                     transactionHistory.appendChild(li);
                 }

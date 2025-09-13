@@ -1,8 +1,13 @@
-// register.js
 document.addEventListener('DOMContentLoaded', () => {
     const registerForm = document.getElementById('register-form');
     const errorMessage = document.getElementById('error-message');
     const submitButton = registerForm.querySelector('button[type="submit"]');
+
+    auth.onAuthStateChanged(user => {
+        if (user) {
+            window.location.href = 'my-tasks.html';
+        }
+    });
 
     registerForm.addEventListener('submit', async (e) => {
         e.preventDefault();

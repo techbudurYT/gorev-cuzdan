@@ -1,3 +1,4 @@
+
 document.addEventListener('DOMContentLoaded', () => {
     const supportForm = document.getElementById('support-form');
     const formMessage = document.getElementById('form-message');

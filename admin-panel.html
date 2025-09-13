@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="tr">
 <head>
@@ -28,34 +29,133 @@
             <header class="main-header">
                 <h1>Admin Paneli</h1>
             </header>
-            <div class="admin-form-container">
-                <form id="add-task-form" class="auth-form admin-form">
-                    <h3>Yeni Görev Ekle</h3>
+            <div class="admin-sections">
+                <div class="admin-section">
+                    <h2>Yeni Görev Ekle</h2>
+                    <form id="add-task-form" class="admin-form">
+                        <div class="input-group">
+                            <label for="task-title">Görev Başlığı</label>
+                            <input type="text" id="task-title" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="task-description">Görev Açıklaması</label>
+                            <textarea id="task-description" rows="3" required></textarea>
+                        </div>
+                        <div class="input-group">
+                            <label for="task-reward">Ödül (₺)</label>
+                            <input type="number" id="task-reward" step="0.01" min="0" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="task-stock">Stok (Tamamlanma Limiti)</label>
+                            <input type="number" id="task-stock" min="0" value="0" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="task-proof-count">Kanıt Dosyası Sayısı</label>
+                            <input type="number" id="task-proof-count" min="1" value="1" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="task-icon">Görev İkonu</label>
+                            <select id="task-icon">
+                                <option value="google-maps.png">Google Maps</option>
+                                <option value="instagram.png">Instagram</option>
+                                <option value="telegram.png">Telegram</option>
+                                <option value="youtube.png">YouTube</option>
+                                <option value="other.png">Diğer</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn-primary">Görevi Ekle</button>
+                        <p id="add-task-message" class="success-message"></p>
+                    </form>
+                </div>
+
+                <div class="admin-section">
+                    <h2>Kullanıcıları Yönet</h2>
                     <div class="input-group">
-                        <label for="task-title">Görev Başlığı</label>
-                        <input type="text" id="task-title" required>
+                        <input type="text" id="user-search" placeholder="Kullanıcı adı veya e-posta ile ara...">
                     </div>
-                    <div class="input-group">
-                        <label for="task-description">Görev Açıklaması</label>
-                        <textarea id="task-description" rows="3" required></textarea>
+                    <div class="user-list-container">
+                        <table class="leaderboard-table">
+                            <thead>
+                                <tr>
+                                    <th>Kullanıcı Adı</th>
+                                    <th>E-posta</th>
+                                    <th>Bakiye</th>
+                                    <th>Tam. Görev</th>
+                                    <th>Admin</th>
+                                    <th>Aksiyonlar</th>
+                                </tr>
+                            </thead>
+                            <tbody id="user-management-body">
+                                <!-- Kullanıcılar buraya dinamik olarak yüklenecek -->
+                            </tbody>
+                        </table>
+                        <p id="user-management-message" class="error-message"></p>
                     </div>
-                    <div class="input-group">
-                        <label for="task-reward">Ödül (₺)</label>
-                        <input type="number" id="task-reward" step="0.01" min="0" required>
+                    
+                    <div id="user-edit-panel" class="user-edit-panel" style="display:none;">
+                        <h3>Kullanıcı Düzenle: <span id="editing-username"></span></h3>
+                        <form id="edit-user-form" class="admin-form">
+                            <input type="hidden" id="edit-user-uid">
+                            <div class="input-group">
+                                <label for="edit-username">Kullanıcı Adı</label>
+                                <input type="text" id="edit-username" required>
+                            </div>
+                            <div class="input-group">
+                                <label for="edit-email">E-posta</label>
+                                <input type="email" id="edit-email" required disabled>
+                            </div>
+                            <div class="input-group">
+                                <label for="edit-balance">Bakiye</label>
+                                <input type="number" id="edit-balance" step="0.01" required>
+                            </div>
+                            <div class="input-group">
+                                <label for="edit-completed-tasks">Tamamlanan Görevler</label>
+                                <input type="number" id="edit-completed-tasks" min="0" required>
+                            </div>
+                            <div class="input-group checkbox-group">
+                                <input type="checkbox" id="edit-is-admin">
+                                <label for="edit-is-admin">Admin Yetkisi Ver</label>
+                            </div>
+                            <button type="submit" class="btn-primary">Kaydet</button>
+                            <button type="button" class="btn-secondary" id="cancel-edit">İptal</button>
+                            <button type="button" class="btn-danger" id="delete-user-btn">Kullanıcıyı Sil</button>
+                            <p id="edit-user-message" class="success-message"></p>
+                        </form>
                     </div>
-                    <div class="input-group">
-                        <label for="task-icon">Görev İkonu</label>
-                        <select id="task-icon">
-                            <option value="google-maps.png">Google Maps</option>
-                            <option value="instagram.png">Instagram</option>
-                            <option value="telegram.png">Telegram</option>
-                            <option value="youtube.png">YouTube</option>
-                            <option value="other.png">Diğer</option>
-                        </select>
+                </div>
+
+                <div class="admin-section">
+                    <h2>SSS Yönetimi</h2>
+                    <form id="add-faq-form" class="admin-form">
+                        <h3>Yeni SSS Ekle</h3>
+                        <div class="input-group">
+                            <label for="faq-question">Soru</label>
+                            <input type="text" id="faq-question" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="faq-answer">Cevap</label>
+                            <textarea id="faq-answer" rows="4" required></textarea>
+                        </div>
+                        <button type="submit" class="btn-primary">SSS Ekle</button>
+                        <p id="add-faq-message" class="success-message"></p>
+                    </form>
+                    <div class="faq-list-container">
+                        <table class="leaderboard-table">
+                            <thead>
+                                <tr>
+                                    <th>Soru</th>
+                                    <th>Cevap</th>
+                                    <th>Aksiyonlar</th>
+                                </tr>
+                            </thead>
+                            <tbody id="faq-management-body">
+                                <!-- SSS öğeleri buraya dinamik olarak yüklenecek -->
+                            </tbody>
+                        </table>
+                        <p id="faq-management-message" class="error-message"></p>
                     </div>
-                    <button type="submit" class="btn-primary">Görevi Ekle</button>
-                    <p id="success-message" class="success-message"></p>
-                </form>
+                </div>
+
             </div>
         </main>
     </div>
@@ -64,7 +164,8 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
-
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+    
     <!-- Proje Dosyaları -->
     <script src="firebase-config.js"></script>
     <script src="admin.js"></script>

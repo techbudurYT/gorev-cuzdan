@@ -13,6 +13,8 @@
     --error-color: #F44336;
     --gradient-start: #6a11cb;
     --gradient-end: #2575fc;
+    --info-color: #2196F3;
+    --danger-color: #DC3545;
 }
 
 * {
@@ -59,9 +61,12 @@ body {
 }
 .btn-secondary {
     border: 1px solid var(--primary-color);
+    background-color: transparent;
+    color: var(--primary-color);
 }
 .btn-secondary:hover {
     background: var(--primary-color);
+    color: var(--text-primary);
 }
 .btn-primary-landing {
     background: linear-gradient(to right, var(--gradient-start), var(--primary-color));
@@ -177,6 +182,13 @@ body {
     transition: all 0.3s ease;
     margin-top: 10px;
 }
+.btn-primary.btn-small {
+    padding: 8px 15px;
+    font-size: 0.9rem;
+    width: auto;
+    margin-top: 0;
+}
+
 
 .btn-primary:hover:not(:disabled) {
     opacity: 0.9;
@@ -188,6 +200,25 @@ body {
     cursor: not-allowed;
 }
 
+.btn-danger {
+    background-color: var(--danger-color);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    margin-top: 10px;
+}
+.btn-danger:hover {
+    background-color: #bd2130;
+}
+.btn-danger.btn-small {
+    padding: 8px 15px;
+    font-size: 0.9rem;
+    width: auto;
+    margin-top: 0;
+}
 
 .form-switch {
     text-align: center;
@@ -214,6 +245,12 @@ body {
     margin-top: 15px;
     min-height: 20px;
 }
+.info-message {
+    color: var(--info-color);
+    text-align: center;
+    margin-top: 15px;
+    min-height: 20px;
+}
 
 /* --- Ana Uygulama Düzeni --- */
 .app-layout {
@@ -229,6 +266,8 @@ body {
     flex-direction: column;
     position: fixed;
     transition: width 0.3s ease;
+    box-shadow: 2px 0 10px rgba(0,0,0,0.5);
+    z-index: 1000;
 }
 
 .sidebar-header h3 {
@@ -281,11 +320,16 @@ body {
     align-items: center;
     margin-bottom: 30px;
     flex-wrap: wrap;
+    gap: 20px;
+}
+.main-header h1 {
+    font-size: 2.2rem;
 }
 
 .stats-container {
     display: flex;
     gap: 20px;
+    flex-wrap: wrap;
 }
 
 .stat-card {
@@ -295,6 +339,7 @@ body {
     padding: 15px 20px;
     border-radius: 10px;
     border: 1px solid var(--border-color);
+    min-width: 200px;
 }
 
 .stat-card i {
@@ -314,15 +359,25 @@ body {
 }
 
 /* --- Görev Listesi --- */
+.task-list-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+}
+#task-list {
+    display: contents; /* Grid layout'un çocuklarını doğrudan kullanır */
+}
+
 .task-card {
     display: flex;
     align-items: center;
     background-color: var(--dark-card-bg);
     padding: 20px;
     border-radius: 10px;
-    margin-bottom: 15px;
     border: 1px solid var(--border-color);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
+    flex-direction: row; /* Default olarak yan yana */
+    text-align: left;
 }
 
 .task-card:hover {
@@ -334,6 +389,7 @@ body {
     width: 50px;
     height: 50px;
     margin-right: 20px;
+    flex-shrink: 0;
 }
 
 .task-info {
@@ -347,13 +403,26 @@ body {
 
 .task-info p {
     color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-bottom: 5px;
+}
+.task-stock-info {
+    font-size: 0.85rem;
+    color: var(--info-color);
+    font-weight: 500;
 }
 
+.task-reward {
+    margin-left: auto; /* Sağ tarafa yasla */
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
 .task-reward span {
     font-size: 1.2rem;
     font-weight: 600;
     color: var(--success-color);
-    margin: 0 20px;
+    margin-right: 15px; /* Butondan ayırmak için */
 }
 
 .btn-task {
@@ -365,9 +434,10 @@ body {
     cursor: pointer;
     font-weight: 500;
     transition: background-color 0.3s;
+    flex-shrink: 0;
 }
 
-.btn-task:hover {
+.btn-task:hover:not(:disabled) {
     background-color: var(--primary-hover-color);
 }
 
@@ -375,6 +445,127 @@ body {
     background-color: #555;
     color: #999;
     cursor: not-allowed;
+}
+
+
+/* --- Görev Detay Sayfası --- */
+.task-detail-card {
+    background: var(--dark-card-bg);
+    padding: 30px;
+    border-radius: 15px;
+    max-width: 800px;
+    margin: 30px auto;
+    border: 1px solid var(--border-color);
+    text-align: center;
+}
+.task-detail-card h2 {
+    font-size: 2.5rem;
+    margin-bottom: 15px;
+    background: linear-gradient(to right, var(--primary-color), var(--gradient-end));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+.task-detail-card img {
+    width: 80px;
+    height: 80px;
+    margin-bottom: 20px;
+}
+.task-detail-card p {
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+    margin-bottom: 25px;
+}
+.task-detail-stats {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+}
+.detail-stat {
+    background-color: var(--dark-bg);
+    padding: 15px 25px;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    text-align: center;
+}
+.detail-stat span {
+    display: block;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-bottom: 5px;
+}
+.detail-stat strong {
+    font-size: 1.5rem;
+    color: var(--success-color);
+}
+.detail-stat strong.stock {
+    color: var(--info-color);
+}
+
+.proof-upload-section {
+    margin-top: 30px;
+    border-top: 1px solid var(--border-color);
+    padding-top: 30px;
+}
+.proof-upload-section h4 {
+    margin-bottom: 15px;
+    font-size: 1.3rem;
+}
+.file-upload-input {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    background-color: var(--dark-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-primary);
+    cursor: pointer;
+}
+.file-upload-input::-webkit-file-upload-button {
+    visibility: hidden;
+}
+.file-upload-input::before {
+    content: 'Dosya Seç';
+    display: inline-block;
+    background: linear-gradient(to right, var(--gradient-start), var(--primary-color));
+    color: white;
+    border-radius: 8px;
+    padding: 8px 16px;
+    outline: none;
+    white-space: nowrap;
+    -webkit-user-select: none;
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 0.9rem;
+    margin-right: 10px;
+}
+.file-upload-input:hover::before {
+    opacity: 0.9;
+}
+.file-upload-input:active::before {
+    background: var(--primary-hover-color);
+}
+.file-list {
+    list-style: none;
+    margin-bottom: 20px;
+    text-align: left;
+    color: var(--text-secondary);
+}
+.file-list li {
+    background-color: #2a2a2a;
+    padding: 8px 15px;
+    border-radius: 5px;
+    margin-bottom: 5px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.file-list li .remove-file {
+    color: var(--error-color);
+    cursor: pointer;
+    margin-left: 10px;
 }
 
 
@@ -412,6 +603,8 @@ body {
     display: flex;
     justify-content: space-around;
     margin-bottom: 30px;
+    flex-wrap: wrap;
+    gap: 15px;
 }
 
 .profile-stat span {
@@ -429,9 +622,24 @@ body {
 }
 
 /* --- Admin Paneli --- */
-.admin-form-container {
-    max-width: 700px;
-    margin: 0 auto;
+.admin-sections {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 30px;
+}
+.admin-section {
+    background: var(--dark-card-bg);
+    padding: 30px;
+    border-radius: 15px;
+    border: 1px solid var(--border-color);
+}
+.admin-section h2 {
+    font-size: 1.8rem;
+    margin-bottom: 25px;
+    text-align: center;
+    background: linear-gradient(to right, var(--primary-color), var(--gradient-end));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 .admin-form p {
     color: var(--text-secondary);
@@ -439,10 +647,68 @@ body {
     margin-bottom: 20px;
 }
 .admin-form {
-    background: var(--dark-card-bg);
-    padding: 30px;
+    display: flex;
+    flex-direction: column;
+}
+.admin-form .btn-primary, .admin-form .btn-secondary, .admin-form .btn-danger {
+    width: 100%;
+    margin-top: 10px;
+}
+.admin-form .btn-secondary {
+    background-color: #444;
+    color: white;
+    border: none;
+}
+.admin-form .btn-secondary:hover {
+    background-color: #666;
+}
+
+.user-list-container, .faq-list-container {
+    margin-top: 30px;
+    overflow-x: auto;
+}
+.user-list-container table, .faq-list-container table {
+    min-width: 600px; /* Küçük ekranlarda kaydırma çubuğu için */
+}
+
+.checkbox-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 15px;
+    margin-bottom: 15px;
+}
+.checkbox-group input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    accent-color: var(--primary-color);
+}
+.checkbox-group label {
+    margin-bottom: 0;
+    cursor: pointer;
+}
+
+.user-edit-panel {
+    background: var(--dark-bg);
+    padding: 25px;
     border-radius: 10px;
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--primary-color);
+    margin-top: 20px;
+    animation: fadeIn 0.3s ease-out;
+}
+.user-edit-panel h3 {
+    text-align: center;
+    margin-bottom: 20px;
+    color: var(--primary-color);
+}
+.user-edit-panel .admin-form {
+    padding: 0;
+}
+.user-edit-panel .admin-form .btn-primary,
+.user-edit-panel .admin-form .btn-secondary,
+.user-edit-panel .admin-form .btn-danger {
+    margin-top: 10px;
 }
 
 /* --- Liderlik Tablosu --- */
@@ -452,19 +718,21 @@ body {
     background-color: var(--dark-card-bg);
     border-radius: 10px;
     overflow: hidden;
+    margin-top: 20px;
 }
 .leaderboard-table th, .leaderboard-table td {
     padding: 15px 20px;
     text-align: left;
+    border-bottom: 1px solid var(--border-color);
 }
 .leaderboard-table thead {
     background-color: var(--dark-bg);
 }
-.leaderboard-table tbody tr {
-    border-bottom: 1px solid var(--border-color);
-}
 .leaderboard-table tbody tr:last-child {
     border-bottom: none;
+}
+.leaderboard-table tbody tr:hover {
+    background-color: #2a2a2a;
 }
 .rank {
     font-weight: bold;
@@ -481,12 +749,17 @@ body {
 .rank-3 { background-color: #CD7F32; color: #333; } /* Bronz */
 
 /* --- Cüzdan --- */
+.wallet-container {
+    max-width: 800px;
+    margin: auto;
+}
 .balance-card {
     background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
     padding: 30px;
     border-radius: 15px;
     text-align: center;
     margin-bottom: 30px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.4);
 }
 .balance-card h4 {
     font-size: 1.2rem;
@@ -502,6 +775,7 @@ body {
     background-color: var(--dark-card-bg);
     padding: 20px;
     border-radius: 10px;
+    border: 1px solid var(--border-color);
 }
 .history-card h4 { margin-bottom: 15px; }
 .history-card ul { list-style: none; }
@@ -510,9 +784,11 @@ body {
     justify-content: space-between;
     padding: 15px 0;
     border-bottom: 1px solid var(--border-color);
+    align-items: center;
 }
 .history-card li:last-child { border-bottom: none; }
-.history-reward { color: var(--success-color); font-weight: 500; }
+.history-reward { color: var(--success-color); font-weight: 500; font-size: 1.1rem;}
+.history-date { color: var(--text-secondary); font-size: 0.85rem;}
 
 
 /* --- SSS --- */
@@ -525,6 +801,7 @@ body {
     margin-bottom: 10px;
     border-radius: 8px;
     border: 1px solid var(--border-color);
+    overflow: hidden;
 }
 .faq-question {
     width: 100%;
@@ -538,6 +815,11 @@ body {
     justify-content: space-between;
     align-items: center;
     cursor: pointer;
+    font-weight: 500;
+    transition: background-color 0.3s;
+}
+.faq-question:hover {
+    background-color: #2a2a2a;
 }
 .faq-question i {
     transition: transform 0.3s ease;
@@ -548,17 +830,28 @@ body {
 .faq-answer {
     max-height: 0;
     overflow: hidden;
-    transition: max-height 0.3s ease;
+    transition: max-height 0.4s ease-out; /* Daha yumuşak bir geçiş */
 }
 .faq-answer p {
     padding: 0 20px 20px;
     color: var(--text-secondary);
+    line-height: 1.8;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 /* --- Mobil Uyum --- */
 @media (max-width: 992px) {
     .auth-box {
         flex-direction: column;
+    }
+    .auth-header, .auth-form {
+        flex-basis: 100%;
+        padding: 30px;
     }
     
     .app-layout {
@@ -573,11 +866,14 @@ body {
         align-items: center;
         padding: 5px;
         overflow-x: auto;
+        justify-content: flex-start;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.5);
     }
     
     .sidebar-header { display: none; }
-    .sidebar ul { display: flex; flex-direction: row; }
-    .sidebar ul li a { padding: 10px; }
+    .sidebar ul { display: flex; flex-direction: row; flex-wrap: nowrap; }
+    .sidebar ul li { flex-shrink: 0; }
+    .sidebar ul li a { padding: 10px 15px; margin-bottom: 0; }
     .sidebar ul li a i { margin: 0; }
     .sidebar ul li a span { display: none; }
     
@@ -588,31 +884,81 @@ body {
 
     .main-header {
         flex-direction: column;
-        gap: 20px;
         align-items: flex-start;
+        gap: 15px;
     }
-    .hero-section h2 { font-size: 2.5rem; }
-}
-
-@media (max-width: 768px) {
+    .main-header h1 {
+        font-size: 1.8rem;
+    }
     .stats-container {
         flex-direction: column;
         width: 100%;
         gap: 10px;
     }
+    .stat-card {
+        min-width: unset;
+        width: 100%;
+    }
+
     .task-card {
         flex-direction: column;
+        align-items: center;
         text-align: center;
         gap: 15px;
     }
-    .task-icon { margin: 0; }
-    .task-reward { margin: 0; }
+    .task-icon { margin: 0 0 10px 0; }
+    .task-info { text-align: center; }
+    .task-reward { margin: 10px 0 0 0; }
+    .btn-task { width: 100%; }
 
-    .sidebar { justify-content: flex-start; }
-    .sidebar ul { gap: 5px; }
-    .sidebar ul li a {
+    .profile-card {
+        padding: 30px;
+    }
+    .profile-stats {
         flex-direction: column;
-        font-size: 0.7rem;
+        gap: 15px;
+    }
+    .profile-stat strong {
+        font-size: 1.5rem;
+    }
+
+    .admin-sections {
+        grid-template-columns: 1fr;
+    }
+    .user-list-container table, .faq-list-container table {
+        min-width: 500px;
+    }
+    
+    .task-detail-card {
+        padding: 20px;
+    }
+    .task-detail-card h2 {
+        font-size: 2rem;
+    }
+    .task-detail-stats {
+        flex-direction: column;
+        gap: 20px;
+    }
+    .detail-stat {
+        width: 100%;
+    }
+
+    .history-card li {
+        flex-direction: column;
+        align-items: flex-start;
         gap: 5px;
+    }
+}
+
+@media (max-width: 768px) {
+    .hero-section h2 { font-size: 2rem; }
+    .hero-section p { font-size: 1rem; }
+    .btn-hero { padding: 12px 30px; font-size: 1rem; }
+
+    .sidebar ul li a {
+        padding: 8px 10px;
+    }
+    .sidebar ul li a span {
+        display: none; /* Daha küçük ekranlarda metinleri gizle */
     }
 }

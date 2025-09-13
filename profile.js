@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (doc.exists) {
             const userData = doc.data();
-            userDisplayName.textContent = userData.username || userData.email; // Kullanıcı adı varsa onu, yoksa e-postayı göster
+            userDisplayName.textContent = userData.username || userData.email;
             profileBalanceDisplay.textContent = `${userData.balance.toFixed(2)} ₺`;
             profileTasksCompletedDisplay.textContent = userData.completedTasks;
             
