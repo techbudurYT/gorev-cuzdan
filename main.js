@@ -180,6 +180,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 handleInputLabels();
             }
         }
+    }, (error) => {
+        // Firebase Auth'tan gelen hataları burada yakala
+        console.error("onAuthStateChanged hatası:", error);
+        // Bu hatayı kullanıcıya göstermek yerine, sessizce ele al veya geliştirme konsoluna yaz.
+        // Bağlantı kurulamaması gibi hatalar genellikle tarayıcı uzantılarından kaynaklanabilir
+        // ve uygulamanın çalışmasını engellememelidir.
+        hideLoader(); // Hata olsa bile yükleyiciyi gizle
+        if (pageId === 'page-login' || pageId === 'page-register') {
+            handleInputLabels();
+        } else {
+            // Auth olmayan sayfalarda, oturum açmamış gibi login'e yönlendir.
+            window.location.replace('login.html');
+        }
     });
 
     if (pageId === 'page-login') initLoginPage();
