@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail, updateProfile, updateEmail, updatePassword } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
-import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, query, where, orderBy, getDocs, runTransaction, addDoc, serverTimestamp, updateDoc, limit, deleteDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail, updateProfile } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, query, where, orderBy, getDocs, runTransaction, addDoc, serverTimestamp, updateDoc, limit } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyBN85bxThpJYifWAvsS0uqPD0C9D55uPpM",
@@ -15,7 +15,7 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-const IMGBB_API_KEY = "84a7c0a54294a6e8ea2ffc9bab240719";
+const IMGBB_API_KEY = "84a7c0a54294a6e8ea2ffc9bab240719"; // Lütfen bu anahtarı kendi ImageBB API anahtarınızla değiştirin!
 const PREMIUM_MONTHLY_FEE = 50;
 const PREMIUM_BONUS_PERCENTAGE = 0.35;
 
@@ -58,7 +58,6 @@ function hideLoader() {
         loader.style.display = 'none';
     }
 }
-
 
 function handleInputLabels() {
     document.querySelectorAll('.input-group.spark input, .input-group.spark textarea').forEach(input => {
@@ -103,7 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const pageId = document.body.id;
 
     if (pageId.startsWith('page-admin')) {
-        // Admin sayfaları admin.js tarafından yönetilecek
+        // Admin sayfaları admin.js tarafından yönetilecek, bu dosya onları atlar.
         return;
     }
 
@@ -118,7 +117,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!userDoc.exists()) {
                 // Veritabanı belgesi yoksa oluştur. Bu, yeni kayıt olmuş bir kullanıcı için çalışacaktır.
                 await setDoc(userRef, {
-                    username: user.displayName || user.email.split('@')[0], // Kayıtta girilen adı kullan
+                    username: user.displayName || user.email.split('@')[0],
                     email: user.email,
                     balance: 0,
                     isAdmin: false,
@@ -126,23 +125,32 @@ document.addEventListener('DOMContentLoaded', () => {
                     premiumExpirationDate: null,
                     lastPremiumPaymentDate: null,
                     createdAt: serverTimestamp(),
-                    lastLoginAt: serverTimestamp(),
+                    lastLoginAt: serverTimestamp(), // İlk kez oturum açıldığında ayarla
                     totalCompletedTasks: 0,
                     totalEarned: 0
                 });
-                hideLoader(); // Yeni kullanıcı oluşturulduktan sonra loader'ı gizle
+                console.log("Yeni kullanıcı Firestore'a kaydedildi:", user.uid);
+                // Yeni kullanıcı oluşturulduktan sonra loader'ı gizle ve ana içeriği göster
+                hideLoader();
+                handleInputLabels();
+                if (isAuthPage) { // Eğer kayıt sayfasındaysa, index'e yönlendir
+                    window.location.replace('index.html');
+                }
+                return; // Diğer işlemleri yapma, sayfa yükleme fonksiyonları onAuthStateChanged'in bir sonraki tetiklemesinde çalışacak
             } else {
                 // Belge varsa, giriş bilgilerini ve eksik alanları güncelle.
                 const userData = userDoc.data();
                 const updates = {};
                 
-                updates.lastLoginAt = serverTimestamp(); // Update last login time on every login
+                updates.lastLoginAt = serverTimestamp(); // Her oturum açışta son giriş zamanını güncelle
 
                 if (typeof userData.isPremium === 'undefined') {
                     updates.isPremium = false;
                     updates.premiumExpirationDate = null;
                     updates.lastPremiumPaymentDate = null;
                 }
+                if (typeof userData.totalCompletedTasks === 'undefined') updates.totalCompletedTasks = 0;
+                if (typeof userData.totalEarned === 'undefined') updates.totalEarned = 0;
 
                 if (Object.keys(updates).length > 0) {
                     await updateDoc(userRef, updates);
@@ -150,8 +158,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             if (isAuthPage) {
+                // Kullanıcı Auth oldu ve auth sayfasında, ana sayfaya yönlendir
                 window.location.replace('index.html');
             } else {
+                // Auth oldu ve Auth olmayan bir sayfada, o sayfanın verilerini yükle
                 switch (pageId) {
                     case 'page-index': await loadIndexPageData(user); break;
                     case 'page-profile': await loadProfilePageData(user); break;
@@ -165,7 +175,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     case 'page-faq': await loadFaqPageData(); break;
                     case 'page-premium': await loadPremiumPageData(user); break;
                     case 'page-leaderboard': await loadLeaderboardPageData(user); break;
-                    default: break; // unknown page, do nothing or redirect
+                    default: break;
                 }
                 hideLoader();
                 handleInputLabels();
@@ -174,6 +184,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Kullanıcı oturum açmamışsa
             if (!isAuthPage) {
                 // Eğer mevcut sayfa bir kimlik doğrulama sayfası değilse, login.html'ye yönlendir
+                console.log("Kullanıcı oturum açmamış, giriş sayfasına yönlendiriliyor.");
                 window.location.replace('login.html');
             } else {
                 // Eğer mevcut sayfa bir kimlik doğrulama sayfasıysa (login veya register), loader'ı gizle ve formları göster
@@ -182,20 +193,17 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     }, (error) => {
-        // Firebase Auth'tan gelen hataları burada yakala
         console.error("onAuthStateChanged hatası:", error);
-        // Bu hatayı kullanıcıya göstermek yerine, sessizce ele al veya geliştirme konsoluna yaz.
-        // Bağlantı kurulamaması gibi hatalar genellikle tarayıcı uzantılarından kaynaklanabilir
-        // ve uygulamanın çalışmasını engellememelidir.
-        hideLoader(); // Hata olsa bile yükleyiciyi gizle
+        hideLoader();
+        // Hata durumunda da auth sayfalarını göster
         if (pageId === 'page-login' || pageId === 'page-register') {
             handleInputLabels();
         } else {
-            // Auth olmayan sayfalarda, oturum açmamış gibi login'e yönlendir.
             window.location.replace('login.html');
         }
     });
 
+    // Sayfa yüklenmeden önce çalışacak init fonksiyonları
     if (pageId === 'page-login') initLoginPage();
     if (pageId === 'page-register') initRegisterPage();
 });
@@ -218,11 +226,10 @@ async function initRegisterPage() {
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const newUser = userCredential.user;
 
-            // Sadece Auth profilini güncelle. Firestore belgesi onAuthStateChanged tarafından oluşturulacak.
             await updateProfile(newUser, { displayName: username });
 
             showAlert("Kayıt başarılı! Yönlendiriliyorsunuz...", true);
-            // Yönlendirmeyi onAuthStateChanged'in yapmasına izin ver.
+            // onAuthStateChanged tetiklenecek ve yönlendirmeyi o yapacak.
             
         } catch (error) {
             hideLoader();
@@ -244,8 +251,10 @@ function initLoginPage() {
         try {
             showLoader();
             await signInWithEmailAndPassword(auth, email, password);
+            // Başarılı girişten sonra onAuthStateChanged tetiklenecek ve yönlendirmeyi yapacak.
         } catch (error) {
             hideLoader();
+            console.error("Giriş hatası:", error);
             showAlert("Hatalı e-posta veya şifre!", false);
         }
     });
@@ -285,13 +294,14 @@ async function loadIndexPageData(user) {
     let isUserPremium = false;
     let premiumExpiry = null;
 
+    // Kullanıcının bakiye ve premium durumunu canlı dinle
     onSnapshot(doc(db, "users", user.uid), (docSnapshot) => {
         if (docSnapshot.exists()) {
             const userData = docSnapshot.data();
             balanceDisplay.textContent = `${(userData.balance || 0).toFixed(2)} ₺`;
             isUserPremium = userData.isPremium || false;
             premiumExpiry = userData.premiumExpirationDate ? userData.premiumExpirationDate.toDate() : null;
-            renderTasks();
+            renderTasks(); // Premium durumu değişince görevleri tekrar render et
         } else {
             balanceDisplay.textContent = `0.00 ₺`;
         }
@@ -305,14 +315,14 @@ async function loadIndexPageData(user) {
 
             const submissionsQuery = query(collection(db, "submissions"),
                 where("userId", "==", user.uid),
-                where("status", "in", ["pending", "approved"]));
+                where("status", "in", ["pending", "approved"])); // Hem bekleyen hem onaylananları kontrol et
             const submissionsSnapshot = await getDocs(submissionsQuery);
             submittedTaskIds = submissionsSnapshot.docs.map(doc => doc.data().taskId);
 
             renderTasks();
         } catch (error) {
             console.error("Görevler veya gönderimler yüklenirken hata oluştu:", error);
-            taskList.innerHTML = `<li class="empty-state" style="color:var(--c-danger);">Görevler yüklenemedi.</li>`;
+            taskList.innerHTML = `<li class="empty-state" style="color:var(--c-danger);">Görevler yüklenemedi. Lütfen daha sonra tekrar deneyin.</li>`;
         }
     };
 
@@ -332,6 +342,7 @@ async function loadIndexPageData(user) {
             );
         }
 
+        // Stoğu biten görevleri filtrele
         filteredTasks = filteredTasks.filter(task => (task.stock || 0) > 0);
 
         if (filteredTasks.length === 0) {
@@ -372,7 +383,7 @@ async function loadIndexPageData(user) {
                 <div class="task-logo"><img src="${categoryInfo.logo}" alt="${categoryInfo.name} logo" loading="lazy"></div>
                 <div class="task-info">
                     <div class="task-title">${task.text}</div>
-                    <div class="task-reward">+${displayReward} ₺${premiumBonusText}</div>
+                    <div class="task-reward">+${parseFloat(displayReward).toFixed(2)} ₺${premiumBonusText}</div>
                 </div>
                 <div class="task-action">${actionButtonsHtml}</div>`;
             taskList.appendChild(li);
@@ -406,8 +417,10 @@ async function loadIndexPageData(user) {
         renderTasks();
     });
 
+    // Sayfa yüklendiğinde görevleri ve gönderimleri bir kez al
     await fetchTasksAndSubmissions();
 
+    // Duyuruları yükle
     try {
         const announcementsQuery = query(collection(db, "announcements"), orderBy("createdAt", "desc"), limit(2));
         const announcementsSnapshot = await getDocs(announcementsQuery);
@@ -415,7 +428,7 @@ async function loadIndexPageData(user) {
             announcementsContainer.innerHTML = '<h3>Son Duyurular</h3>';
             announcementsSnapshot.forEach(doc => {
                 const announcement = doc.data();
-                const date = announcement.createdAt ? announcement.createdAt.toDate().toLocaleDateString('tr-TR') : 'Bilinmiyor';
+                const date = announcement.createdAt ? (announcement.createdAt.toDate ? announcement.createdAt.toDate().toLocaleDateString('tr-TR') : new Date(announcement.createdAt).toLocaleDateString('tr-TR')) : 'Bilinmiyor';
                 announcementsContainer.innerHTML += `
                     <div class="spark-card announcement-card">
                         <h4>${announcement.title}</h4>
@@ -447,12 +460,12 @@ async function loadBonusPageData(user) {
         if (!docSnapshot.exists()) return;
 
         const userData = docSnapshot.data();
-        const lastClaimTimestamp = userData.lastBonusClaimed;
+        // lastBonusClaimed Firestore Timestamp objesi veya doğrudan bir Date objesi olabilir.
+        const lastClaimTimestamp = userData.lastBonusClaimed ? (userData.lastBonusClaimed.toDate ? userData.lastBonusClaimed.toDate() : new Date(userData.lastBonusClaimed)) : null;
 
         if (lastClaimTimestamp) {
-            const lastClaimDate = lastClaimTimestamp.toDate();
             const now = new Date();
-            const diffHours = (now - lastClaimDate) / (1000 * 60 * 60);
+            const diffHours = (now - lastClaimTimestamp) / (1000 * 60 * 60);
 
             if (diffHours >= 24) {
                 bonusBtn.disabled = false;
@@ -460,7 +473,7 @@ async function loadBonusPageData(user) {
                 bonusStatusText.textContent = "Günün bonusu seni bekliyor!";
             } else {
                 bonusBtn.disabled = true;
-                const nextClaimDate = new Date(lastClaimDate.getTime() + 24 * 60 * 60 * 1000);
+                const nextClaimDate = new Date(lastClaimTimestamp.getTime() + 24 * 60 * 60 * 1000);
                 bonusBtn.textContent = `Bonus Alındı`;
                 bonusStatusText.textContent = `Sonraki bonusun ${nextClaimDate.toLocaleTimeString('tr-TR')} tarihinde aktif olacak.`;
             }
@@ -480,8 +493,8 @@ async function loadBonusPageData(user) {
                 if (!userDoc.exists()) throw "Kullanıcı bulunamadı!";
 
                 const userData = userDoc.data();
-                const lastClaim = userData.lastBonusClaimed;
-                let isEligible = !lastClaim || ((new Date() - lastClaim.toDate()) / (1000 * 60 * 60) >= 24);
+                const lastClaim = userData.lastBonusClaimed ? (userData.lastBonusClaimed.toDate ? userData.lastBonusClaimed.toDate() : new Date(userData.lastBonusClaimed)) : null;
+                let isEligible = !lastClaim || ((new Date() - lastClaim) / (1000 * 60 * 60) >= 24);
 
                 if (isEligible) {
                     const newBalance = (userData.balance || 0) + 0.5;
@@ -498,14 +511,14 @@ async function loadBonusPageData(user) {
             });
         } catch (error) {
             console.error("Bonus alma hatası:", error);
-            showAlert("Bonus alınırken bir hata oluştu.", false);
+            showAlert("Bonus alınırken bir hata oluştu: " + error.message, false);
         }
     });
 }
 
 async function uploadImageToImageBB(file) {
-    if (!IMGBB_API_KEY || IMGBB_API_KEY === "84a7c0a54294a6e8ea2ffc9bab240719") { // Changed condition to match the actual API Key value
-        throw new Error("ImageBB API Key ayarlanmamış veya varsayılan değerde. Lütfen main.js dosasındaki IMGBB_API_KEY değişkenini güncelleyin.");
+    if (!IMGBB_API_KEY || IMGBB_API_KEY === "84a7c0a54294a6e8ea2ffc9bab240719") { // API Key'in boş veya varsayılan olup olmadığını kontrol edin
+        throw new Error("ImageBB API Key ayarlanmamış veya varsayılan değerde. Lütfen main.js dosyasındaki IMGBB_API_KEY değişkenini güncelleyin.");
     }
 
     const formData = new FormData();
@@ -544,7 +557,7 @@ async function loadProfilePageData(user) {
     const premiumExpirationDisplay = document.getElementById("premiumExpirationDisplay");
     const logoutBtn = document.getElementById("logoutBtn");
 
-    onSnapshot(doc(db, 'users', user.uid), (docSnapshot) => {
+    onSnapshot(doc(db, 'users', user.uid), async (docSnapshot) => {
         if (docSnapshot.exists()) {
             const userData = docSnapshot.data();
             usernameDisplay.textContent = userData.username || 'N/A';
@@ -552,53 +565,63 @@ async function loadProfilePageData(user) {
             totalEarnedDisplay.textContent = `${(userData.totalEarned || 0).toFixed(2)} ₺`;
 
             const now = new Date();
-            if (userData.isPremium && userData.premiumExpirationDate && userData.premiumExpirationDate.toDate() > now) {
+            // premiumExpirationDate'in Timestamp objesi mi yoksa Date objesi mi olduğunu kontrol et
+            const userPremiumExpirationDate = userData.premiumExpirationDate ? 
+                                              (userData.premiumExpirationDate.toDate ? userData.premiumExpirationDate.toDate() : new Date(userData.premiumExpirationDate)) 
+                                              : null;
+
+            if (userData.isPremium && userPremiumExpirationDate && userPremiumExpirationDate > now) {
                 isPremiumDisplay.textContent = 'Evet (Aktif)';
                 isPremiumDisplay.classList.remove('inactive');
                 isPremiumDisplay.classList.add('active');
-                premiumExpirationDisplay.textContent = userData.premiumExpirationDate.toDate().toLocaleDateString('tr-TR');
+                premiumExpirationDisplay.textContent = userPremiumExpirationDate.toLocaleDateString('tr-TR');
                 premiumExpirationSection.style.display = 'block';
             } else {
                 isPremiumDisplay.textContent = 'Hayır (Pasif)';
                 isPremiumDisplay.classList.remove('active');
                 isPremiumDisplay.classList.add('inactive');
                 premiumExpirationSection.style.display = 'none';
+                // Premium süresi dolmuşsa veya hiç premium değilse isPremium'u false yap
+                if (userData.isPremium || userPremiumExpirationDate && userPremiumExpirationDate <= now) {
+                    await updateDoc(doc(db, "users", user.uid), {
+                        isPremium: false,
+                        premiumExpirationDate: null,
+                        lastPremiumPaymentDate: null
+                    });
+                }
             }
-
             handleInputLabels();
         } else {
-            console.warn("Kullanıcı belgesi bulunamadı. Varsayılan oluşturuluyor...");
-            setDoc(doc(db, "users", user.uid), {
-                username: user.email.split('@')[0],
-                email: user.email,
-                balance: 0,
-                isAdmin: false,
-                isPremium: false,
-                premiumExpirationDate: null,
-                lastPremiumPaymentDate: null,
-                totalCompletedTasks: 0,
-                totalEarned: 0
-            }, { merge: true });
+            console.warn("Kullanıcı belgesi bulunamadı (Profil Sayfası). Bu durum AuthStateChanged'de halledilmeliydi.");
+            // Yine de kullanıcı belgesini oluşturma mantığı burada da bulunabilir, ancak genellikle bu durumda kullanıcı login sayfasına yönlendirilir.
         }
     });
 
     try {
         const approvedSubmissionsQuery = query(collection(db, "submissions"), where('userId', '==', user.uid), where('status', '==', 'approved'));
         const approvedSubmissionsSnapshot = await getDocs(approvedSubmissionsQuery);
-        const tasksSnapshot = await getDocs(collection(db, 'tasks'));
+        const tasksSnapshot = await getDocs(collection(db, 'tasks')); // Tüm görev sayısını almak için
         if (taskCountsDisplay) {
             taskCountsDisplay.textContent = `${approvedSubmissionsSnapshot.size} / ${tasksSnapshot.size}`;
+            // Kullanıcı belgesindeki toplam tamamlanan görev sayısını güncelle
             await updateDoc(doc(db, "users", user.uid), {
                 totalCompletedTasks: approvedSubmissionsSnapshot.size,
-            }, { merge: true });
+            }, { merge: true }); // merge: true mevcut alanları korur
         }
     } catch (error) {
         console.error("Görev sayıları alınırken hata:", error);
+        if (taskCountsDisplay) taskCountsDisplay.textContent = `Hata / Hata`;
     }
 
     logoutBtn.addEventListener("click", (e) => {
         e.preventDefault();
-        signOut(auth).then(() => window.location.replace("login.html"));
+        signOut(auth).then(() => {
+            console.log("Kullanıcı çıkış yaptı.");
+            window.location.replace("login.html");
+        }).catch((error) => {
+            console.error("Çıkış hatası:", error);
+            showAlert("Çıkış yapılırken bir hata oluştu: " + error.message, false);
+        });
     });
 }
 
@@ -612,6 +635,7 @@ async function loadMyTasksPageData(user) {
     });
 
     try {
+        // Kullanıcının tüm gönderimlerini dinle
         const submissionsQuery = query(collection(db, 'submissions'), where('userId', '==', user.uid), orderBy('submittedAt', 'desc'));
         onSnapshot(submissionsQuery, async (snapshot) => {
             if (snapshot.empty) {
@@ -619,11 +643,11 @@ async function loadMyTasksPageData(user) {
                 return;
             }
 
-            submissionsList.innerHTML = '';
+            let submissionsHtml = '';
             for (const docSnapshot of snapshot.docs) {
                 const submission = { id: docSnapshot.id, ...docSnapshot.data() };
                 const taskDoc = await getDoc(doc(db, "tasks", submission.taskId));
-                const task = taskDoc.exists() ? taskDoc.data() : { text: 'Görev Silinmiş', reward: 0 };
+                const task = taskDoc.exists() ? taskDoc.data() : { text: 'Görev Silinmiş', reward: 0 }; // Görev silindiyse varsayılan değerler
 
                 let statusText = '', statusClass = '', reasonButtonHtml = '';
                 switch (submission.status) {
@@ -639,6 +663,7 @@ async function loadMyTasksPageData(user) {
                         statusText = 'Reddedildi';
                         statusClass = 'status-rejected';
                         if (submission.rejectionReason) {
+                            // HTML niteliği içine özel karakterlerin doğru şekilde kaçırıldığından emin olun
                             const encodedReason = submission.rejectionReason.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
                             reasonButtonHtml = `<button class="spark-button small-button btn-show-reason" data-reason="${encodedReason}">İptal Nedeni</button>`;
                         }
@@ -652,16 +677,19 @@ async function loadMyTasksPageData(user) {
                         statusClass = '';
                         break;
                 }
-                const submissionDate = submission.submittedAt ? submission.submittedAt.toDate().toLocaleDateString('tr-TR') : 'Bilinmiyor';
+                const submissionDate = submission.submittedAt ? (submission.submittedAt.toDate ? submission.submittedAt.toDate().toLocaleDateString('tr-TR') : new Date(submission.submittedAt).toLocaleDateString('tr-TR')) : 'Bilinmiyor';
 
-                let rewardDisplay = task.reward;
+                let rewardDisplay = task.reward || 0;
                 let premiumBonusInfo = '';
                 if (submission.isPremiumBonusApplied) {
-                    rewardDisplay = (task.reward * (1 + PREMIUM_BONUS_PERCENTAGE)).toFixed(2);
+                    rewardDisplay = (rewardDisplay * (1 + PREMIUM_BONUS_PERCENTAGE)).toFixed(2);
                     premiumBonusInfo = ` (%${PREMIUM_BONUS_PERCENTAGE * 100} Premium Bonus)`;
+                } else {
+                    rewardDisplay = parseFloat(rewardDisplay).toFixed(2); // Premium yoksa da 2 ondalık basamak göster
                 }
 
-                submissionsList.innerHTML += `
+
+                submissionsHtml += `
                     <div class="spark-card submission-card">
                         <div class="submission-header">
                             <h3>${task.text}</h3>
@@ -674,10 +702,11 @@ async function loadMyTasksPageData(user) {
                         <div class="submission-actions">${reasonButtonHtml}</div>
                     </div>`;
             }
+            submissionsList.innerHTML = submissionsHtml;
         });
     } catch (error) {
         console.error("Gönderimler yüklenirken hata oluştu:", error);
-        submissionsList.innerHTML = `<div class="empty-state" style="color:var(--c-danger);">Gönderimler yüklenemedi.</div>`;
+        submissionsList.innerHTML = `<div class="empty-state" style="color:var(--c-danger);">Gönderimler yüklenemedi: ${error.message}</div>`;
     }
 }
 
@@ -710,7 +739,7 @@ async function loadTaskDetailPageData(user) {
     if (userDoc.exists()) {
         const userData = userDoc.data();
         isUserPremium = userData.isPremium || false;
-        premiumExpiry = userData.premiumExpirationDate ? userData.premiumExpirationDate.toDate() : null;
+        premiumExpiry = userData.premiumExpirationDate ? (userData.premiumExpirationDate.toDate ? userData.premiumExpirationDate.toDate() : new Date(userData.premiumExpirationDate)) : null;
     }
 
     try {
@@ -721,17 +750,17 @@ async function loadTaskDetailPageData(user) {
             taskDescription.textContent = currentTask.description;
             taskStockDisplay.textContent = `Mevcut Stok: ${currentTask.stock || 0}`;
 
-            let displayReward = currentTask.reward;
+            let displayReward = currentTask.reward || 0;
             const now = new Date();
             const isPremiumActive = isUserPremium && premiumExpiry && premiumExpiry > now;
 
             if (isPremiumActive) {
-                displayReward = (currentTask.reward * (1 + PREMIUM_BONUS_PERCENTAGE)).toFixed(2);
-                taskReward.textContent = `Ödül: ${currentTask.reward} ₺`;
-                premiumBonusInfo.textContent = `Premium ile Kazanacağınız: +${displayReward} ₺ (İlave %${PREMIUM_BONUS_PERCENTAGE * 100})`;
+                displayReward = (currentTask.reward * (1 + PREMIUM_BONUS_PERCENTAGE));
+                taskReward.textContent = `Görev Ödülü: ${parseFloat(currentTask.reward || 0).toFixed(2)} ₺`;
+                premiumBonusInfo.textContent = `Premium ile Kazanacağınız: +${parseFloat(displayReward).toFixed(2)} ₺ (İlave %${PREMIUM_BONUS_PERCENTAGE * 100})`;
                 premiumBonusInfo.style.display = 'block';
             } else {
-                taskReward.textContent = `Ödül: ${currentTask.reward} ₺`;
+                taskReward.textContent = `Görev Ödülü: ${parseFloat(currentTask.reward || 0).toFixed(2)} ₺`;
                 premiumBonusInfo.style.display = 'none';
             }
 
@@ -758,11 +787,13 @@ async function loadTaskDetailPageData(user) {
             renderFileInputs(fileCount);
 
         } else {
-            window.location.replace("index.html");
+            showAlert("Görev bulunamadı.", false);
+            setTimeout(() => { window.location.replace("index.html"); }, 1500);
         }
     } catch (error) {
         console.error("Görev detayları yüklenirken hata:", error);
-        window.location.replace("index.html");
+        showAlert("Görev detayları yüklenirken bir hata oluştu: " + error.message, false);
+        setTimeout(() => { window.location.replace("index.html"); }, 1500);
     }
 
     function renderFileInputs(count) {
@@ -813,6 +844,10 @@ async function loadTaskDetailPageData(user) {
     }
 
     submitTaskBtn.addEventListener('click', async () => {
+        if (!currentTask) {
+            showAlert("Görev bilgileri yüklenemedi, lütfen sayfayı yenileyin.", false);
+            return;
+        }
         if ((currentTask.stock || 0) <= 0) {
             showAlert("Bu görevin stoğu kalmamıştır.", false);
             submitTaskBtn.disabled = true;
@@ -835,14 +870,18 @@ async function loadTaskDetailPageData(user) {
                 uploadedFileURLs.push(downloadURL);
             }
 
-            
-
             await runTransaction(db, async (transaction) => {
                 const taskRef = doc(db, "tasks", taskId);
+                const userRef = doc(db, "users", user.uid); // Kullanıcı belgesine referans
 
                 const latestTaskDoc = await transaction.get(taskRef);
+                const currentUserDoc = await transaction.get(userRef); // Kullanıcı belgesini al
+
                 if (!latestTaskDoc.exists() || (latestTaskDoc.data().stock || 0) <= 0) {
                     throw new Error("Görev bulunamadı veya stoğu kalmamıştır.");
+                }
+                if (!currentUserDoc.exists()) {
+                    throw new Error("Kullanıcı bulunamadı.");
                 }
 
                 const userSubmissionsQueryForCheck = query(collection(db, "submissions"),
@@ -906,23 +945,26 @@ async function loadWalletPageData(user) {
 
     onSnapshot(doc(db, "users", user.uid), (docSnapshot) => {
         if (docSnapshot.exists()) {
-            userBalance = docSnapshot.data().balance || 0;
+            const userData = docSnapshot.data();
+            userBalance = userData.balance || 0;
             currentBalanceDisplay.textContent = `${userBalance.toFixed(2)} ₺`;
             withdrawalAmountInput.setAttribute('max', userBalance);
 
-            const userData = docSnapshot.data();
+            // Kayıtlı IBAN ve Telefon Numarası varsa doldur
             if (userData.iban) {
                 ibanInput.value = userData.iban;
-                ibanInput.classList.add('populated');
+                ibanInput.classList.add('populated'); // Label'ın yukarıda kalması için
             } else {
                 ibanInput.classList.remove('populated');
             }
             if (userData.phoneNumber) {
                 phoneNumberInput.value = userData.phoneNumber;
-                phoneNumberInput.classList.add('populated');
+                phoneNumberInput.classList.add('populated'); // Label'ın yukarıda kalması için
             } else {
                 phoneNumberInput.classList.remove('populated');
             }
+        } else {
+            currentBalanceDisplay.textContent = `0.00 ₺`;
         }
     });
 
@@ -934,8 +976,8 @@ async function loadWalletPageData(user) {
 
         if (amount < 200) return showAlert("Minimum çekim miktarı 200 ₺'dir.", false);
         if (amount > userBalance) return showAlert("Bakiyeniz yeterli değil.", false);
-        if (!iban.match(/^TR[0-9]{24}$/)) return showAlert("Geçerli bir IBAN giriniz.", false);
-        if (!phoneNumber.match(/^[0-9]{10}$/)) return showAlert("Geçerli bir 10 haneli telefon numarası giriniz.", false);
+        if (!iban.match(/^TR[0-9]{24}$/)) return showAlert("Geçerli bir IBAN giriniz (örn: TR000000000000000000000000).", false);
+        if (!phoneNumber.match(/^[0-9]{10}$/)) return showAlert("Geçerli bir 10 haneli telefon numarası giriniz (örn: 5xxxxxxxxx).", false);
 
         const btn = withdrawalForm.querySelector('button');
         btn.disabled = true;
@@ -948,7 +990,11 @@ async function loadWalletPageData(user) {
                 if (!userDoc.exists()) throw new Error("Kullanıcı bulunamadı!");
                 const currentBalance = userDoc.data().balance || 0;
                 if (currentBalance < amount) throw new Error("Yetersiz bakiye.");
+
+                // Kullanıcının bakiyesini azalt ve IBAN/Telefon bilgilerini güncelle
                 transaction.update(userRef, { balance: currentBalance - amount, iban, phoneNumber });
+                
+                // Yeni çekme talebini oluştur
                 await addDoc(collection(db, "withdrawalRequests"), {
                     userId: user.uid,
                     userEmail: user.email,
@@ -959,25 +1005,27 @@ async function loadWalletPageData(user) {
                     createdAt: serverTimestamp()
                 });
             });
-            showAlert("Çekme talebiniz oluşturuldu.", true);
-            withdrawalAmountInput.value = '';
+            showAlert("Çekme talebiniz başarıyla oluşturuldu.", true);
+            withdrawalAmountInput.value = ''; // Inputu temizle
         } catch (error) {
+            console.error("Çekme talebi oluşturulamadı:", error);
             showAlert("Talep oluşturulamadı: " + error.message, false);
         } finally {
             btn.disabled = false;
-            btn.textContent = "Çekme Talebi Oluştur";
+            btn.textContent = "Talep Oluştur";
         }
     });
 
+    // Önceki çekme taleplerini dinle
     onSnapshot(query(collection(db, "withdrawalRequests"), where("userId", "==", user.uid), orderBy("createdAt", "desc")), (snapshot) => {
         if (snapshot.empty) {
             previousWithdrawalsList.innerHTML = `<div class="empty-state">Henüz para çekme talebiniz bulunmamaktadır.</div>`;
             return;
         }
-        previousWithdrawalsList.innerHTML = '';
+        let requestsHtml = '';
         snapshot.forEach(docSnapshot => {
             const request = docSnapshot.data();
-            const requestDate = request.createdAt ? request.createdAt.toDate().toLocaleDateString('tr-TR') : 'Bilinmiyor';
+            const requestDate = request.createdAt ? (request.createdAt.toDate ? request.createdAt.toDate().toLocaleDateString('tr-TR') : new Date(request.createdAt).toLocaleDateString('tr-TR')) : 'Bilinmiyor';
             let statusText = '', statusClass = '';
             switch (request.status) {
                 case 'pending':
@@ -1001,12 +1049,13 @@ async function loadWalletPageData(user) {
                     statusClass = '';
                     break;
             }
-            previousWithdrawalsList.innerHTML += `
+            requestsHtml += `
                 <div class="spark-card withdrawal-request-card">
-                    <div class="request-header"><h3>${request.amount} ₺</h3><span class="request-status ${statusClass}">${statusText}</span></div>
+                    <div class="request-header"><h3>${parseFloat(request.amount || 0).toFixed(2)} ₺</h3><span class="request-status ${statusClass}">${statusText}</span></div>
                     <p>IBAN: ${request.iban}</p><p>Telefon: ${request.phoneNumber}</p><p>Talep Tarihi: ${requestDate}</p>
                 </div>`;
         });
+        previousWithdrawalsList.innerHTML = requestsHtml;
     });
 }
 
@@ -1032,19 +1081,22 @@ async function loadSupportPageData(user) {
             submitBtn.disabled = true;
             submitBtn.textContent = "Talep Oluşturuluyor...";
 
+            // Yeni bir destek talebi belgesi oluştur
             const newTicketRef = await addDoc(collection(db, "tickets"), {
                 userId: user.uid,
                 userEmail: user.email,
                 subject,
-                status: 'open',
+                status: 'open', // Başlangıç durumu 'açık'
                 createdAt: serverTimestamp(),
                 lastUpdatedAt: serverTimestamp(),
-                assignedTo: null,
+                assignedTo: null, // Henüz bir admin atanmamış
                 assignedToName: null,
-                lastMessage: message,
+                lastMessage: message, // İlk mesajı buraya kaydet
                 lastMessageSenderType: 'user',
                 category: category
             });
+
+            // Talep altına ilk mesajı ekle
             await addDoc(collection(db, "tickets", newTicketRef.id, "replies"), {
                 message,
                 senderId: user.uid,
@@ -1052,9 +1104,10 @@ async function loadSupportPageData(user) {
                 senderName: username,
                 sentAt: serverTimestamp()
             });
+
             showAlert("Destek talebiniz başarıyla oluşturuldu!", true);
             createTicketForm.reset();
-            document.getElementById('ticketCategory').value = "";
+            document.getElementById('ticketCategory').value = ""; // Kategori seçimi resetle
         } catch (error) {
             console.error("Talep oluşturulurken bir hata oluştu:", error);
             showAlert("Talep oluşturulurken bir hata oluştu: " + error.message, false);
@@ -1065,6 +1118,7 @@ async function loadSupportPageData(user) {
         }
     });
 
+    // Kullanıcının önceki destek taleplerini dinle
     const ticketsQuery = query(collection(db, "tickets"), where("userId", "==", user.uid), orderBy("lastUpdatedAt", "desc"));
     onSnapshot(ticketsQuery, (snapshot) => {
         if (snapshot.empty) {
@@ -1075,25 +1129,26 @@ async function loadSupportPageData(user) {
         snapshot.forEach(doc => {
             const ticket = { id: doc.id, ...doc.data() };
 
+            // "cleared" statüsündeki ticket'ları gösterme
             if (ticket.status === 'cleared') {
                 return;
             }
 
-            const lastUpdate = ticket.lastUpdatedAt ? ticket.lastUpdatedAt.toDate().toLocaleDateString('tr-TR') : 'Bilinmiyor';
+            const lastUpdate = ticket.lastUpdatedAt ? (ticket.lastUpdatedAt.toDate ? ticket.lastUpdatedAt.toDate().toLocaleDateString('tr-TR') : new Date(ticket.lastUpdatedAt).toLocaleDateString('tr-TR')) : 'Bilinmiyor';
             let statusClass = '';
             let statusText = '';
             switch (ticket.status) {
                 case 'open':
                     statusText = 'Açık';
-                    statusClass = 'status-pending';
+                    statusClass = 'status-pending'; // Açık talepler için beklemede rengi
                     break;
                 case 'closed':
                     statusText = 'Kapalı';
-                    statusClass = 'status-rejected';
+                    statusClass = 'status-rejected'; // Kapalı talepler için reddedildi rengi
                     break;
                 case 'archived':
                     statusText = 'Arşivlendi';
-                    statusClass = 'status-archived';
+                    statusClass = 'status-archived'; // Arşivlenmiş talepler için özel renk
                     break;
                 default:
                     statusText = 'Bilinmiyor';
@@ -1169,6 +1224,7 @@ async function loadTicketDetailPageData(user) {
         }
     });
 
+    // Talep detaylarını dinle
     onSnapshot(ticketRef, (docSnapshot) => {
         if (docSnapshot.exists()) {
             const ticket = docSnapshot.data();
@@ -1190,7 +1246,7 @@ async function loadTicketDetailPageData(user) {
                     break;
                 case 'cleared':
                     statusText = 'Temizlendi';
-                    statusClass = 'status-archived';
+                    statusClass = 'status-archived'; // 'cleared' için de arşivlenmiş stilini kullanabiliriz
                     break;
                 default:
                     statusText = 'Bilinmiyor';
@@ -1203,6 +1259,7 @@ async function loadTicketDetailPageData(user) {
             statusSpan.textContent = statusText;
             statusSpan.className = `status-badge ${statusClass}`;
 
+            // Talep kapalı, arşivlenmiş veya temizlenmiş ise cevap formunu ve kapat düğmesini gizle
             if (ticket.status === 'closed' || ticket.status === 'archived' || ticket.status === 'cleared') {
                 replyFormContainer.style.display = 'none';
                 closeTicketBtn.style.display = 'none';
@@ -1221,6 +1278,7 @@ async function loadTicketDetailPageData(user) {
         showAlert("Talep detayları yüklenirken bir hata oluştu: " + error.message, false);
     });
 
+    // Talep cevaplarını dinle
     const repliesQuery = query(collection(db, "tickets", ticketId, "replies"), orderBy("sentAt", "asc"));
     onSnapshot(repliesQuery, (snapshot) => {
         let repliesHtml = '';
@@ -1229,7 +1287,7 @@ async function loadTicketDetailPageData(user) {
         } else {
             snapshot.forEach(doc => {
                 const reply = doc.data();
-                const sentAt = reply.sentAt ? reply.sentAt.toDate().toLocaleTimeString('tr-TR') : '';
+                const sentAt = reply.sentAt ? (reply.sentAt.toDate ? reply.sentAt.toDate().toLocaleTimeString('tr-TR') : new Date(reply.sentAt).toLocaleTimeString('tr-TR')) : '';
                 const senderClass = reply.senderType === 'admin' ? 'reply-admin' : 'reply-user';
                 const senderDisplay = reply.senderType === 'admin' ? `<span class="sender-name">${reply.senderName || 'Admin'}</span>` : '';
 
@@ -1248,7 +1306,7 @@ async function loadTicketDetailPageData(user) {
             });
         }
         repliesContainer.innerHTML = repliesHtml;
-        repliesContainer.scrollTop = repliesContainer.scrollHeight;
+        repliesContainer.scrollTop = repliesContainer.scrollHeight; // En alta kaydır
     }, (error) => {
         console.error("Talep cevapları yüklenirken hata oluştu:", error);
         repliesContainer.innerHTML = `<div class="empty-state" style="color:var(--c-danger);">Cevaplar yüklenemedi: ${error.message}</div>`;
@@ -1279,12 +1337,12 @@ async function loadTicketDetailPageData(user) {
             });
             await updateDoc(ticketRef, {
                 lastUpdatedAt: serverTimestamp(),
-                status: 'open',
+                status: 'open', // Kullanıcı cevap verince talebi tekrar 'açık' yap
                 lastMessage: message,
                 lastMessageSenderType: 'user'
             });
             replyMessageInput.value = '';
-            replyFileInput.value = '';
+            replyFileInput.value = ''; // Dosya inputunu temizle
             selectedFile = null;
             replyFileNameSpan.textContent = "Dosya seçilmedi";
             replyImagePreviewDiv.innerHTML = "";
@@ -1328,11 +1386,11 @@ async function loadAnnouncementsPageData() {
             return;
         }
 
-        announcementsList.innerHTML = '';
+        let announcementsHtml = '';
         announcementsSnapshot.forEach(doc => {
             const announcement = doc.data();
-            const date = announcement.createdAt ? announcement.createdAt.toDate().toLocaleDateString('tr-TR') : 'Bilinmiyor';
-            announcementsList.innerHTML += `
+            const date = announcement.createdAt ? (announcement.createdAt.toDate ? announcement.createdAt.toDate().toLocaleDateString('tr-TR') : new Date(announcement.createdAt).toLocaleDateString('tr-TR')) : 'Bilinmiyor';
+            announcementsHtml += `
                 <div class="spark-card announcement-item">
                     <h3>${announcement.title}</h3>
                     <p>${announcement.content}</p>
@@ -1340,10 +1398,11 @@ async function loadAnnouncementsPageData() {
                 </div>
             `;
         });
+        announcementsList.innerHTML = announcementsHtml;
 
     } catch (error) {
         console.error("Duyurular yüklenirken hata oluştu:", error);
-        announcementsList.innerHTML = `<div class="empty-state" style="color:var(--c-danger);">Duyurular yüklenemedi.</div>`;
+        announcementsList.innerHTML = `<div class="empty-state" style="color:var(--c-danger);">Duyurular yüklenemedi: ${error.message}</div>`;
     }
 }
 
@@ -1351,7 +1410,7 @@ async function loadFaqPageData() {
     const faqList = document.getElementById('faqList');
 
     try {
-        const faqsQuery = query(collection(db, "faqs"), orderBy("order", "asc"));
+        const faqsQuery = query(collection(db, "faqs"), orderBy("order", "asc")); // 'order' alanına göre sırala
         const faqsSnapshot = await getDocs(faqsQuery);
 
         if (faqsSnapshot.empty) {
@@ -1359,20 +1418,21 @@ async function loadFaqPageData() {
             return;
         }
 
-        faqList.innerHTML = '';
+        let faqsHtml = '';
         faqsSnapshot.forEach(doc => {
             const faq = doc.data();
             faqList.innerHTML += `
                 <div class="spark-card">
-                    <h4>${faq.question}</h4>
+                    <h4>${faq.order}. ${faq.question}</h4>
                     <p>${faq.answer}</p>
                 </div>
             `;
         });
+        faqList.innerHTML = faqsHtml;
 
     } catch (error) {
         console.error("SSS yüklenirken hata oluştu:", error);
-        faqList.innerHTML = `<div class="empty-state" style="color:var(--c-danger);">SSS yüklenemedi.</div>`;
+        faqList.innerHTML = `<div class="empty-state" style="color:var(--c-danger);">SSS yüklenemedi: ${error.message}</div>`;
     }
 }
 
@@ -1389,14 +1449,19 @@ async function loadPremiumPageData(user) {
 
         const userData = docSnapshot.data();
         const now = new Date();
-        const isPremiumActive = userData.isPremium && userData.premiumExpirationDate && userData.premiumExpirationDate.toDate() > now;
+        // premiumExpirationDate'in Timestamp objesi mi yoksa Date objesi mi olduğunu kontrol et
+        const userPremiumExpirationDate = userData.premiumExpirationDate ? 
+                                          (userData.premiumExpirationDate.toDate ? userData.premiumExpirationDate.toDate() : new Date(userData.premiumExpirationDate)) 
+                                          : null;
+
+        const isPremiumActive = userData.isPremium && userPremiumExpirationDate && userPremiumExpirationDate > now;
         currentBalanceForPremium.textContent = `${(userData.balance || 0).toFixed(2)} ₺`;
 
         if (isPremiumActive) {
             isPremiumDisplay.textContent = 'Evet (Aktif)';
             isPremiumDisplay.classList.remove('inactive');
             isPremiumDisplay.classList.add('active');
-            premiumExpirationDisplay.textContent = userData.premiumExpirationDate.toDate().toLocaleDateString('tr-TR');
+            premiumExpirationDisplay.textContent = userPremiumExpirationDate.toLocaleDateString('tr-TR');
             premiumExpirationSection.style.display = 'block';
             subscribeBtn.textContent = `Premium Yenile (${PREMIUM_MONTHLY_FEE} ₺)`;
         } else {
@@ -1409,7 +1474,7 @@ async function loadPremiumPageData(user) {
 
         subscribeBtn.disabled = (userData.balance || 0) < PREMIUM_MONTHLY_FEE;
         if (subscribeBtn.disabled) {
-            subscribeBtn.textContent += " - Yetersiz Bakiye";
+            subscribeBtn.textContent = (isPremiumActive ? `Premium Yenile` : `Premium Ol`) + ` (${PREMIUM_MONTHLY_FEE} ₺) - Yetersiz Bakiye`;
         }
     });
 
@@ -1432,10 +1497,17 @@ async function loadPremiumPageData(user) {
                 let newExpirationDate = new Date();
                 const now = new Date();
 
-                if (userData.isPremium && userData.premiumExpirationDate && userData.premiumExpirationDate.toDate() > now) {
-                    newExpirationDate = userData.premiumExpirationDate.toDate();
-                }
+                const userPremiumExpirationDate = userData.premiumExpirationDate ? 
+                                                  (userData.premiumExpirationDate.toDate ? userData.premiumExpirationDate.toDate() : new Date(userData.premiumExpirationDate)) 
+                                                  : null;
 
+                // Eğer zaten premium aktifse ve süresi dolmadıysa, mevcut bitiş tarihine ekle
+                if (userData.isPremium && userPremiumExpirationDate && userPremiumExpirationDate > now) {
+                    newExpirationDate = userPremiumExpirationDate;
+                } else {
+                    // Premium aktif değilse veya süresi dolmuşsa, bugünden itibaren bir ay ekle
+                    newExpirationDate = now;
+                }
                 newExpirationDate.setMonth(newExpirationDate.getMonth() + 1);
 
                 transaction.update(userRef, {
@@ -1450,6 +1522,7 @@ async function loadPremiumPageData(user) {
             console.error("Premium işlem hatası:", error);
             showAlert("Premium işlemi sırasında bir hata oluştu: " + error.message, false);
         } finally {
+            // Transaction'dan sonra button durumunu güncellemek için onSnapshot tetiklenecektir.
         }
     });
 }
@@ -1470,7 +1543,7 @@ async function loadLeaderboardPageData(user) {
                 <li>
                     <span class="leaderboard-rank">${index + 1}</span>
                     <span class="leaderboard-name">${user.username}</span>
-                    <span class="leaderboard-score">${score.toFixed(scoreField === 'totalEarned' ? 2 : 0)} ${unit}</span>
+                    <span class="leaderboard-score">${scoreField === 'totalEarned' ? score.toFixed(2) : score.toFixed(0)} ${unit}</span>
                 </li>
             `;
         });
@@ -1485,7 +1558,7 @@ async function loadLeaderboardPageData(user) {
         renderLeaderboard(topEarnersContainer, topEarners, 'totalEarned', '₺');
     } catch (error) {
         console.error("En çok kazananlar yüklenirken hata oluştu:", error);
-        topEarnersContainer.innerHTML = `<div class="empty-state" style="color:var(--c-danger);">Liste yüklenemedi.</div>`;
+        topEarnersContainer.innerHTML = `<div class="empty-state" style="color:var(--c-danger);">Liste yüklenemedi: ${error.message}</div>`;
     }
     
     try {
@@ -1495,6 +1568,6 @@ async function loadLeaderboardPageData(user) {
         renderLeaderboard(topCompletersContainer, topCompleters, 'totalCompletedTasks', 'Görev');
     } catch (error) {
         console.error("En çok görev yapanlar yüklenirken hata oluştu:", error);
-        topCompletersContainer.innerHTML = `<div class="empty-state" style="color:var(--c-danger);">Liste yüklenemedi.</div>`;
+        topCompletersContainer.innerHTML = `<div class="empty-state" style="color:var(--c-danger);">Liste yüklenemedi: ${error.message}</div>`;
     }
 }

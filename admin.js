@@ -52,6 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (mainContent) mainContent.style.display = 'flex'; // Use flex for app-layout
                         initAdminPanel(user);
                     } else {
+                        console.warn("Admin yetkisi olmayan kullanıcı girişi. Çıkış yapılıyor.");
                         await auth.signOut();
                         window.location.replace('admin-login.html');
                     }
@@ -61,6 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     window.location.replace('admin-login.html');
                 }
             } else {
+                console.log("Kullanıcı oturum açmamış, admin giriş sayfasına yönlendiriliyor.");
                 window.location.replace('admin-login.html');
             }
         });
@@ -85,14 +87,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 showAlert("Giriş başarılı!", true);
                 setTimeout(() => { window.location.replace('admin-panel.html'); }, 1000);
               } else {
+                console.warn("Giriş yapan kullanıcı admin değil. Oturum kapatılıyor.");
                 await auth.signOut();
                 showAlert("Bu hesap yönetici değil!", false);
               }
             } catch (error) {
+                console.error("Admin giriş hatası:", error);
                 showAlert("Hatalı e-posta veya şifre!", false);
             }
         });
 
+        // Admin girişi sayfasında bile, eğer zaten oturum açmış bir admin varsa doğrudan panele yönlendir.
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 try {
@@ -100,9 +105,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (userDoc.exists() && userDoc.data().isAdmin) {
                         window.location.replace('admin-panel.html');
                     } else {
-                        await auth.signOut();
+                        // Oturum açmış ama admin olmayan kullanıcıyı login sayfasında bırak
+                        await auth.signOut(); // Güvenlik için oturumu kapat
                     }
                 } catch (error) {
+                    console.error("Admin yetki kontrolü sırasında hata:", error);
                     await auth.signOut();
                 }
             }
@@ -173,11 +180,13 @@ async function initAdminPanel(user) {
         } else {
             const usersToDisplay = filteredUsers.slice(0, displayCount);
             usersToDisplay.forEach(u => {
-                const premiumStatus = (u.isPremium && u.premiumExpirationDate && u.premiumExpirationDate.toDate() > new Date()) ? 
-                                      `Evet (Bitiş: ${u.premiumExpirationDate.toDate().toLocaleDateString('tr-TR')})` : 'Hayır'; // NEW
+                // Ensure premiumExpirationDate is a valid date object before calling toDate()
+                const premiumExpirationDate = u.premiumExpirationDate ? (u.premiumExpirationDate.toDate ? u.premiumExpirationDate.toDate() : new Date(u.premiumExpirationDate)) : null;
+                const premiumStatus = (u.isPremium && premiumExpirationDate && premiumExpirationDate > new Date()) ? 
+                                      `Evet (Bitiş: ${premiumExpirationDate.toLocaleDateString('tr-TR')})` : 'Hayır'; // NEW
                 usersHtml += `
                     <div class="user-list-item spark-card" id="user-${u.id}">
-                        <div class="user-info"><strong>${u.username}</strong> <span style="font-size:0.9em; color:var(--c-text-secondary);">(${u.email})</span><p>Bakiye: ${u.balance} ₺ | Admin: ${u.isAdmin ? 'Evet' : 'Hayır'} | Premium: ${premiumStatus} | Completed: ${u.totalCompletedTasks || 0}</p></div>
+                        <div class="user-info"><strong>${u.username}</strong> <span style="font-size:0.9em; color:var(--c-text-secondary);">(${u.email})</span><p>Bakiye: ${parseFloat(u.balance || 0).toFixed(2)} ₺ | Admin: ${u.isAdmin ? 'Evet' : 'Hayır'} | Premium: ${premiumStatus} | Completed: ${u.totalCompletedTasks || 0}</p></div>
                         <div class="user-actions">
                             <button class="spark-button small-button btn-edit-user" data-id="${u.id}">Düzenle</button>
                             <button class="spark-button small-button ${u.isAdmin ? 'btn-remove-admin' : 'btn-make-admin'}" data-id="${u.id}">${u.isAdmin ? 'Adminlik Al' : 'Admin Yap'}</button>
@@ -213,7 +222,7 @@ async function initAdminPanel(user) {
             if (userToEdit) {
                 const newUsername = prompt("Yeni kullanıcı adı:", userToEdit.username);
                 if (newUsername === null) return;
-                const newBalance = prompt("Yeni bakiye (₺):", userToEdit.balance);
+                const newBalance = prompt("Yeni bakiye (₺):", parseFloat(userToEdit.balance || 0).toFixed(2));
                 if (newBalance === null) return;
                 
                 try {
@@ -283,8 +292,8 @@ async function initAdminPanel(user) {
         const description = document.getElementById('taskDescription').value;
         const taskStock = Number(document.getElementById('taskStock').value); // NEW: Get taskStock
         
-        if (!text || !category || !reward || !description || !taskFileCount || !taskStock) { // NEW: Add taskStock to validation
-             showAlert("Lütfen tüm alanları doldurun!", false);
+        if (!text || !category || !reward || !description || !taskFileCount || typeof taskStock !== 'number') { // NEW: Add taskStock to validation
+             showAlert("Lütfen tüm alanları doldurun ve geçerli değerler girin!", false);
              return;
         }
         if (taskFileCount < 1) {
@@ -326,7 +335,7 @@ async function initAdminPanel(user) {
             const stockDisplay = `(Stok: ${task.stock || 0})`; // NEW: Display stock
             tasksHtml += `
                 <div class="task-list-item">
-                    <span>${task.text} - ${task.reward} ₺ ${fileCountDisplay} ${stockDisplay} ${taskLinkDisplay}</span>
+                    <span>${task.text} - ${parseFloat(task.reward || 0).toFixed(2)} ₺ ${fileCountDisplay} ${stockDisplay} ${taskLinkDisplay}</span>
                     <button class="spark-button small-button btn-delete" data-id="${task.id}">Sil</button>
                 </div>`;
         });
@@ -375,7 +384,7 @@ async function initAdminPanel(user) {
 
             submissionsList.innerHTML += `
                 <div class="spark-card submission-card">
-                    <h3>${task.text} (+${task.reward} ₺)</h3>
+                    <h3>${task.text} (+${parseFloat(task.reward || 0).toFixed(2)} ₺)</h3>
                     <p style="font-size: 0.95em; color: var(--c-text-secondary);"><strong>Kullanıcı:</strong> ${userDisplayName} (${sub.userEmail})</p>
                     ${premiumInfoText}
                     <div class="submission-images-container" style="margin-top: 15px; display: flex; flex-wrap: wrap; gap: 10px;">${submissionImagesHtml}</div>
@@ -450,7 +459,7 @@ async function initAdminPanel(user) {
             const req = { id: doc.id, ...doc.data() };
             requestsHtml += `
                 <div class="spark-card submission-card">
-                    <h3>${req.amount} ₺</h3>
+                    <h3>${parseFloat(req.amount || 0).toFixed(2)} ₺</h3>
                     <p style="font-size: 0.95em; color: var(--c-text-secondary);"><strong>Kullanıcı:</strong> ${req.userEmail}</p>
                     <p style="font-size: 0.95em; color: var(--c-text-secondary);"><strong>IBAN:</strong> ${req.iban}</p>
                     <p style="font-size: 0.95em; color: var(--c-text-secondary);"><strong>Telefon:</strong> ${req.phoneNumber}</p>
@@ -507,7 +516,9 @@ async function initAdminPanel(user) {
                 return; 
             }
 
-            const lastUpdate = ticket.lastUpdatedAt.toDate().toLocaleString('tr-TR');
+            // Ensure lastUpdatedAt is a valid date object before calling toDate()
+            const lastUpdate = ticket.lastUpdatedAt ? (ticket.lastUpdatedAt.toDate ? ticket.lastUpdatedAt.toDate().toLocaleString('tr-TR') : new Date(ticket.lastUpdatedAt).toLocaleString('tr-TR')) : 'Bilinmiyor';
+            
             let actionButtons = '';
             let assignedStatus = '';
 
@@ -674,7 +685,7 @@ async function initAdminPanel(user) {
         let announcementsHtml = snapshot.empty ? `<p class="empty-state">Henüz duyuru yok.</p>` : '';
         snapshot.forEach(doc => {
             const announcement = { id: doc.id, ...doc.data() };
-            const date = announcement.createdAt ? announcement.createdAt.toDate().toLocaleDateString('tr-TR') : 'Bilinmiyor';
+            const date = announcement.createdAt ? (announcement.createdAt.toDate ? announcement.createdAt.toDate().toLocaleDateString('tr-TR') : new Date(announcement.createdAt).toLocaleDateString('tr-TR')) : 'Bilinmiyor';
             announcementsHtml += `
                 <div class="task-list-item">
                     <span>${announcement.title} - ${date}</span>
