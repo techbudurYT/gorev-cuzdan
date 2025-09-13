@@ -165,6 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     case 'page-faq': await loadFaqPageData(); break;
                     case 'page-premium': await loadPremiumPageData(user); break;
                     case 'page-leaderboard': await loadLeaderboardPageData(user); break;
+                    default: break; // unknown page, do nothing or redirect
                 }
                 hideLoader();
                 handleInputLabels();
@@ -199,7 +200,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (pageId === 'page-register') initRegisterPage();
 });
 
-function initRegisterPage() {
+async function initRegisterPage() {
     const registerForm = document.getElementById("registerForm");
     handleInputLabels();
 
