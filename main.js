@@ -115,6 +115,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const pageId = document.body.id;
 
     if (pageId.startsWith('page-admin')) {
+        // Admin sayfaları admin.js tarafından yönetilecek
         return;
     }
 
