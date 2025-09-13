@@ -314,6 +314,24 @@ async function loadIndexPageData(user) {
     }
 }
 
+async function uploadImageToImageBB(file) {
+    const formData = new FormData();
+    formData.append('image', file);
+
+    const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+        method: 'POST',
+        body: formData
+    });
+
+    const data = await response.json();
+    if (data.success) {
+        return data.data.url;
+    } else {
+        throw new Error('Resim yüklenirken hata oluştu: ' + data.error.message);
+    }
+}
+
+
 async function loadProfilePageData(user) {
     const usernameDisplay = document.getElementById("usernameDisplay");
     const balanceDisplay = document.getElementById("balanceDisplay");
@@ -385,7 +403,7 @@ async function loadMyTasksPageData(user) {
             return;
         }
 
-        const taskPromises = snapshot.docs.map(doc => getDoc(collection(db, "tasks", doc.data().taskId)));
+        const taskPromises = snapshot.docs.map(doc => getDoc(doc(db, "tasks", doc.data().taskId)));
         const taskDocs = await Promise.all(taskPromises);
         const tasksData = taskDocs.reduce((acc, doc) => {
             if(doc.exists()) acc[doc.id] = doc.data();
@@ -436,8 +454,6 @@ async function loadMyTasksPageData(user) {
         submissionsList.innerHTML = submissionsHtml;
     });
 }
-
-
 
 
 async function loadTaskDetailPageData(user) {
@@ -1103,6 +1119,81 @@ async function loadTicketDetailPageData(user) {
         }
     });
 }
+
+async function loadBonusPageData(user) {
+    const claimBonusBtn = document.getElementById('claimBonusBtn');
+    const bonusStatusText = document.getElementById('bonusStatusText');
+    const userRef = doc(db, 'users', user.uid);
+
+    const updateBonusUI = (userData) => {
+        const lastBonusClaim = userData.lastBonusClaimDate ? (userData.lastBonusClaimDate.toDate ? userData.lastBonusClaimDate.toDate() : new Date(userData.lastBonusClaimDate)) : null;
+        const now = new Date();
+        const twentyFourHours = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+
+        if (!lastBonusClaim || (now.getTime() - lastBonusClaim.getTime()) >= twentyFourHours) {
+            // Bonus available
+            bonusStatusText.textContent = "Günün Bonusu Seni Bekliyor! Hemen 0.50 ₺ bonusu al.";
+            claimBonusBtn.disabled = false;
+            claimBonusBtn.textContent = "Bonusu Al";
+            claimBonusBtn.style.backgroundColor = 'var(--c-success)'; // Make it green when active
+        } else {
+            // Bonus not available yet, calculate remaining time
+            const nextClaimTime = new Date(lastBonusClaim.getTime() + twentyFourHours);
+            const remainingTimeMs = nextClaimTime.getTime() - now.getTime();
+
+            const hours = Math.floor(remainingTimeMs / (1000 * 60 * 60));
+            const minutes = Math.floor((remainingTimeMs % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((remainingTimeMs % (1000 * 60)) / 1000);
+
+            bonusStatusText.textContent = `Bir sonraki bonus için kalan süre: ${hours}s ${minutes}d ${seconds}sn`;
+            claimBonusBtn.disabled = true;
+            claimBonusBtn.textContent = "Beklemede...";
+            claimBonusBtn.style.backgroundColor = 'var(--c-bg-medium)'; // Make it grey when disabled
+            setTimeout(() => onSnapshot(userRef, updateBonusUI), 1000); // Update every second
+        }
+    };
+
+    onSnapshot(userRef, (docSnapshot) => {
+        if (docSnapshot.exists()) {
+            updateBonusUI(docSnapshot.data());
+        }
+    });
+
+    claimBonusBtn.addEventListener('click', async () => {
+        claimBonusBtn.disabled = true;
+        claimBonusBtn.textContent = "Bonus Yükleniyor...";
+
+        try {
+            await runTransaction(db, async (transaction) => {
+                const userDoc = await transaction.get(userRef);
+                if (!userDoc.exists()) throw new Error("Kullanıcı bulunamadı!");
+
+                const userData = userDoc.data();
+                const lastBonusClaim = userData.lastBonusClaimDate ? (userData.lastBonusClaimDate.toDate ? userData.lastBonusClaimDate.toDate() : new Date(userData.lastBonusClaimDate)) : null;
+                const now = new Date();
+                const twentyFourHours = 24 * 60 * 60 * 1000;
+
+                if (lastBonusClaim && (now.getTime() - lastBonusClaim.getTime()) < twentyFourHours) {
+                    throw new Error("Bonus henüz mevcut değil. Lütfen bekleyin.");
+                }
+
+                const bonusAmount = 0.50;
+                transaction.update(userRef, {
+                    balance: (userData.balance || 0) + bonusAmount,
+                    totalEarned: (userData.totalEarned || 0) + bonusAmount,
+                    lastBonusClaimDate: serverTimestamp()
+                });
+            });
+            showAlert("0.50 ₺ günlük bonus hesabınıza eklendi!", true);
+        } catch (error) {
+            console.error("Bonus alma hatası:", error);
+            showAlert("Bonus alınamadı: " + error.message, false);
+        } finally {
+            // onSnapshot will handle re-enabling the button or updating the timer
+        }
+    });
+}
+
 
 async function loadAnnouncementsPageData() {
     const announcementsList = document.getElementById('announcementsList');
