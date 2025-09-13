@@ -242,7 +242,7 @@ function initLoginPage() {
             hideLoader();
             console.error("Giriş işlemi sırasında hata:", error);
             // Firebase v9+ genellikle hem yanlış e-posta hem de şifre için 'auth/invalid-credential' döndürür
-            if (error.code === 'auth/invalid-credential') {
+            if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
                  showAlert("Hatalı e-posta veya şifre.", false);
             } else {
                  showAlert("Giriş hatası: " + error.message, false);
@@ -252,25 +252,26 @@ function initLoginPage() {
 
     const forgotPasswordLink = document.getElementById('forgotPasswordLink');
     if (forgotPasswordLink) {
-        forgotPasswordLink.addEventListener('click', (e) => {
+        forgotPasswordLink.addEventListener('click', async (e) => {
             e.preventDefault();
-            const email = prompt("Şifre sıfırlama için e-posta adresinizi girin:");
+            const email = prompt("Şifrenizi sıfırlamak için lütfen e-posta adresinizi girin:");
             if (email) {
-                sendPasswordResetEmail(auth, email)
-                    .then(() => showAlert("Şifre sıfırlama e-postası gönderildi!", true))
-                    .catch((error) => {
-                         console.error("Şifre sıfırlama hatası:", error);
-                         showAlert("Şifre sıfırlama hatası: " + error.message, false);
-                    });
+                try {
+                    await sendPasswordResetEmail(auth, email);
+                    showAlert("Şifre sıfırlama bağlantısı e-posta adresinize gönderildi.", true);
+                } catch (error) {
+                    console.error("Şifre sıfırlama hatası:", error);
+                    showAlert("Şifre sıfırlama bağlantısı gönderilirken bir sorun oluştu. Lütfen e-posta adresinizi kontrol edin veya daha sonra tekrar deneyin.", false);
+                }
             }
         });
     }
 }
 
+
 async function initRegisterPage() {
     const registerForm = document.getElementById("registerForm");
-    if (!registerForm) return;
-    handleInputLabels();
+    handleInputLabels(); // Form yüklendiğinde label'ları ayarla
 
     registerForm.addEventListener("submit", async (e) => {
         e.preventDefault();
