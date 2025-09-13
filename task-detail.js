@@ -1,4 +1,3 @@
-// task-detail.js
 document.addEventListener('DOMContentLoaded', () => {
     const taskDetailTitleHeader = document.getElementById('task-detail-title-header');
     const taskDetailContainer = document.getElementById('task-detail-container');
@@ -72,6 +71,20 @@ document.addEventListener('DOMContentLoaded', () => {
                                                  <button class="btn-primary" onclick="window.location.href='my-tasks.html'">Görevlere Geri Dön</button>`;
                 return;
             }
+
+            // Kullanıcının bu görev için bekleyen bir kanıtı var mı kontrol et
+            const pendingProofSnapshot = await db.collection('taskProofs')
+                                                  .where('userId', '==', currentUser.uid)
+                                                  .where('taskId', '==', taskId)
+                                                  .where('status', '==', 'pending')
+                                                  .get();
+
+            if (!pendingProofSnapshot.empty) {
+                taskDetailContainer.innerHTML = `<p class="info-message">Bu görev için gönderdiğiniz kanıtlar onay bekliyor.</p>
+                                                 <button class="btn-primary" onclick="window.location.href='my-tasks.html'">Görevlere Geri Dön</button>`;
+                return;
+            }
+
 
             // Stok kontrolü
             const currentStock = currentTask.stock - currentTask.completedCount;
@@ -175,7 +188,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         completeTaskBtn.disabled = true;
         completeTaskBtn.textContent = 'Yükleniyor...';
-        proofMessage.textContent = 'Kanıtlar yükleniyor ve görev tamamlanıyor...';
+        proofMessage.textContent = 'Kanıtlar yükleniyor ve görev onaya gönderiliyor...';
         proofMessage.className = 'info-message';
 
         try {
@@ -199,67 +212,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const downloadURLs = await Promise.all(uploadPromises);
 
-            // Firestore transaction kullanarak kullanıcı ve görev verilerini atomik olarak güncelle
-            const userDocRef = db.collection('users').doc(currentUser.uid);
-            const taskDocRef = db.collection('tasks').doc(taskId);
+            // Kullanıcı verisini çek (username için)
+            const userDoc = await db.collection('users').doc(currentUser.uid).get();
+            const userData = userDoc.data();
 
-            await db.runTransaction(async (transaction) => {
-                const userDoc = await transaction.get(userDocRef);
-                const taskDoc = await transaction.get(taskDocRef);
-
-                if (!userDoc.exists) throw "Kullanıcı belgesi bulunamadı!";
-                if (!taskDoc.exists) throw "Görev belgesi bulunamadı!";
-
-                const userData = userDoc.data();
-                const taskData = taskDoc.data();
-
-                // Kullanıcının bu görevi zaten tamamlayıp tamamlamadığını son bir kez kontrol et
-                const currentCompletedTaskIds = userData.completedTaskIds || [];
-                if (currentCompletedTaskIds.includes(taskId)) {
-                    throw new Error("Bu görev zaten tamamlanmış.");
-                }
-
-                // Görev stoğu kontrolü
-                if (taskData.completedCount >= taskData.stock && taskData.stock > 0) {
-                    throw new Error("Bu görevin stoğu bitmiştir.");
-                }
-
-                const newBalance = (userData.balance || 0) + currentTask.reward;
-                const newCompletedTasks = (userData.completedTasks || 0) + 1;
-                const newCompletedTaskIds = [...currentCompletedTaskIds, taskId];
-                
-                const newCompletedCount = (taskData.completedCount || 0) + 1;
-
-                transaction.update(userDocRef, {
-                    balance: newBalance,
-                    completedTasks: newCompletedTasks,
-                    completedTaskIds: newCompletedTaskIds
-                });
-                
-                transaction.update(taskDocRef, {
-                    completedCount: newCompletedCount
-                });
-
-                // Kanıtları ayrı bir koleksiyonda sakla
-                transaction.set(db.collection('taskProofs').doc(), {
-                    taskId: taskId,
-                    userId: currentUser.uid,
-                    username: userData.username || currentUser.email,
-                    proofUrls: downloadURLs,
-                    submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    status: 'pending' // pending, approved, rejected
-                });
+            // Kanıtları ayrı bir koleksiyonda sakla ve onaya gönder
+            await db.collection('taskProofs').add({
+                taskId: taskId,
+                taskTitle: currentTask.title, // Admin panelinde kolaylık için görev başlığını da ekle
+                userId: currentUser.uid,
+                username: userData.username || currentUser.email,
+                proofUrls: downloadURLs,
+                submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                status: 'pending' // pending, approved, rejected
             });
 
-            proofMessage.textContent = 'Görev başarıyla tamamlandı ve kanıtlar gönderildi!';
+            proofMessage.textContent = 'Kanıtlarınız başarıyla gönderildi ve görev onaya iletildi!';
             proofMessage.className = 'success-message';
-            completeTaskBtn.textContent = 'Tamamlandı!';
+            completeTaskBtn.textContent = 'Onaya Gönderildi';
             setTimeout(() => {
                 window.location.href = 'my-tasks.html';
             }, 2000);
 
         } catch (error) {
-            console.error("Görev tamamlama veya kanıt yükleme hatası: ", error);
+            console.error("Kanıt yükleme veya onaya gönderme hatası: ", error);
             proofMessage.textContent = `Hata: ${error.message}`;
             proofMessage.className = 'error-message';
             completeTaskBtn.disabled = false;

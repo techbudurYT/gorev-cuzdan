@@ -220,6 +220,27 @@ body {
     margin-top: 0;
 }
 
+.btn-info {
+    background-color: var(--info-color);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    margin-top: 10px;
+}
+.btn-info:hover {
+    background-color: #1a7bbd;
+}
+.btn-info.btn-small {
+    padding: 8px 15px;
+    font-size: 0.9rem;
+    width: auto;
+    margin-top: 0;
+}
+
+
 .form-switch {
     text-align: center;
     margin-top: 20px;
@@ -378,6 +399,7 @@ body {
     transition: transform 0.3s ease, box-shadow 0.3s ease;
     flex-direction: row; /* Default olarak yan yana */
     text-align: left;
+    gap: 15px; /* Öğeler arasına boşluk ekle */
 }
 
 .task-card:hover {
@@ -388,23 +410,29 @@ body {
 .task-icon {
     width: 50px;
     height: 50px;
-    margin-right: 20px;
     flex-shrink: 0;
 }
 
 .task-info {
     flex-grow: 1;
+    min-width: 0; /* İçerik taşmasını engellemek için */
 }
 
 .task-info h4 {
     font-size: 1.2rem;
     margin-bottom: 5px;
+    white-space: nowrap; /* Başlığın tek satırda kalmasını sağla */
+    overflow: hidden; /* Taşmayı gizle */
+    text-overflow: ellipsis; /* Taşma durumunda üç nokta göster */
 }
 
 .task-info p {
     color: var(--text-secondary);
     font-size: 0.9rem;
     margin-bottom: 5px;
+    white-space: nowrap; /* Açıklamanın tek satırda kalmasını sağla */
+    overflow: hidden; /* Taşmayı gizle */
+    text-overflow: ellipsis; /* Taşma durumunda üç nokta göster */
 }
 .task-stock-info {
     font-size: 0.85rem;
@@ -413,7 +441,6 @@ body {
 }
 
 .task-reward {
-    margin-left: auto; /* Sağ tarafa yasla */
     display: flex;
     align-items: center;
     flex-shrink: 0;
@@ -435,6 +462,11 @@ body {
     font-weight: 500;
     transition: background-color 0.3s;
     flex-shrink: 0;
+    text-decoration: none; /* Link olduğu için alt çizgiyi kaldır */
+    display: inline-flex; /* İçeriği ortalamak için */
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap; /* Buton metninin tek satırda kalmasını sağla */
 }
 
 .btn-task:hover:not(:disabled) {
@@ -663,11 +695,11 @@ body {
     background-color: #666;
 }
 
-.user-list-container, .faq-list-container {
+.user-list-container, .faq-list-container, .task-proofs-container {
     margin-top: 30px;
     overflow-x: auto;
 }
-.user-list-container table, .faq-list-container table {
+.user-list-container table, .faq-list-container table, .task-proofs-container table {
     min-width: 600px; /* Küçük ekranlarda kaydırma çubuğu için */
 }
 
@@ -925,7 +957,7 @@ body {
     .admin-sections {
         grid-template-columns: 1fr;
     }
-    .user-list-container table, .faq-list-container table {
+    .user-list-container table, .faq-list-container table, .task-proofs-container table {
         min-width: 500px;
     }
     

@@ -22,7 +22,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const addFaqMessage = document.getElementById('add-faq-message');
     const faqManagementBody = document.getElementById('faq-management-body');
 
+    const taskProofsBody = document.getElementById('task-proofs-body');
+    const taskProofsMessage = document.getElementById('task-proofs-message');
+
     let allUsers = [];
+    let allTasks = {}; // Görev detaylarını depolamak için
 
     // Admin kontrolü
     auth.onAuthStateChanged(user => {
@@ -34,6 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     loadUsers();
                     loadFaqs();
+                    loadTaskProofs();
                 }
             }).catch(error => {
                 console.error("Admin yetkisi kontrol edilirken hata oluştu: ", error);
@@ -338,8 +343,183 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Görev Onayları Yönetimi
+    async function loadTaskProofs() {
+        taskProofsBody.innerHTML = '<tr><td colspan="5">Yükleniyor...</td></tr>';
+        taskProofsMessage.textContent = '';
+        try {
+            // Tüm görevleri bir kere çekip allTasks objesine kaydet
+            const tasksSnapshot = await db.collection('tasks').get();
+            allTasks = {};
+            tasksSnapshot.forEach(doc => {
+                allTasks[doc.id] = doc.data();
+            });
+
+            const snapshot = await db.collection('taskProofs')
+                                     .where('status', '==', 'pending')
+                                     .orderBy('submittedAt', 'asc')
+                                     .get();
+            taskProofsBody.innerHTML = '';
+            if (snapshot.empty) {
+                taskProofsBody.innerHTML = '<tr><td colspan="5">Onay bekleyen görev bulunmamaktadır.</td></tr>';
+                return;
+            }
+
+            snapshot.forEach(doc => {
+                const proof = doc.data();
+                const proofId = doc.id;
+                const task = allTasks[proof.taskId]; // Görev detaylarını al
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${proof.username || proof.email}</td>
+                    <td>${task ? task.title : 'Bilinmeyen Görev'} (${proof.taskId})</td>
+                    <td>
+                        ${proof.proofUrls.map(url => `<a href="${url}" target="_blank">Kanıt</a>`).join(', ')}
+                    </td>
+                    <td><span class="btn-small btn-info">${proof.status}</span></td>
+                    <td>
+                        <button class="btn-small btn-success approve-proof-btn" data-id="${proofId}" data-taskid="${proof.taskId}" data-userid="${proof.userId}">Onayla</button>
+                        <button class="btn-small btn-danger reject-proof-btn" data-id="${proofId}" data-taskid="${proof.taskId}" data-userid="${proof.userId}">Reddet</button>
+                    </td>
+                `;
+                taskProofsBody.appendChild(row);
+            });
+
+            document.querySelectorAll('.approve-proof-btn').forEach(button => {
+                button.addEventListener('click', (e) => approveTaskProof(e.target.dataset.id, e.target.dataset.taskid, e.target.dataset.userid));
+            });
+            document.querySelectorAll('.reject-proof-btn').forEach(button => {
+                button.addEventListener('click', (e) => rejectTaskProof(e.target.dataset.id, e.target.dataset.taskid, e.target.dataset.userid));
+            });
+
+        } catch (error) {
+            console.error("Görev kanıtları yüklenirken hata oluştu: ", error);
+            taskProofsBody.innerHTML = '<tr><td colspan="5">Görev kanıtları yüklenemedi.</td></tr>';
+            taskProofsMessage.textContent = 'Hata: Görev kanıtları yüklenemedi.';
+            taskProofsMessage.className = 'error-message';
+        }
+    }
+
+    async function approveTaskProof(proofId, taskId, userId) {
+        if (!confirm('Bu görevi onaylamak istediğinize emin misiniz?')) return;
+
+        taskProofsMessage.textContent = 'Onaylanıyor...';
+        taskProofsMessage.className = 'info-message';
+
+        try {
+            const proofDocRef = db.collection('taskProofs').doc(proofId);
+            const userDocRef = db.collection('users').doc(userId);
+            const taskDocRef = db.collection('tasks').doc(taskId);
+
+            await db.runTransaction(async (transaction) => {
+                const proofDoc = await transaction.get(proofDocRef);
+                const userDoc = await transaction.get(userDocRef);
+                const taskDoc = await transaction.get(taskDocRef);
+
+                if (!proofDoc.exists) throw "Kanıt belgesi bulunamadı!";
+                if (!userDoc.exists) throw "Kullanıcı belgesi bulunamadı!";
+                if (!taskDoc.exists) throw "Görev belgesi bulunamadı!";
+
+                const userData = userDoc.data();
+                const taskData = taskDoc.data();
+                const proofData = proofDoc.data();
+
+                if (proofData.status !== 'pending') {
+                    throw new Error("Bu kanıt zaten işlenmiş.");
+                }
+
+                // Kullanıcının bakiyesini ve tamamlanan görev sayısını güncelle
+                const newBalance = (userData.balance || 0) + taskData.reward;
+                const newCompletedTasksCount = (userData.completedTasks || 0) + 1;
+                const newCompletedTaskIds = [...(userData.completedTaskIds || []), taskId];
+
+                transaction.update(userDocRef, {
+                    balance: newBalance,
+                    completedTasks: newCompletedTasksCount,
+                    completedTaskIds: newCompletedTaskIds
+                });
+
+                // Görevdeki completedCount'u artır
+                const newCompletedCount = (taskData.completedCount || 0) + 1;
+                transaction.update(taskDocRef, {
+                    completedCount: newCompletedCount
+                });
+
+                // Kanıtın durumunu 'approved' olarak güncelle
+                transaction.update(proofDocRef, {
+                    status: 'approved',
+                    reviewedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            });
+
+            taskProofsMessage.textContent = 'Görev başarıyla onaylandı!';
+            taskProofsMessage.className = 'success-message';
+            loadTaskProofs(); // Listeyi yeniden yükle
+            loadUsers(); // Kullanıcı listesini de güncelle (bakiye ve görev sayısı değişti)
+            setTimeout(() => taskProofsMessage.textContent = '', 3000);
+
+        } catch (error) {
+            console.error("Görev onaylama hatası: ", error);
+            taskProofsMessage.textContent = `Hata: ${error.message}`;
+            taskProofsMessage.className = 'error-message';
+        }
+    }
+
+    async function rejectTaskProof(proofId, taskId, userId) {
+        if (!confirm('Bu görevi reddetmek istediğinize emin misiniz?')) return;
+
+        taskProofsMessage.textContent = 'Reddediliyor...';
+        taskProofsMessage.className = 'info-message';
+
+        try {
+            const proofDocRef = db.collection('taskProofs').doc(proofId);
+            
+            await db.runTransaction(async (transaction) => {
+                const proofDoc = await transaction.get(proofDocRef);
+
+                if (!proofDoc.exists) throw "Kanıt belgesi bulunamadı!";
+                const proofData = proofDoc.data();
+
+                if (proofData.status !== 'pending') {
+                    throw new Error("Bu kanıt zaten işlenmiş.");
+                }
+
+                // Kanıtın durumunu 'rejected' olarak güncelle
+                transaction.update(proofDocRef, {
+                    status: 'rejected',
+                    reviewedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                // Kullanıcının tamamlanmış görev ID'lerinden bu görevi kaldır (eğer eklenmişse)
+                // Reddedilen bir görevin user.completedTaskIds içinde olmaması gerektiği için bu gerekli olmayabilir
+                // Ancak sağlamlık için kontrol edilebilir.
+                // Eğer kullanıcı bu görevi tamamlamış gibi görünüyorsa ve şimdi reddediliyorsa,
+                // completedTaskIds'ten çıkarmak mantıklı olabilir.
+                // const userDocRef = db.collection('users').doc(userId);
+                // const userDoc = await transaction.get(userDocRef);
+                // if (userDoc.exists) {
+                //     const userData = userDoc.data();
+                //     const currentCompletedTaskIds = userData.completedTaskIds || [];
+                //     const updatedCompletedTaskIds = currentCompletedTaskIds.filter(id => id !== taskId);
+                //     if (updatedCompletedTaskIds.length !== currentCompletedTaskIds.length) {
+                //         transaction.update(userDocRef, { completedTaskIds: updatedCompletedTaskIds });
+                //     }
+                // }
+            });
+
+            taskProofsMessage.textContent = 'Görev başarıyla reddedildi!';
+            taskProofsMessage.className = 'success-message';
+            loadTaskProofs(); // Listeyi yeniden yükle
+            setTimeout(() => taskProofsMessage.textContent = '', 3000);
+
+        } catch (error) {
+            console.error("Görev reddetme hatası: ", error);
+            taskProofsMessage.textContent = `Hata: ${error.message}`;
+            taskProofsMessage.className = 'error-message';
+        }
+    }
+
+
     logoutBtn.addEventListener('click', () => auth.signOut());
 });
-
-
-

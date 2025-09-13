@@ -1,4 +1,3 @@
-
 document.addEventListener('DOMContentLoaded', () => {
     const walletBalance = document.getElementById('wallet-balance');
     const transactionHistory = document.getElementById('transaction-history');
@@ -25,53 +24,51 @@ document.addEventListener('DOMContentLoaded', () => {
                 adminPanelLink.style.display = 'block';
             }
 
-            loadTransactionHistory(userData.completedTaskIds || []);
+            loadTransactionHistory(uid); // Kullanıcı UID'sine göre geçmişi yükle
         } else {
             console.error("Kullanıcı verisi bulunamadı!");
         }
     }
     
-    async function loadTransactionHistory(taskIds) {
+    async function loadTransactionHistory(uid) {
         transactionHistory.innerHTML = '<li>Yükleniyor...</li>';
-        if (taskIds.length === 0) {
-            transactionHistory.innerHTML = '<li>Henüz bir işlem yok.</li>';
-            return;
-        }
-
+       
         try {
-            // Task IDs'nin benzersiz olduğundan ve sıranın önemli olduğundan emin olalım
-            const uniqueTaskIds = [...new Set(taskIds)]; // Yinelenen ID'leri kaldır
+            // Sadece 'approved' durumdaki ve bu kullanıcıya ait kanıtları çek
+            const approvedProofsSnapshot = await db.collection('taskProofs')
+                                                   .where('userId', '==', uid)
+                                                   .where('status', '==', 'approved')
+                                                   .orderBy('reviewedAt', 'desc') // Onaylanma tarihine göre sırala
+                                                   .get();
 
-            // Firebase 'in' sorguları 10 elemanla sınırlıdır.
-            // Eğer taskIds çok büyük olursa birden fazla sorgu yapmak gerekir.
-            // Basitlik adına, şimdilik tüm görevleri çekip filtreleyelim.
-            const tasksSnapshot = await db.collection('tasks').get();
-            const allTasks = {};
-            tasksSnapshot.forEach(doc => {
-                allTasks[doc.id] = doc.data();
-            });
+            if (approvedProofsSnapshot.empty) {
+                transactionHistory.innerHTML = '<li>Henüz onaylanmış bir işleminiz yok.</li>';
+                return;
+            }
 
             transactionHistory.innerHTML = '';
             
-            // Kullanıcının tamamladığı görevlerin kaydını ters sırada göster (en yeni en üstte)
-            // Bu, 'completedTaskIds' dizisinin sırasına göre yapılır, bu diziye eklenme sırası önemli olmalıdır.
-            const reversedTaskIds = [...taskIds].reverse(); 
+            for (const doc of approvedProofsSnapshot.docs) {
+                const proofData = doc.data();
+                // Görev detaylarını (ödül bilgisini) taskProof'tan veya ayrı bir tasks koleksiyonundan alabiliriz.
+                // admin.js'de taskProof'a taskTitle eklediğimiz için buradan çekebiliriz.
+                // Eğer reward bilgisi de eklenseydi daha kolay olurdu, şimdilik task koleksiyonundan çekelim.
+                
+                const taskDoc = await db.collection('tasks').doc(proofData.taskId).get();
+                const taskData = taskDoc.exists ? taskDoc.data() : { title: 'Bilinmeyen Görev', reward: 0 };
 
-            reversedTaskIds.forEach(taskId => {
-                const task = allTasks[taskId];
-                if (task) {
-                    const li = document.createElement('li');
-                    const timestamp = task.completedAt ? new Date(task.completedAt.toDate()).toLocaleString() : 'Tarih Yok';
-                    li.innerHTML = `
-                        <span>${task.title}</span>
-                        <div>
-                            <span class="history-reward">+${task.reward.toFixed(2)} ₺</span>
-                            <span class="history-date">${timestamp}</span>
-                        </div>
-                    `;
-                    transactionHistory.appendChild(li);
-                }
-            });
+
+                const li = document.createElement('li');
+                const timestamp = proofData.reviewedAt ? new Date(proofData.reviewedAt.toDate()).toLocaleString() : 'Tarih Yok';
+                li.innerHTML = `
+                    <span>${taskData.title}</span>
+                    <div>
+                        <span class="history-reward">+${taskData.reward.toFixed(2)} ₺</span>
+                        <span class="history-date">${timestamp}</span>
+                    </div>
+                `;
+                transactionHistory.appendChild(li);
+            }
 
         } catch (error) {
             console.error("İşlem geçmişi yüklenemedi:", error);

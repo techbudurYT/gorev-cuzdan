@@ -74,13 +74,22 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         let availableTasks = 0;
-        tasksSnapshot.forEach(doc => {
+        for (const doc of tasksSnapshot.docs) {
             const task = doc.data();
             const taskId = doc.id;
             const isCompleted = userCompletedTasks.includes(taskId);
 
-            // Sadece tamamlanmamış görevler için kart oluştur
-            if (!isCompleted) {
+            // Kullanıcının bu görev için bekleyen bir kanıtı var mı kontrol et
+            const pendingProofSnapshot = await db.collection('taskProofs')
+                                                  .where('userId', '==', currentUser.uid)
+                                                  .where('taskId', '==', taskId)
+                                                  .where('status', '==', 'pending')
+                                                  .get();
+
+            const hasPendingProof = !pendingProofSnapshot.empty;
+
+            // Sadece tamamlanmamış ve bekleyen kanıtı olmayan görevler için kart oluştur
+            if (!isCompleted && !hasPendingProof) {
                 availableTasks++;
                 const taskCard = document.createElement('div');
                 taskCard.className = 'task-card';
@@ -94,78 +103,32 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="task-reward">
                         <span>+${task.reward.toFixed(2)} ₺</span>
                     </div>
-                    <button class="btn-task" id="${taskId}">Görevi Yap</button>
+                    <a href="task-detail.html?taskId=${taskId}" class="btn-task">Görevi Yap</a>
                 `;
                 taskList.appendChild(taskCard);
-
-                document.getElementById(taskId).addEventListener('click', () => completeTask(taskId, task.reward));
+            } else if (hasPendingProof) {
+                // Bekleyen kanıtı olan görevler için farklı bir kart veya durum göster
+                availableTasks++;
+                const taskCard = document.createElement('div');
+                taskCard.className = 'task-card pending-task';
+                taskCard.innerHTML = `
+                    <img src="img/logos/${task.icon || 'other.png'}" alt="${task.title}" class="task-icon">
+                    <div class="task-info">
+                        <h4>${task.title}</h4>
+                        <p>${task.description}</p>
+                    </div>
+                    <div class="task-reward">
+                        <span>+${task.reward.toFixed(2)} ₺</span>
+                    </div>
+                    <button class="btn-task btn-info" disabled>Onay Bekliyor</button>
+                `;
+                taskList.appendChild(taskCard);
             }
-        });
+        }
 
         // Eğer gösterilecek hiç görev kalmadıysa bilgilendirme mesajı göster
         if (availableTasks === 0) {
-            taskList.innerHTML = '<p>Tebrikler! Mevcut tüm görevleri tamamladınız.</p>';
-        }
-    }
-
-    async function completeTask(taskId, reward) {
-        const taskButton = document.getElementById(taskId);
-        if (taskButton) {
-            taskButton.disabled = true;
-            taskButton.textContent = 'İşleniyor...';
-        }
-
-        const userDocRef = db.collection('users').doc(currentUser.uid);
-
-        try {
-            await db.runTransaction(async (transaction) => {
-                const userDoc = await transaction.get(userDocRef);
-                if (!userDoc.exists) {
-                    throw "Kullanıcı belgesi bulunamadı!";
-                }
-
-                const currentCompletedTasks = userDoc.data().completedTaskIds || [];
-                if (currentCompletedTasks.includes(taskId)) {
-                    throw "Bu görev zaten tamamlanmış.";
-                }
-
-                const newBalance = (userDoc.data().balance || 0) + reward;
-                const newCompletedTasks = (userDoc.data().completedTasks || 0) + 1;
-                const newCompletedTaskIds = [...currentCompletedTasks, taskId];
-
-                transaction.update(userDocRef, {
-                    balance: newBalance,
-                    completedTasks: newCompletedTasks,
-                    completedTaskIds: newCompletedTaskIds
-                });
-            });
-
-            // Yerel veriyi ve UI'ı güncelle
-            userData.balance += reward;
-            userData.completedTasks += 1;
-            userData.completedTaskIds.push(taskId);
-            updateUI();
-            
-            // Görev kartını DOM'dan kaldır
-            const taskCard = taskButton.closest('.task-card');
-            if (taskCard) {
-                taskCard.remove();
-            }
-
-            // Eğer görev listesi boşaldıysa mesajı güncelle
-            if (taskList.children.length === 0) {
-                 taskList.innerHTML = '<p>Tebrikler! Mevcut tüm görevleri tamamladınız.</p>';
-            }
-
-        } catch (error) {
-            console.error("Görev tamamlama hatası: ", error);
-            if (taskButton) {
-                taskButton.textContent = 'Hata Oluştu';
-                setTimeout(() => {
-                    taskButton.disabled = false;
-                    taskButton.textContent = 'Görevi Yap';
-                }, 2000);
-            }
+            taskList.innerHTML = '<p>Tebrikler! Mevcut tüm görevleri tamamladınız veya onay bekleyen görevleriniz var.</p>';
         }
     }
 
