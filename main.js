@@ -102,81 +102,65 @@ function handleInputLabels() {
 
 document.addEventListener('DOMContentLoaded', () => {
     const pageId = document.body.id;
-
-    if (pageId.startsWith('page-admin')) {
-        return;
-    }
+    if (pageId.startsWith('page-admin')) return;
 
     showLoader();
 
-    onAuthStateChanged(auth, (user) => {
+    let initialized = false; // Tek yönlendirme ve initialize için
+
+    onAuthStateChanged(auth, async (user) => {
+        if (initialized) return; 
+        initialized = true;
+
         const isAuthPage = pageId === 'page-login' || pageId === 'page-register';
 
-        // --- Yönlendirme Mantığı ---
-        if (user && isAuthPage) {
-            window.location.replace('index.html');
-            return;
-        }
+        if (user) {
+            // Kullanıcı giriş yapmış ama auth sayfasındaysa index'e yönlendir
+            if (isAuthPage) {
+                window.location.replace('index.html');
+                return;
+            }
 
-        if (!user && !isAuthPage) {
-            window.location.replace('login.html');
-            return;
-        }
+            try {
+                // Kullanıcı belgesini al
+                const userRef = doc(db, "users", user.uid);
+                const userDoc = await getDoc(userRef);
+                if (!userDoc.exists()) {
+                    // Eğer kullanıcı belgesi yoksa oluştur
+                    await setDoc(userRef, {
+                        username: user.displayName || user.email.split('@')[0],
+                        email: user.email,
+                        balance: 0,
+                        isAdmin: false,
+                        isPremium: false,
+                        premiumExpirationDate: null,
+                        lastPremiumPaymentDate: null,
+                        createdAt: serverTimestamp(),
+                        lastLoginAt: serverTimestamp(),
+                        totalCompletedTasks: 0,
+                        totalEarned: 0
+                    });
+                } else {
+                    await updateDoc(userRef, { lastLoginAt: serverTimestamp() });
+                }
 
-        // --- Sayfa Yükleme Mantığı ---
-        // Yönlendirme gerekmiyorsa, mevcut sayfayı yükle
-        initializePage(user, pageId);
+                await initializePage(user, pageId);
+            } catch (err) {
+                console.error("Kullanıcı yüklenirken hata:", err);
+                showAlert("Veritabanı hatası, lütfen tekrar deneyin.", false);
+            }
+        } else {
+            // Kullanıcı yok ve auth sayfası değilse login'e yönlendir
+            if (!isAuthPage) {
+                window.location.replace('login.html');
+            } else {
+                hideLoader();
+                handleInputLabels();
+            }
+        }
     });
 });
 
-async function initializePage(user, pageId) {
-    try {
-        if (user) {
-            // Giriş yapmış kullanıcı için veritabanı işlemlerini yap
-            const userRef = doc(db, "users", user.uid);
-            const userDoc = await getDoc(userRef);
-            if (!userDoc.exists()) {
-                await setDoc(userRef, {
-                    username: user.displayName || user.email.split('@')[0],
-                    email: user.email,
-                    balance: 0, isAdmin: false, isPremium: false,
-                    premiumExpirationDate: null, lastPremiumPaymentDate: null,
-                    createdAt: serverTimestamp(), lastLoginAt: serverTimestamp(),
-                    totalCompletedTasks: 0, totalEarned: 0
-                });
-            } else {
-                await updateDoc(userRef, { lastLoginAt: serverTimestamp() });
-            }
-
-            // Sayfaya özel verileri yükle
-            switch (pageId) {
-                case 'page-index': await loadIndexPageData(user); break;
-                case 'page-profile': await loadProfilePageData(user); break;
-                case 'page-my-tasks': await loadMyTasksPageData(user); break;
-                case 'page-task-detail': await loadTaskDetailPageData(user); break;
-                case 'page-wallet': await loadWalletPageData(user); break;
-                case 'page-support': await loadSupportPageData(user); break;
-                case 'page-ticket-detail': await loadTicketDetailPageData(user); break;
-                case 'page-bonus': await loadBonusPageData(user); break;
-                case 'page-announcements': await loadAnnouncementsPageData(); break;
-                case 'page-faq': await loadFaqPageData(); break;
-                case 'page-premium': await loadPremiumPageData(user); break;
-                case 'page-leaderboard': await loadLeaderboardPageData(user); break;
-            }
-        } else {
-            // Giriş yapmamış kullanıcı için (sadece auth sayfaları)
-            if (pageId === 'page-login') initLoginPage();
-            if (pageId === 'page-register') initRegisterPage();
-        }
-    } catch (error) {
-        console.error(`Sayfa yüklenirken hata oluştu ('${pageId}'):`, error);
-        showAlert("Sayfa yüklenirken bir veritabanı hatası oluştu. Lütfen daha sonra tekrar deneyin.", false);
-    } finally {
-        // İşlem başarılı da olsa, hata da olsa yükleyiciyi gizle
-        hideLoader();
-        handleInputLabels();
-    }
-}
 
 
 function initLoginPage() {
