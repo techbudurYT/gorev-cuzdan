@@ -178,7 +178,7 @@ async function initAdminPanel(user) {
                                       `Evet (Bitiş: ${u.premiumExpirationDate.toDate().toLocaleDateString('tr-TR')})` : 'Hayır'; // NEW
                 usersHtml += `
                     <div class="user-list-item spark-card" id="user-${u.id}">
-                        <div class="user-info"><strong>${u.username}</strong> <span style="font-size:0.9em; color:var(--c-text-secondary);">(${u.email})</span><p>Bakiye: ${u.balance} ₺ | Admin: ${u.isAdmin ? 'Evet' : 'Hayır'} | Premium: ${premiumStatus} | Level: ${u.level || 1} | Completed: ${u.totalCompletedTasks || 0}</p><p>IP: ${u.lastLoginIp || 'N/A'}</p></div>
+                        <div class="user-info"><strong>${u.username}</strong> <span style="font-size:0.9em; color:var(--c-text-secondary);">(${u.email})</span><p>Bakiye: ${u.balance} ₺ | Admin: ${u.isAdmin ? 'Evet' : 'Hayır'} | Premium: ${premiumStatus} | Completed: ${u.totalCompletedTasks || 0}</p><p>IP: ${u.lastLoginIp || 'N/A'}</p></div>
                         <div class="user-actions">
                             <button class="spark-button small-button btn-edit-user" data-id="${u.id}">Düzenle</button>
                             <button class="spark-button small-button ${u.isAdmin ? 'btn-remove-admin' : 'btn-make-admin'}" data-id="${u.id}">${u.isAdmin ? 'Adminlik Al' : 'Admin Yap'}</button>
@@ -402,7 +402,7 @@ async function initAdminPanel(user) {
                     const currentBalance = userDoc.data().balance || 0;
                     const totalCompletedTasks = userDoc.data().totalCompletedTasks || 0;
                     const totalEarned = userDoc.data().totalEarned || 0;
-                    const currentLevel = userDoc.data().level || 1;
+                    
 
                     let finalReward = Number(target.dataset.taskReward);
                     // Check if premium bonus was applicable at the time of submission
@@ -413,13 +413,13 @@ async function initAdminPanel(user) {
                     }
                     
                     const newCompletedTasks = totalCompletedTasks + 1;
-                    const newLevel = Math.floor(newCompletedTasks / 5) + 1; // Her 5 görevde 1 seviye atlama
+                    
                     
                     t.update(userRef, { 
                         balance: currentBalance + finalReward,
                         totalCompletedTasks: newCompletedTasks,
                         totalEarned: totalEarned + finalReward,
-                        level: newLevel
+                        
                     });
                     t.update(doc(db, "submissions", target.dataset.submissionId), { status: 'approved' });
                 });
