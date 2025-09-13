@@ -145,7 +145,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 if (availableTasksCount === 0) {
-                    taskList.innerHTML = '<p class="info-message">Tebrikler! Mevcut tüm görevleri tamamladınız veya onay bekleyen görevleriniz var ya da seçilen kategoriye uygun görev bulunmamaktadır.</p>';
+                    taskList.innerHTML = '<p class="info-message">Uygun görev bulunmamaktadır.</p>';
                 }
             })
             .catch(error => {
