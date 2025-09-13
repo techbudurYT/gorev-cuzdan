@@ -124,9 +124,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (user) {
             const userRef = doc(db, "users", user.uid);
             const userDoc = await getDoc(userRef);
+
             if (!userDoc.exists()) {
+                // Veritabanı belgesi yoksa oluştur. Bu, yeni kayıt olmuş bir kullanıcı için çalışacaktır.
                 await setDoc(userRef, {
-                    username: user.email.split('@')[0],
+                    username: user.displayName || user.email.split('@')[0], // Kayıtta girilen adı kullan
                     email: user.email,
                     balance: 0,
                     isAdmin: false,
@@ -134,24 +136,31 @@ document.addEventListener('DOMContentLoaded', () => {
                     premiumExpirationDate: null,
                     lastPremiumPaymentDate: null,
                     createdAt: serverTimestamp(),
-                    totalCompletedTasks: 0,
-                    totalEarned: 0,
                     lastLoginIp: await getIpAddress(),
-                    lastLoginAt: serverTimestamp()
-                }, { merge: true });
+                    lastLoginAt: serverTimestamp(),
+                    totalCompletedTasks: 0,
+                    totalEarned: 0
+                });
             } else {
-                const storedIp = userDoc.data().lastLoginIp;
+                // Belge varsa, giriş bilgilerini ve eksik alanları güncelle.
+                const userData = userDoc.data();
+                const updates = {};
+                
+                const storedIp = userData.lastLoginIp;
                 const currentIp = await getIpAddress();
                 if (currentIp && storedIp !== currentIp) {
-                    await updateDoc(userRef, { lastLoginIp: currentIp, lastLoginAt: serverTimestamp() });
+                    updates.lastLoginIp = currentIp;
+                    updates.lastLoginAt = serverTimestamp();
                 }
-                const userData = userDoc.data();
+
                 if (typeof userData.isPremium === 'undefined') {
-                    await updateDoc(userRef, {
-                        isPremium: false,
-                        premiumExpirationDate: null,
-                        lastPremiumPaymentDate: null
-                    });
+                    updates.isPremium = false;
+                    updates.premiumExpirationDate = null;
+                    updates.lastPremiumPaymentDate = null;
+                }
+
+                if (Object.keys(updates).length > 0) {
+                    await updateDoc(userRef, updates);
                 }
             }
 
@@ -207,27 +216,12 @@ function initRegisterPage() {
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const newUser = userCredential.user;
 
+            // Sadece Auth profilini güncelle. Firestore belgesi onAuthStateChanged tarafından oluşturulacak.
             await updateProfile(newUser, { displayName: username });
 
-            const ipAddress = await getIpAddress();
-
-            await setDoc(doc(db, "users", newUser.uid), {
-                username,
-                email,
-                balance: 0,
-                isAdmin: false,
-                isPremium: false,
-                premiumExpirationDate: null,
-                lastPremiumPaymentDate: null,
-                createdAt: serverTimestamp(),
-                lastLoginIp: ipAddress,
-                lastLoginAt: serverTimestamp(),
-                totalCompletedTasks: 0,
-                totalEarned: 0
-            }, { merge: true });
-
-            showAlert("Kayıt başarılı!", true);
-            setTimeout(() => window.location.replace("index.html"), 1500);
+            showAlert("Kayıt başarılı! Yönlendiriliyorsunuz...", true);
+            // Yönlendirmeyi onAuthStateChanged'in yapmasına izin ver.
+            
         } catch (error) {
             hideLoader();
             console.error("Kayıt işlemi sırasında hata:", error);
@@ -235,6 +229,7 @@ function initRegisterPage() {
         }
     });
 }
+
 
 function initLoginPage() {
     const loginForm = document.getElementById("loginForm");
