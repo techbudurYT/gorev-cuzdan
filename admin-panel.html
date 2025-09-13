@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Paneli - GörevCüzdan</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Paneli - GörevCüzdan</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="app-layout">
@@ -62,6 +62,15 @@
                                 <option value="telegram.png">Telegram</option>
                                 <option value="youtube.png">YouTube</option>
                                 <option value="other.png">Diğer</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label for="task-category">Kategori</label>
+                            <select id="task-category">
+                                <option value="social-media">Sosyal Medya</option>
+                                <option value="survey">Anket</option>
+                                <option value="app-download">Uygulama İndirme</option>
+                                <option value="other">Diğer</option>
                             </select>
                         </div>
                         <button type="submit" class="btn-primary">Görevi Ekle</button>
@@ -132,6 +141,7 @@
                             <thead>
                                 <tr>
                                     <th>Başlık</th>
+                                    <th>Kategori</th>
                                     <th>Ödül</th>
                                     <th>Stok</th>
                                     <th>Tamamlanan</th>

@@ -6,9 +6,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const logoutBtn = document.getElementById('logout-btn');
     const menuToggle = document.getElementById('menu-toggle');
     const sidebar = document.querySelector('.sidebar');
+    const categoryFilter = document.getElementById('category-filter'); // Yeni: Kategori filtresi
 
     let currentUser = null;
     let userData = null;
+    let allTasks = []; // Tüm görevleri saklamak için
 
     auth.onAuthStateChanged(user => {
         if (user) {
@@ -62,7 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
             adminPanelLink.style.display = 'block';
         }
         
-        loadTasks();
+        await fetchAndDisplayTasks(); // Tüm görevleri çek ve görüntüle
     }
 
     function updateUI() {
@@ -72,74 +74,91 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    async function loadTasks() {
+    async function fetchAndDisplayTasks() {
         taskList.innerHTML = ''; 
         const tasksSnapshot = await db.collection('tasks').get();
-        const userCompletedTasks = userData.completedTaskIds || [];
-
-        // Fetch all pending proofs for the current user once
-        const allPendingProofsSnapshot = await db.collection('taskProofs')
-                                                .where('userId', '==', currentUser.uid)
-                                                .where('status', '==', 'pending')
-                                                .get();
-        const userPendingTaskIds = new Set();
-        allPendingProofsSnapshot.forEach(doc => {
-            userPendingTaskIds.add(doc.data().taskId);
+        allTasks = []; // Önceki görevleri temizle
+        tasksSnapshot.forEach(doc => {
+            allTasks.push({ id: doc.id, ...doc.data() });
         });
 
-        if (tasksSnapshot.empty) {
-            taskList.innerHTML = '<p class="info-message">Şu anda aktif görev bulunmamaktadır.</p>';
-            return;
-        }
-        
-        let availableTasks = 0;
-        for (const doc of tasksSnapshot.docs) {
-            const task = doc.data();
-            const taskId = doc.id;
-            const isCompleted = userCompletedTasks.includes(taskId);
-            const hasPendingProof = userPendingTaskIds.has(taskId);
+        filterAndRenderTasks();
+    }
 
-            if (!isCompleted && !hasPendingProof) {
-                availableTasks++;
-                const taskCard = document.createElement('div');
-                taskCard.className = 'task-card';
+    function filterAndRenderTasks() {
+        taskList.innerHTML = ''; 
+        const userCompletedTasks = userData.completedTaskIds || [];
+        const selectedCategory = categoryFilter.value;
 
-                taskCard.innerHTML = `
-                    <img src="img/logos/${task.icon || 'other.png'}" alt="${task.title}" class="task-icon">
-                    <div class="task-info">
-                        <h4>${task.title}</h4>
-                        <p>${task.description}</p>
-                    </div>
-                    <div class="task-reward">
-                        <span>+${task.reward.toFixed(2)} ₺</span>
-                    </div>
-                    <a href="task-detail.html?taskId=${taskId}" class="btn-task">Görevi Yap</a>
-                `;
-                taskList.appendChild(taskCard);
-            } else if (hasPendingProof) {
-                // Bekleyen kanıtı olan görevler için farklı bir kart veya durum göster
-                availableTasks++;
-                const taskCard = document.createElement('div');
-                taskCard.className = 'task-card pending-task';
-                taskCard.innerHTML = `
-                    <img src="img/logos/${task.icon || 'other.png'}" alt="${task.title}" class="task-icon">
-                    <div class="task-info">
-                        <h4>${task.title}</h4>
-                        <p>${task.description}</p>
-                    </div>
-                    <div class="task-reward">
-                        <span>+${task.reward.toFixed(2)} ₺</span>
-                    </div>
-                    <button class="btn-task btn-info" disabled>Onay Bekliyor</button>
-                `;
-                taskList.appendChild(taskCard);
-            }
-        }
+        // Fetch all pending proofs for the current user once
+        // Bu kısım optimize edilebilir, her filtrelemede tekrar çekmek yerine bir kere çekilip saklanabilir.
+        // Ancak mevcut yapı içinde hızlı çalışması için bu şekilde bırakıldı.
+        db.collection('taskProofs')
+            .where('userId', '==', currentUser.uid)
+            .where('status', '==', 'pending')
+            .get()
+            .then(allPendingProofsSnapshot => {
+                const userPendingTaskIds = new Set();
+                allPendingProofsSnapshot.forEach(doc => {
+                    userPendingTaskIds.add(doc.data().taskId);
+                });
 
-        // Eğer gösterilecek hiç görev kalmadıysa bilgilendirme mesajı göster
-        if (availableTasks === 0) {
-            taskList.innerHTML = '<p class="info-message">Tebrikler! Mevcut tüm görevleri tamamladınız veya onay bekleyen görevleriniz var.</p>';
-        }
+                let availableTasksCount = 0;
+                allTasks.forEach(task => {
+                    const taskId = task.id;
+                    const isCompleted = userCompletedTasks.includes(taskId);
+                    const hasPendingProof = userPendingTaskIds.has(taskId);
+
+                    const matchesCategory = selectedCategory === 'all' || task.category === selectedCategory;
+
+                    if (!isCompleted && !hasPendingProof && matchesCategory) {
+                        availableTasksCount++;
+                        const taskCard = document.createElement('div');
+                        taskCard.className = 'task-card';
+
+                        taskCard.innerHTML = `
+                            <img src="img/logos/${task.icon || 'other.png'}" alt="${task.title}" class="task-icon">
+                            <div class="task-info">
+                                <h4>${task.title}</h4>
+                                <p>${task.description}</p>
+                            </div>
+                            <div class="task-reward">
+                                <span>+${task.reward.toFixed(2)} ₺</span>
+                            </div>
+                            <a href="task-detail.html?taskId=${taskId}" class="btn-task">Görevi Yap</a>
+                        `;
+                        taskList.appendChild(taskCard);
+                    } else if (hasPendingProof && matchesCategory) {
+                        availableTasksCount++;
+                        const taskCard = document.createElement('div');
+                        taskCard.className = 'task-card pending-task';
+                        taskCard.innerHTML = `
+                            <img src="img/logos/${task.icon || 'other.png'}" alt="${task.title}" class="task-icon">
+                            <div class="task-info">
+                                <h4>${task.title}</h4>
+                                <p>${task.description}</p>
+                            </div>
+                            <div class="task-reward">
+                                <span>+${task.reward.toFixed(2)} ₺</span>
+                            </div>
+                            <button class="btn-task btn-info" disabled>Onay Bekliyor</button>
+                        `;
+                        taskList.appendChild(taskCard);
+                    }
+                });
+
+                if (availableTasksCount === 0) {
+                    taskList.innerHTML = '<p class="info-message">Tebrikler! Mevcut tüm görevleri tamamladınız veya onay bekleyen görevleriniz var ya da seçilen kategoriye uygun görev bulunmamaktadır.</p>';
+                }
+            })
+            .catch(error => {
+                console.error("Bekleyen kanıtlar yüklenirken hata oluştu: ", error);
+                taskList.innerHTML = '<p class="error-message">Görevler yüklenemedi. Lütfen daha sonra tekrar deneyin.</p>';
+            });
+    }
+
+    if (categoryFilter) {
+        categoryFilter.addEventListener('change', filterAndRenderTasks);
     }
 
     logoutBtn.addEventListener('click', () => {

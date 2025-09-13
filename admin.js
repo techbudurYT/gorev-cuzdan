@@ -78,6 +78,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const stock = parseInt(document.getElementById('task-stock').value);
         const proofCount = parseInt(document.getElementById('task-proof-count').value);
         const icon = document.getElementById('task-icon').value;
+        const category = document.getElementById('task-category').value; // Yeni: Kategori
 
         db.collection('tasks').add({
             title: title,
@@ -87,6 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
             completedCount: 0, // Başlangıçta tamamlanan sayısı
             proofCount: proofCount, // Kanıt dosyası sayısı
             icon: icon,
+            category: category, // Yeni: Kategori
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         })
         .then(() => {
@@ -105,12 +107,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Görev Yönetimi (Admin)
     async function loadTasksForAdmin() {
-        taskManagementBody.innerHTML = '<tr><td colspan="5">Yükleniyor...</td></tr>';
+        taskManagementBody.innerHTML = '<tr><td colspan="6">Yükleniyor...</td></tr>';
         try {
             const snapshot = await db.collection('tasks').orderBy('createdAt', 'desc').get();
             taskManagementBody.innerHTML = '';
             if (snapshot.empty) {
-                taskManagementBody.innerHTML = '<tr><td colspan="5">Görev bulunamadı.</td></tr>';
+                taskManagementBody.innerHTML = '<tr><td colspan="6">Görev bulunamadı.</td></tr>';
                 return;
             }
             snapshot.forEach(doc => {
@@ -119,6 +121,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td>${task.title}</td>
+                    <td>${task.category || 'Belirtilmemiş'}</td> 
                     <td>${task.reward.toFixed(2)} ₺</td>
                     <td>${task.stock === 0 ? 'Sınırsız' : task.stock}</td>
                     <td>${task.completedCount || 0}</td>
@@ -146,7 +149,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (error) {
             console.error("Görevler yüklenirken hata oluştu: ", error);
-            taskManagementBody.innerHTML = '<tr><td colspan="5">Görevler yüklenemedi.</td></tr>';
+            taskManagementBody.innerHTML = '<tr><td colspan="6">Görevler yüklenemedi.</td></tr>';
         }
     }
 
@@ -527,9 +530,16 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => taskProofsMessage.textContent = '', 3000);
 
         } catch (error) {
-            console.error("Görev onaylama hatası: ", error);
-            taskProofsMessage.textContent = `Hata: ${error.message}`;
-            taskProofsMessage.className = 'error-message';
+                // Check if the error is due to a race condition (already processed)
+                if (error.message && error.message.includes("Bu kanıt zaten işlenmiş.")) {
+                    taskProofsMessage.textContent = 'Bu kanıt zaten onaylanmış veya reddedilmiş.';
+                    taskProofsMessage.className = 'error-message';
+                    loadTaskProofs(); // Reload to reflect latest status
+                } else {
+                    console.error("Görev onaylama hatası: ", error);
+                    taskProofsMessage.textContent = `Hata: ${error.message}`;
+                    taskProofsMessage.className = 'error-message';
+                }
         }
     }
 
@@ -565,9 +575,15 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => taskProofsMessage.textContent = '', 3000);
 
         } catch (error) {
-            console.error("Görev reddetme hatası: ", error);
-            taskProofsMessage.textContent = `Hata: ${error.message}`;
-            taskProofsMessage.className = 'error-message';
+            if (error.message && error.message.includes("Bu kanıt zaten işlenmiş.")) {
+                taskProofsMessage.textContent = 'Bu kanıt zaten onaylanmış veya reddedilmiş.';
+                taskProofsMessage.className = 'error-message';
+                loadTaskProofs(); // Reload to reflect latest status
+            } else {
+                console.error("Görev reddetme hatası: ", error);
+                taskProofsMessage.textContent = `Hata: ${error.message}`;
+                taskProofsMessage.className = 'error-message';
+            }
         }
     }
 
