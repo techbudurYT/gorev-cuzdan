@@ -165,26 +165,32 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 // Diğer sayfalardaysa (yani oturum açık ve kullanıcı sayfası), ilgili verileri yükle
                 console.log(`Kullanıcı oturum açık. Sayfa: ${pageId} için veri yükleniyor.`);
-                switch (pageId) {
-                    case 'page-index': await loadIndexPageData(user); break;
-                    case 'page-profile': await loadProfilePageData(user); break;
-                    case 'page-my-tasks': await loadMyTasksPageData(user); break;
-                    case 'page-task-detail': await loadTaskDetailPageData(user); break;
-                    case 'page-wallet': await loadWalletPageData(user); break;
-                    case 'page-support': await loadSupportPageData(user); break;
-                    case 'page-ticket-detail': await loadTicketDetailPageData(user); break;
-                    case 'page-bonus': await loadBonusPageData(user); break;
-                    case 'page-announcements': await loadAnnouncementsPageData(); break;
-                    case 'page-faq': await loadFaqPageData(); break;
-                    case 'page-premium': await loadPremiumPageData(user); break;
-                    case 'page-leaderboard': await loadLeaderboardPageData(user); break;
-                    default: 
-                        console.warn(`Bilinmeyen kullanıcı sayfası (${pageId}). index.html'ye yönlendiriliyor.`);
-                        window.location.replace('index.html');
-                        break;
+                try {
+                    switch (pageId) {
+                        case 'page-index': await loadIndexPageData(user); break;
+                        case 'page-profile': await loadProfilePageData(user); break;
+                        case 'page-my-tasks': await loadMyTasksPageData(user); break;
+                        case 'page-task-detail': await loadTaskDetailPageData(user); break;
+                        case 'page-wallet': await loadWalletPageData(user); break;
+                        case 'page-support': await loadSupportPageData(user); break;
+                        case 'page-ticket-detail': await loadTicketDetailPageData(user); break;
+                        case 'page-bonus': await loadBonusPageData(user); break;
+                        case 'page-announcements': await loadAnnouncementsPageData(); break;
+                        case 'page-faq': await loadFaqPageData(); break;
+                        case 'page-premium': await loadPremiumPageData(user); break;
+                        case 'page-leaderboard': await loadLeaderboardPageData(user); break;
+                        default: 
+                            console.warn(`Bilinmeyen kullanıcı sayfası (${pageId}). index.html'ye yönlendiriliyor.`);
+                            window.location.replace('index.html');
+                            break;
+                    }
+                    hideLoader(); // Veri yüklendikten sonra loader'ı gizle
+                    handleInputLabels(); // Input label'larını güncelle
+                } catch(error) {
+                    console.error(`Sayfa verisi yüklenirken (${pageId}) kritik bir hata oluştu:`, error);
+                    showAlert("Sayfa verileri yüklenemedi. Bunun sebebi eksik veritabanı index'leri olabilir. Lütfen konsol (F12) loglarını kontrol edin.", false);
+                    hideLoader(); // Hata durumunda da loader'ı gizle
                 }
-                hideLoader(); // Veri yüklendikten sonra loader'ı gizle
-                handleInputLabels(); // Input label'larını güncelle
             }
         } else {
             // Kullanıcı oturum açmamışsa
@@ -205,11 +211,9 @@ document.addEventListener('DOMContentLoaded', () => {
         showAlert("Uygulama yüklenirken bir sorun oluştu. Lütfen internet bağlantınızı kontrol edin veya daha sonra tekrar deneyin.", false);
         hideLoader();
         // Hata durumunda, eğer auth sayfasında değilsek login'e yönlendir
-        if (!document.body.id.startsWith('page-admin')) {
-             const isAuthPage = document.body.id === 'page-login' || document.body.id === 'page-register';
-             if (!isAuthPage) {
-                window.location.replace('login.html');
-             }
+        const isAuthPage = document.body.id === 'page-login' || document.body.id === 'page-register';
+        if (!isAuthPage) {
+            window.location.replace('login.html');
         }
     });
 
