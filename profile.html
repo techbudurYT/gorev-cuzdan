@@ -1,60 +1,63 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Profilim - GörevCüzdan</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profilim - GörevCüzdan</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="app-layout">
-        <nav class="sidebar">
-            <div class="sidebar-header">
-                <h3>GörevCüzdan</h3>
-            </div>
-            <ul>
-                <li><a href="my-tasks.html"><i class="fas fa-tasks"></i> <span>Görevler</span></a></li>
-                <li><a href="leaderboard.html"><i class="fas fa-trophy"></i> <span>Liderlik Tablosu</span></a></li>
-                <li><a href="wallet.html"><i class="fas fa-wallet"></i> <span>Cüzdanım</span></a></li>
-                <li class="active"><a href="profile.html"><i class="fas fa-user"></i> <span>Profil</span></a></li>
-                <li><a href="support.html"><i class="fas fa-headset"></i> <span>Destek</span></a></li>
-                <li><a href="faq.html"><i class="fas fa-question-circle"></i> <span>SSS</span></a></li>
-                <li id="admin-panel-link" style="display: none;"><a href="admin-panel.html"><i class="fas fa-user-shield"></i> <span>Admin Panel</span></a></li>
-                <li><a href="#" id="logout-btn"><i class="fas fa-sign-out-alt"></i> <span>Çıkış Yap</span></a></li>
-            </ul>
-        </nav>
-        <main class="main-content">
-            <header class="main-header">
-                <h1>Profilim</h1>
-            </header>
-            <div class="profile-container">
-                <div class="profile-card">
-                    <i class="fas fa-user-circle profile-icon"></i>
-                    <h2 id="user-display-name">...</h2>
-                    <div class="profile-stats">
-                        <div class="profile-stat">
-                            <span>Toplam Bakiye</span>
-                            <strong id="profile-balance">0.00 ₺</strong>
-                        </div>
-                        <div class="profile-stat">
-                            <span>Tamamlanan Görevler</span>
-                            <strong id="profile-tasks-completed">0</strong>
-                        </div>
-                    </div>
-                    <button id="logout-btn-profile" class="btn-primary btn-logout">Çıkış Yap</button>
-                </div>
-            </div>
-        </main>
-    </div>
+  <div class="app-layout">
+    <nav class="sidebar">
+      <div class="sidebar-header">
+        <h3>GörevCüzdan</h3>
+      </div>
+      <ul>
+        <li><a href="my-tasks.html"><i class="fas fa-tasks"></i> <span>Görevler</span></a></li>
+        <li><a href="leaderboard.html"><i class="fas fa-trophy"></i> <span>Liderlik Tablosu</span></a></li>
+        <li><a href="wallet.html"><i class="fas fa-wallet"></i> <span>Cüzdanım</span></a></li>
+        <li><a href="task-history.html"><i class="fas fa-history"></i> <span>Görev Geçmişi</span></a></li>
+        <li class="active"><a href="profile.html"><i class="fas fa-user"></i> <span>Profil</span></a></li>
+        <li><a href="support.html"><i class="fas fa-headset"></i> <span>Destek</span></a></li>
+        <li><a href="faq.html"><i class="fas fa-question-circle"></i> <span>SSS</span></a></li>
+        <li id="admin-panel-link" style="display: none;"><a href="admin-panel.html"><i class="fas fa-user-shield"></i> <span>Admin Panel</span></a></li>
+        <li><a href="#" id="logout-btn-profile"><i class="fas fa-sign-out-alt"></i> <span>Çıkış Yap</span></a></li>
+      </ul>
+    </nav>
 
-    <!-- Firebase SDK'ları -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
-    
-    <!-- Proje Dosyaları -->
-    <script src="firebase-config.js"></script>
-    <script src="profile.js"></script>
+    <main class="main-content">
+      <header class="main-header">
+        <h1>Profilim</h1>
+      </header>
+
+      <div class="profile-container">
+        <div class="profile-card">
+          <i class="fas fa-user-circle profile-icon"></i>
+          <h2 id="user-display-name">...</h2>
+          <div class="profile-stats">
+            <div class="profile-stat">
+              <span>Toplam Bakiye</span>
+              <strong id="profile-balance">0.00 ₺</strong>
+            </div>
+            <div class="profile-stat">
+              <span>Tamamlanan Görevler</span>
+              <strong id="profile-tasks-completed">0</strong>
+            </div>
+          </div>
+          <button id="logout-btn-profile" class="btn-primary btn-logout">Çıkış Yap</button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Firebase SDK'ları -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+
+  <!-- Proje Dosyaları -->
+  <script src="firebase-config.js"></script>
+  <script src="profile.js"></script>
 </body>
 </html>
