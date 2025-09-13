@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail, updateProfile } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, query, where, orderBy, getDocs, runTransaction, addDoc, serverTimestamp, updateDoc, limit } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -93,15 +93,8 @@ document.addEventListener('DOMContentLoaded', () => {
     showLoader();
 
     onAuthStateChanged(auth, async (user) => {
-        const isAuthPage = pageId === 'page-login' || pageId === 'page-register';
-
         if (user) {
-            if (isAuthPage) {
-                window.location.replace('index.html');
-                return;
-            }
-
-            try {
+             try {
                 const userRef = doc(db, "users", user.uid);
                 const userDoc = await getDoc(userRef);
                 if (!userDoc.exists()) {
@@ -123,36 +116,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 showAlert("Veritabanı hatası, lütfen tekrar deneyin.", false);
             }
         } else {
-            if (!isAuthPage) {
-                window.location.replace('login.html');
-            } else {
-                hideLoader();
-                handleInputLabels();
-            }
+            // Eğer kullanıcı yoksa ve bu bir app sayfası ise, login'e yönlendir.
+            window.location.replace('login.html');
         }
     });
 });
 
 async function initializePage(user, pageId) {
     try {
-        if (user) {
-            switch (pageId) {
-                case 'page-index': await loadIndexPageData(user); break;
-                case 'page-profile': await loadProfilePageData(user); break;
-                case 'page-my-tasks': await loadMyTasksPageData(user); break;
-                case 'page-task-detail': await loadTaskDetailPageData(user); break;
-                case 'page-wallet': await loadWalletPageData(user); break;
-                case 'page-support': await loadSupportPageData(user); break;
-                case 'page-ticket-detail': await loadTicketDetailPageData(user); break;
-                case 'page-bonus': await loadBonusPageData(user); break;
-                case 'page-announcements': await loadAnnouncementsPageData(); break;
-                case 'page-faq': await loadFaqPageData(); break;
-                case 'page-premium': await loadPremiumPageData(user); break;
-                case 'page-leaderboard': await loadLeaderboardPageData(user); break;
-            }
-        } else {
-            if (pageId === 'page-login') initLoginPage();
-            if (pageId === 'page-register') initRegisterPage();
+        switch (pageId) {
+            case 'page-index': await loadIndexPageData(user); break;
+            case 'page-profile': await loadProfilePageData(user); break;
+            case 'page-my-tasks': await loadMyTasksPageData(user); break;
+            case 'page-task-detail': await loadTaskDetailPageData(user); break;
+            case 'page-wallet': await loadWalletPageData(user); break;
+            case 'page-support': await loadSupportPageData(user); break;
+            case 'page-ticket-detail': await loadTicketDetailPageData(user); break;
+            case 'page-bonus': await loadBonusPageData(user); break;
+            case 'page-announcements': await loadAnnouncementsPageData(); break;
+            case 'page-faq': await loadFaqPageData(); break;
+            case 'page-premium': await loadPremiumPageData(user); break;
+            case 'page-leaderboard': await loadLeaderboardPageData(user); break;
         }
     } catch (error) {
         console.error(`Sayfa yüklenirken hata oluştu ('${pageId}'):`, error);
@@ -162,78 +146,6 @@ async function initializePage(user, pageId) {
         handleInputLabels();
     }
 }
-
-// Login ve register fonksiyonları aynen korunuyor
-function initLoginPage() {
-    const loginForm = document.getElementById('loginForm');
-    if (!loginForm) return;
-
-    loginForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const email = document.getElementById('loginEmail').value.trim();
-        const password = document.getElementById('loginPassword').value;
-        if (password.length < 6) return showAlert("Şifre en az 6 karakter olmalıdır.", false);
-
-        try {
-            showLoader();
-            await signInWithEmailAndPassword(auth, email, password);
-        } catch (error) {
-            hideLoader();
-            console.error("Giriş hatası:", error);
-            showAlert("Hatalı e-posta veya şifre.", false);
-        }
-    });
-
-    const forgotPasswordLink = document.getElementById('forgotPasswordLink');
-    if (forgotPasswordLink) {
-        forgotPasswordLink.addEventListener('click', async (e) => {
-            e.preventDefault();
-            const email = prompt("Şifrenizi sıfırlamak için e-posta adresinizi girin:");
-            if (email) {
-                try {
-                    await sendPasswordResetEmail(auth, email);
-                    showAlert("Şifre sıfırlama bağlantısı gönderildi.", true);
-                } catch (error) {
-                    console.error("Şifre sıfırlama hatası:", error);
-                    showAlert("Şifre sıfırlama hatası: " + error.message, false);
-                }
-            }
-        });
-    }
-}
-
-async function initRegisterPage() {
-    const registerForm = document.getElementById("registerForm");
-    if(!registerForm) return;
-
-    registerForm.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const username = document.getElementById("regUsername").value.trim();
-        const email = document.getElementById("regEmail").value.trim();
-        const password = document.getElementById("regPassword").value;
-
-        if (username.length < 3) return showAlert("Kullanıcı adı en az 3 karakter olmalıdır.", false);
-        if (password.length < 6) return showAlert("Şifre en az 6 karakter olmalıdır.", false);
-
-        try {
-            showLoader();
-            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-            const newUser = userCredential.user;
-            await updateProfile(newUser, { displayName: username });
-        } catch (error) {
-            hideLoader();
-            console.error("Kayıt hatası:", error);
-            showAlert(error.code === 'auth/email-already-in-use' ? "Bu e-posta zaten kullanımda." : "Kayıt hatası: " + error.message, false);
-        }
-    });
-}
-
-// Buradan sonra loadIndexPageData, loadProfilePageData vb. fonksiyonlar eskisi gibi kalabilir
-
-
-// Diğer tüm fonksiyonlar (loadIndexPageData, loadProfilePageData vb.) önceki versiyon ile aynı kalabilir.
-// Sadece ana yönlendirme ve hata yönetimi mantığını daha sağlam hale getirdik.
-// Okunabilirlik için fonksiyonları buraya tekrar ekliyorum.
 
 async function loadIndexPageData(user) {
     const taskList = document.getElementById("taskList");
