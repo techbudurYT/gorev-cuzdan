@@ -802,6 +802,9 @@ a:hover {
     font-size: 1.6rem;
     font-weight: 700;
     color: var(--success-color);
+    background: linear-gradient(to right, var(--success-color), #6EE7B7);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 .detail-stat strong.stock {
     color: var(--info-color);
@@ -1190,6 +1193,8 @@ a:hover {
 .faq-container {
     max-width: 900px;
     margin: auto;
+    /* max-height: 70vh;  SSS içeriğinin belirli bir yüksekliği geçmesini engeller */
+    /* overflow-y: auto; SSS içeriği bu yüksekliği aşarsa kaydırma çubuğu çıkar */
 }
 .faq-item {
     background: var(--dark-card-bg);
@@ -1234,6 +1239,7 @@ a:hover {
     border-top: 1px solid var(--border-color);
 }
 .faq-item.active .faq-answer {
+    max-height: 500px; /* Daha uzun içerikler için artırıldı */
     padding-top: 15px;
     padding-bottom: 15px;
 }
@@ -1676,4 +1682,12 @@ a:hover {
     .message-header { font-size: 0.65rem; }
     .message-input-area textarea { min-height: 60px; padding: 10px; font-size: 0.9rem; }
     .message-input-area button { padding: 10px 15px; font-size: 0.9rem; }
+    .admin-form .btn-group {
+        flex-direction: column;
+        gap: 10px;
+    }
+    .admin-form .btn-group button {
+        width: 100%;
+        margin-left: 0;
+    }
 }
