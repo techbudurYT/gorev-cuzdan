@@ -1,5 +1,6 @@
+
 document.addEventListener('DOMContentLoaded', () => {
-    const faqContainer = document.getElementById('faq-container');
+    const faqContainer = document.querySelector('.faq-container'); // faq-container div'ini seçin
     const faqLoadingMessage = document.getElementById('faq-loading-message');
     const adminPanelLink = document.getElementById('admin-panel-link');
     const logoutBtn = document.getElementById('logout-btn');
@@ -39,7 +40,12 @@ document.addEventListener('DOMContentLoaded', () => {
             faqLoadingMessage.style.display = 'block';
         }
         if (faqContainer) {
-            faqContainer.innerHTML = ''; // Clear previous content, keeping loading message if exists
+            // Yükleme mesajını koruyarak diğer içeriği temizle
+            const existingLoadingMessage = faqContainer.querySelector('#faq-loading-message');
+            faqContainer.innerHTML = ''; 
+            if (existingLoadingMessage) {
+                faqContainer.appendChild(existingLoadingMessage);
+            }
         }
 
         try {
@@ -51,7 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (snapshot.empty) {
                 if (faqContainer) {
-                    faqContainer.innerHTML = '<p class="info-message">Şu anda Sıkça Sorulan Soru bulunmamaktadır.</p>';
+                    faqContainer.innerHTML += '<p class="info-message">Şu anda Sıkça Sorulan Soru bulunmamaktadır.</p>';
                 }
                 return;
             }
@@ -99,7 +105,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 faqLoadingMessage.style.display = 'block';
             }
             if (faqContainer) {
-                faqContainer.innerHTML = ''; // Clear any partial content
+                // Hata durumunda sadece hata mesajını göster
+                faqContainer.innerHTML = '';
+                if (faqLoadingMessage) {
+                    faqContainer.appendChild(faqLoadingMessage);
+                }
             }
         }
     }
