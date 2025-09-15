@@ -1,3 +1,4 @@
+--- START OF FILE admin-panel.html ---
 <!DOCTYPE html>
 <html lang="tr">
 <head>
@@ -47,7 +48,7 @@
                             <input type="number" id="task-reward" step="0.01" min="0" required>
                         </div>
                         <div class="input-group">
-                            <label for="task-stock">Stok (Tamamlanma Limiti)</label>
+                            <label for="task-stock">Stok (Tamamlanma Limiti - 0 Sınırsız)</label>
                             <input type="number" id="task-stock" min="0" value="0" required>
                         </div>
                         <div class="input-group">
@@ -65,8 +66,72 @@
                             </select>
                         </div>
                         <button type="submit" class="btn-primary">Görevi Ekle</button>
-                        <p id="add-task-message" class="success-message"></p>
+                        <p id="add-task-message" class="message-box success-message"></p>
                     </form>
+                </div>
+
+                <div class="admin-section card">
+                    <h2>Görevleri Yönet</h2>
+                    <div class="table-container">
+                        <table class="responsive-table">
+                            <thead>
+                                <tr>
+                                    <th>Başlık</th>
+                                    <th>Kategori</th>
+                                    <th>Ödül</th>
+                                    <th>Stok</th>
+                                    <th>Tamamlanan</th>
+                                    <th>Aksiyonlar</th>
+                                </tr>
+                            </thead>
+                            <tbody id="task-management-body">
+                                <!-- Görevler buraya dinamik olarak yüklenecek -->
+                            </tbody>
+                        </table>
+                        <p id="task-management-message" class="message-box error-message"></p>
+                    </div>
+
+                    <div id="task-edit-panel" class="edit-panel card content-hidden">
+                        <h3>Görev Düzenle: <span id="editing-task-title-display"></span></h3>
+                        <form id="edit-task-form" class="admin-form">
+                            <input type="hidden" id="edit-task-id">
+                            <div class="input-group">
+                                <label for="edit-task-title">Görev Başlığı</label>
+                                <input type="text" id="edit-task-title" required>
+                            </div>
+                            <div class="input-group">
+                                <label for="edit-task-description">Görev Açıklaması</label>
+                                <textarea id="edit-task-description" rows="3" required></textarea>
+                            </div>
+                            <div class="input-group">
+                                <label for="edit-task-reward">Ödül (₺)</label>
+                                <input type="number" id="edit-task-reward" step="0.01" min="0" required>
+                            </div>
+                            <div class="input-group">
+                                <label for="edit-task-stock">Stok (Tamamlanma Limiti - 0 Sınırsız)</label>
+                                <input type="number" id="edit-task-stock" min="0" value="0" required>
+                            </div>
+                            <div class="input-group">
+                                <label for="edit-task-proof-count">Kanıt Dosyası Sayısı</label>
+                                <input type="number" id="edit-task-proof-count" min="1" value="1" required>
+                            </div>
+                            <div class="input-group">
+                                <label for="edit-task-category">Kategori</label>
+                                <select id="edit-task-category">
+                                    <option value="youtube">YouTube</option>
+                                    <option value="instagram">Instagram</option>
+                                    <option value="google-maps">Google Maps</option>
+                                    <option value="telegram">Telegram</option>
+                                    <option value="other">Diğer</option>
+                                </select>
+                            </div>
+                            <div class="btn-group">
+                                <button type="button" class="btn-secondary" id="cancel-edit-task">İptal</button>
+                                <button type="submit" class="btn-primary">Kaydet</button>
+                            </div>
+                            <p id="edit-task-message" class="message-box success-message"></p>
+                        </form>
+                    </div>
                 </div>
 
                 <div class="admin-section card">
@@ -90,10 +155,10 @@
                                 <!-- Kullanıcılar buraya dinamik olarak yüklenecek -->
                             </tbody>
                         </table>
-                        <p id="user-management-message" class="error-message"></p>
+                        <p id="user-management-message" class="message-box error-message"></p>
                     </div>
                     
-                    <div id="user-edit-panel" class="user-edit-panel card" style="display:none;">
+                    <div id="user-edit-panel" class="edit-panel card content-hidden">
                         <h3>Kullanıcı Düzenle: <span id="editing-username"></span></h3>
                         <form id="edit-user-form" class="admin-form">
                             <input type="hidden" id="edit-user-uid">
@@ -122,30 +187,29 @@
                                 <button type="button" class="btn-secondary" id="cancel-edit">İptal</button>
                                 <button type="submit" class="btn-primary">Kaydet</button>
                             </div>
-                            <p id="edit-user-message" class="success-message"></p>
+                            <p id="edit-user-message" class="message-box success-message"></p>
                         </form>
                     </div>
                 </div>
 
                 <div class="admin-section card">
-                    <h2>Görevleri Yönet</h2>
+                    <h2>Para Çekme Talepleri</h2>
                     <div class="table-container">
                         <table class="responsive-table">
                             <thead>
                                 <tr>
-                                    <th>Başlık</th>
-                                    <th>Kategori</th>
-                                    <th>Ödül</th>
-                                    <th>Stok</th>
-                                    <th>Tamamlanan</th>
+                                    <th>Kullanıcı</th>
+                                    <th>Miktar</th>
+                                    <th>Durum</th>
+                                    <th>Talep Tarihi</th>
                                     <th>Aksiyonlar</th>
                                 </tr>
                             </thead>
-                            <tbody id="task-management-body">
-                                <!-- Görevler buraya dinamik olarak yüklenecek -->
+                            <tbody id="withdrawal-requests-body">
+                                <!-- Para çekme talepleri buraya dinamik olarak yüklenecek -->
                             </tbody>
                         </table>
-                        <p id="task-management-message" class="error-message"></p>
+                        <p id="withdrawal-requests-message" class="message-box error-message"></p>
                     </div>
                 </div>
 
@@ -162,7 +226,7 @@
                             <textarea id="faq-answer" rows="4" required></textarea>
                         </div>
                         <button type="submit" class="btn-primary">SSS Ekle</button>
-                        <p id="add-faq-message" class="success-message"></p>
+                        <p id="add-faq-message" class="message-box success-message"></p>
                     </form>
                     <div class="table-container">
                         <table class="responsive-table">
@@ -177,7 +241,7 @@
                                 <!-- SSS öğeleri buraya dinamik olarak yüklenecek -->
                             </tbody>
                         </table>
-                        <p id="faq-management-message" class="error-message"></p>
+                        <p id="faq-management-message" class="message-box error-message"></p>
                     </div>
                 </div>
 
@@ -198,7 +262,7 @@
                                 <!-- Onay bekleyen görevler buraya dinamik olarak yüklenecek -->
                             </tbody>
                         </table>
-                        <p id="task-proofs-message" class="error-message"></p>
+                        <p id="task-proofs-message" class="message-box error-message"></p>
                     </div>
                 </div>
 
@@ -218,7 +282,7 @@
                                 <!-- Destek talepleri buraya dinamik olarak yüklenecek -->
                             </tbody>
                         </table>
-                        <p id="support-tickets-message" class="error-message"></p>
+                        <p id="support-tickets-message" class="message-box error-message"></p>
                     </div>
                 </div>
 

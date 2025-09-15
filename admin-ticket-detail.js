@@ -12,6 +12,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const ticketMessage = document.getElementById('ticket-message');
     const adminPanelLink = document.getElementById('admin-panel-link');
     const logoutBtn = document.getElementById('logout-btn');
+    const menuToggle = document.getElementById('menu-toggle');
+    const sidebar = document.querySelector('.sidebar');
 
     let currentTicketId = null;
     let currentUser = null;
@@ -23,7 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!currentTicketId) {
         if (initialLoadingMessage) {
             initialLoadingMessage.textContent = 'Talep bulunamadı. Lütfen geçerli bir talep seçin.';
-            initialLoadingMessage.className = 'error-message';
+            initialLoadingMessage.className = 'message-box error-message';
         }
         if (ticketCard) ticketCard.classList.add('content-hidden');
         return;
@@ -37,6 +39,13 @@ document.addEventListener('DOMContentLoaded', () => {
             window.location.href = 'login.html';
         }
     });
+
+    // Menü Toggle
+    if (menuToggle) {
+        menuToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('active');
+        });
+    }
 
     async function checkAdminStatus(uid) {
         const userDocRef = db.collection('users').doc(uid);
@@ -54,7 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadTicketDetails(ticketId) {
         if (initialLoadingMessage) {
             initialLoadingMessage.textContent = 'Talep detayları yükleniyor...';
-            initialLoadingMessage.className = 'info-message';
+            initialLoadingMessage.className = 'message-box info-message';
             initialLoadingMessage.style.display = 'block';
         }
         if (ticketCard) ticketCard.classList.add('content-hidden');
@@ -71,6 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     ticketSubject.textContent = ticketData.subject;
                     ticketRequester.textContent = ticketData.username || ticketData.email;
                     ticketStatus.textContent = ticketData.status === 'open' ? 'Açık' : 'Kapalı';
+                    ticketStatus.className = `btn-small ${ticketData.status === 'open' ? 'btn-info' : 'btn-secondary'}`;
 
                     renderMessages(ticketData.messages, ticketData.uid);
 
@@ -80,18 +90,21 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (closeTicketBtn) closeTicketBtn.disabled = true;
                         if (ticketMessage) {
                             ticketMessage.textContent = 'Bu talep kapatılmıştır.';
-                            ticketMessage.className = 'info-message';
+                            ticketMessage.className = 'message-box info-message';
+                            ticketMessage.style.display = 'block';
                         }
                     } else {
                         if (adminReplyMessageInput) adminReplyMessageInput.disabled = false;
                         if (sendReplyBtn) sendReplyBtn.disabled = false;
                         if (closeTicketBtn) closeTicketBtn.disabled = false;
                         if (ticketMessage) ticketMessage.textContent = '';
+                        if (ticketMessage) ticketMessage.style.display = 'none';
                     }
                 } else {
                     if (initialLoadingMessage) {
                         initialLoadingMessage.textContent = 'Talep bulunamadı.';
-                        initialLoadingMessage.className = 'error-message';
+                        initialLoadingMessage.className = 'message-box error-message';
+                        initialLoadingMessage.style.display = 'block';
                     }
                     if (ticketCard) ticketCard.classList.add('content-hidden');
                 }
@@ -101,7 +114,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error("Talep detayları yüklenirken hata oluştu: ", error);
             if (initialLoadingMessage) {
                 initialLoadingMessage.textContent = `Talep detayları yüklenemedi: ${error.message}`;
-                initialLoadingMessage.className = 'error-message';
+                initialLoadingMessage.className = 'message-box error-message';
                 initialLoadingMessage.style.display = 'block';
             }
             if (ticketCard) ticketCard.classList.add('content-hidden');
@@ -111,7 +124,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderMessages(messages, requesterUid) {
         if (messageList) messageList.innerHTML = '';
         if (!messages || messages.length === 0) {
-            if (messageList) messageList.innerHTML = '<p class="info-message">Henüz mesaj yok.</p>';
+            if (messageList) messageList.innerHTML = '<p class="message-box info-message">Henüz mesaj yok.</p>';
             return;
         }
 
@@ -146,14 +159,16 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!replyText || !currentUser || !currentTicketId || !currentAdminData) {
                 if (ticketMessage) {
                     ticketMessage.textContent = 'Lütfen bir mesaj yazın ve giriş yaptığınızdan emin olun.';
-                    ticketMessage.className = 'error-message';
+                    ticketMessage.className = 'message-box error-message';
+                    ticketMessage.style.display = 'block';
                 }
                 return;
             }
 
             if (ticketMessage) {
                 ticketMessage.textContent = 'Cevap gönderiliyor...';
-                ticketMessage.className = 'info-message';
+                ticketMessage.className = 'message-box info-message';
+                ticketMessage.style.display = 'block';
             }
             if (sendReplyBtn) sendReplyBtn.disabled = true;
             if (adminReplyMessageInput) adminReplyMessageInput.disabled = true;
@@ -177,15 +192,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (adminReplyMessageInput) adminReplyMessageInput.value = '';
                 if (ticketMessage) {
                     ticketMessage.textContent = 'Cevap başarıyla gönderildi!';
-                    ticketMessage.className = 'success-message';
+                    ticketMessage.className = 'message-box success-message';
                 }
-                setTimeout(() => { if (ticketMessage) ticketMessage.textContent = ''; }, 3000);
+                setTimeout(() => { if (ticketMessage) ticketMessage.textContent = ''; if (ticketMessage) ticketMessage.style.display = 'none'; }, 3000);
 
             } catch (error) {
                 console.error("Cevap gönderme hatası: ", error);
                 if (ticketMessage) {
                     ticketMessage.textContent = `Hata: ${error.message}`;
-                    ticketMessage.className = 'error-message';
+                    ticketMessage.className = 'message-box error-message';
                 }
             } finally {
                 if (sendReplyBtn) sendReplyBtn.disabled = false;
@@ -200,7 +215,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (ticketMessage) {
                 ticketMessage.textContent = 'Kapatılıyor...';
-                ticketMessage.className = 'info-message';
+                ticketMessage.className = 'message-box info-message';
+                ticketMessage.style.display = 'block';
             }
             if (closeTicketBtn) closeTicketBtn.disabled = true;
             if (sendReplyBtn) sendReplyBtn.disabled = true;
@@ -214,7 +230,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (ticketMessage) {
                     ticketMessage.textContent = 'Destek talebi başarıyla kapatıldı!';
-                    ticketMessage.className = 'success-message';
+                    ticketMessage.className = 'message-box success-message';
                 }
                 setTimeout(() => {
                     window.location.href = 'admin-panel.html'; // Yönlendirme
@@ -224,7 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error("Destek talebi kapatılırken hata oluştu: ", error);
                 if (ticketMessage) {
                     ticketMessage.textContent = `Hata: ${error.message}`;
-                    ticketMessage.className = 'error-message';
+                    ticketMessage.className = 'message-box error-message';
                 }
             } finally {
                 if (closeTicketBtn) closeTicketBtn.disabled = false;
