@@ -1,5 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     const leaderboardBody = document.getElementById('leaderboard-body');
+    const leaderboardMessage = document.getElementById('leaderboard-message');
     const adminPanelLink = document.getElementById('admin-panel-link');
     const logoutBtn = document.getElementById('logout-btn');
     const menuToggle = document.getElementById('menu-toggle');
@@ -31,6 +32,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function loadLeaderboard() {
         leaderboardBody.innerHTML = '<tr><td colspan="3">Yükleniyor...</td></tr>';
+        leaderboardMessage.textContent = '';
+        leaderboardMessage.style.display = 'none';
 
         try {
             const snapshot = await db.collection('users')
@@ -40,6 +43,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (snapshot.empty) {
                 leaderboardBody.innerHTML = '<tr><td colspan="3">Veri bulunamadı.</td></tr>';
+                leaderboardMessage.textContent = 'Liderlik tablosunda henüz veri bulunmamaktadır.';
+                leaderboardMessage.className = 'message-box info-message';
+                leaderboardMessage.style.display = 'block';
                 return;
             }
 
@@ -62,6 +68,9 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             console.error("Liderlik tablosu yüklenirken hata oluştu: ", error);
             leaderboardBody.innerHTML = '<tr><td colspan="3">Liderlik tablosu yüklenemedi.</td></tr>';
+            leaderboardMessage.textContent = 'Liderlik tablosu yüklenirken bir hata oluştu.';
+            leaderboardMessage.className = 'message-box error-message';
+            leaderboardMessage.style.display = 'block';
         }
     }
 

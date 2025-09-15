@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (taskHistoryList) taskHistoryList.innerHTML = '';
         if (taskHistoryLoading) {
             taskHistoryLoading.textContent = 'Görev geçmişi yükleniyor...';
-            taskHistoryLoading.className = 'info-message';
+            taskHistoryLoading.className = 'message-box info-message';
             taskHistoryLoading.style.display = 'block';
         }
 
@@ -51,7 +51,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (taskHistoryLoading) taskHistoryLoading.style.display = 'none';
 
             if (approvedProofsSnapshot.empty) {
-                if (taskHistoryList) taskHistoryList.innerHTML = '<p class="info-message">Henüz onaylanmış bir göreviniz yok.</p>';
+                if (taskHistoryList) {
+                    const noHistoryMessage = document.createElement('p');
+                    noHistoryMessage.className = 'message-box info-message';
+                    noHistoryMessage.textContent = 'Henüz onaylanmış bir göreviniz yok.';
+                    taskHistoryList.appendChild(noHistoryMessage);
+                }
                 return;
             }
 
@@ -65,6 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
                 const li = document.createElement('li');
+                li.className = 'history-item'; // Add class for styling
                 const timestamp = proofData.reviewedAt && typeof proofData.reviewedAt.toDate === 'function' 
                                   ? new Date(proofData.reviewedAt.toDate()).toLocaleString() 
                                   : 'Tarih Yok';
@@ -82,7 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error("Görev geçmişi yüklenemedi:", error);
             if (taskHistoryLoading) {
                 taskHistoryLoading.textContent = 'Görev geçmişi yüklenirken bir hata oluştu.';
-                taskHistoryLoading.className = 'error-message';
+                taskHistoryLoading.className = 'message-box error-message';
                 taskHistoryLoading.style.display = 'block';
             }
             if (taskHistoryList) taskHistoryList.innerHTML = ''; // Clear any partial content

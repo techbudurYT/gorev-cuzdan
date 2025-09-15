@@ -1,4 +1,3 @@
-
 document.addEventListener('DOMContentLoaded', () => {
     const initialLoadingMessage = document.getElementById('initial-loading-message');
     const ticketCard = document.getElementById('ticket-card');

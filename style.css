@@ -1,22 +1,20 @@
-/* START OF FILE style.css */
-
-
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 :root {
-    --primary-color: #A855F7; /* Mor */
-    --primary-hover-color: #9333EA;
-    --dark-bg: #0A0A0A; /* Süper koyu arka plan */
-    --dark-card-bg: #1C1C1C; /* Koyu gri kartlar */
-    --dark-sidebar-bg: #111111; /* Sidebar için daha koyu gri */
-    --text-primary: #E0E0E0; /* Açık gri metin */
-    --text-secondary: #A0A0A0; /* Orta gri metin */
-    --border-color: #333333; /* Koyu kenarlıklar */
-    --success-color: #22C55E; /* Yeşil */
+    --primary-color: #6D28D9; /* Derin Mor */
+    --primary-hover-color: #5B21B6; /* Daha koyu mor */
+    --secondary-color: #EC4899; /* Pembe */
+    --dark-bg: #1A1A2E; /* Koyu lacivert */
+    --dark-card-bg: #2B2B4A; /* Koyu lacivert kartlar */
+    --dark-sidebar-bg: #111122; /* Sidebar için daha koyu lacivert */
+    --text-primary: #E0E7FF; /* Açık mavi-beyaz metin */
+    --text-secondary: #A7B0C7; /* Orta gri-mavi metin */
+    --border-color: #3D3D61; /* Koyu mavi-gri kenarlıklar */
+    --success-color: #10B981; /* Canlı Yeşil */
     --error-color: #EF4444; /* Kırmızı */
     --info-color: #3B82F6; /* Mavi */
     --danger-color: #DC2626; /* Kırmızı */
-    --warning-color: #FBBF24; /* Sarı */
+    --warning-color: #F59E0B; /* Turuncu */
     --gradient-start: #8B5CF6; /* Mor gradient başlangıcı */
     --gradient-end: #EC4899; /* Pembe gradient bitişi */
 }
@@ -69,7 +67,7 @@ a:hover {
 
 /* --- Ana Sayfa (Landing) --- */
 .landing-body {
-    background: linear-gradient(135deg, var(--dark-bg) 0%, #1A1A1A 100%);
+    background: linear-gradient(135deg, var(--dark-bg) 0%, #1A1A3A 100%);
     display: flex;
     flex-direction: column;
     min-height: 100vh;
@@ -93,7 +91,7 @@ a:hover {
 .landing-header h1 {
     font-size: 2.2rem;
     font-weight: 700;
-    background: linear-gradient(to right, var(--primary-color), var(--gradient-end));
+    background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
@@ -128,7 +126,7 @@ a:hover {
 }
 .btn-primary-landing:hover {
     opacity: 0.9;
-    box-shadow: 0 4px 15px rgba(168, 85, 247, 0.4);
+    box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
 }
 .hero-section {
     text-align: center;
@@ -169,7 +167,7 @@ a:hover {
     align-items: center;
     min-height: 100vh;
     padding: 24px;
-    background: linear-gradient(135deg, var(--dark-bg) 0%, #1A1A1A 100%);
+    background: linear-gradient(135deg, var(--dark-bg) 0%, #1A1A3A 100%);
 }
 
 .auth-box {
@@ -247,7 +245,7 @@ a:hover {
 .input-group input:focus, .input-group textarea:focus, .input-group select:focus {
     outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.2);
+    box-shadow: 0 0 0 3px rgba(109, 40, 217, 0.3); /* Morun hafif şeffaf hali */
 }
 
 .btn-primary {
@@ -353,7 +351,7 @@ a:hover {
     font-weight: 500;
 }
 .btn-success:hover {
-    background-color: #16A34A;
+    background-color: #059669;
 }
 .btn-success.btn-small {
     padding: 8px 16px;
@@ -377,28 +375,34 @@ a:hover {
     font-weight: 600;
 }
 
-.error-message {
-    color: var(--error-color);
+/* Unified Message Box Styling */
+.message-box {
     text-align: center;
     margin-top: 16px;
-    min-height: 20px;
+    padding: 10px 15px;
+    border-radius: 8px;
     font-size: 0.9rem;
+    min-height: 20px;
+    display: block; /* Ensure it takes full width and new line */
+}
+
+.error-message {
+    color: var(--error-color);
+    background-color: rgba(239, 68, 68, 0.15); /* Hafif kırmızı arka plan */
+    border: 1px solid var(--error-color);
 }
 
 .success-message {
     color: var(--success-color);
-    text-align: center;
-    margin-top: 16px;
-    min-height: 20px;
-    font-size: 0.9rem;
+    background-color: rgba(16, 185, 129, 0.15); /* Hafif yeşil arka plan */
+    border: 1px solid var(--success-color);
 }
 .info-message {
     color: var(--info-color);
-    text-align: center;
-    margin-top: 16px;
-    min-height: 20px;
-    font-size: 0.9rem;
+    background-color: rgba(59, 130, 246, 0.15); /* Hafif mavi arka plan */
+    border: 1px solid var(--info-color);
 }
+
 
 /* --- Ana Uygulama Düzeni --- */
 .app-layout {
@@ -428,7 +432,7 @@ a:hover {
     font-size: 1.8rem;
     font-weight: 700;
     text-align: center;
-    background: linear-gradient(to right, var(--primary-color), var(--gradient-end));
+    background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
@@ -448,7 +452,7 @@ a:hover {
     text-decoration: none;
     border-radius: 8px;
     margin-bottom: 8px;
-    transition: background-color 0.3s, color 0.3s;
+    transition: background-color 0.3s, color 0.3s, box-shadow 0.3s;
     font-weight: 500;
     white-space: nowrap;
 }
@@ -461,9 +465,9 @@ a:hover {
 }
 
 .sidebar-menu li.active a, .sidebar-menu li a:hover {
-    background-color: var(--primary-color);
+    background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
     color: var(--text-primary);
-    box-shadow: 0 4px 10px rgba(168, 85, 247, 0.2);
+    box-shadow: 0 4px 10px rgba(109, 40, 217, 0.3);
 }
 .sidebar-menu li.active a {
     font-weight: 600;
@@ -588,7 +592,7 @@ a:hover {
     font-size: 0.95rem;
     cursor: pointer;
     appearance: none; /* Varsayılan select stilini kaldır */
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23A0A0A0'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23A7B0C7'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 10px center;
     background-size: 20px;
@@ -597,7 +601,7 @@ a:hover {
 .filter-controls select:focus {
     outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.2);
+    box-shadow: 0 0 0 3px rgba(109, 40, 217, 0.3);
 }
 
 .task-list-container {
@@ -633,7 +637,7 @@ a:hover {
     left: 0;
     width: 100%;
     height: 4px;
-    background: linear-gradient(to right, var(--primary-color), var(--gradient-end));
+    background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
     transform: translateY(-100%);
     transition: transform 0.3s ease-out;
 }
@@ -647,11 +651,18 @@ a:hover {
     box-shadow: 0 8px 20px rgba(0,0,0,0.3);
 }
 .task-card.pending-task {
-    background-color: #2a2216; /* Koyu sarımsı arka plan */
+    background-color: #2a2a1e; /* Koyu sarımsı arka plan */
     border-color: var(--warning-color);
 }
 .task-card.pending-task::before {
     background: var(--warning-color);
+}
+.task-card.completed-task {
+    background-color: #1e2a2a; /* Koyu yeşilimsi arka plan */
+    border-color: var(--success-color);
+}
+.task-card.completed-task::before {
+    background: var(--success-color);
 }
 
 
@@ -708,7 +719,7 @@ a:hover {
     padding: 10px 20px;
     border-radius: 8px;
     border: none;
-    background: linear-gradient(to right, var(--primary-color), var(--gradient-end));
+    background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
     color: white;
     cursor: pointer;
     font-weight: 600;
@@ -719,13 +730,13 @@ a:hover {
     align-items: center;
     justify-content: center;
     white-space: nowrap;
-    box-shadow: 0 4px 10px rgba(168, 85, 247, 0.2);
+    box-shadow: 0 4px 10px rgba(109, 40, 217, 0.2);
 }
 
 .btn-task:hover:not(:disabled) {
     opacity: 0.9;
     transform: translateY(-1px);
-    box-shadow: 0 6px 15px rgba(168, 85, 247, 0.3);
+    box-shadow: 0 6px 15px rgba(109, 40, 217, 0.3);
 }
 
 .btn-task:disabled {
@@ -761,7 +772,7 @@ a:hover {
     font-size: 2.8rem;
     font-weight: 700;
     margin-bottom: 20px;
-    background: linear-gradient(to right, var(--primary-color), var(--gradient-end));
+    background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
@@ -872,7 +883,7 @@ a:hover {
     padding-left: 0;
 }
 .file-list li {
-    background-color: #2a2a2a;
+    background-color: #2a2a4e; /* Daha koyu lacivert */
     padding: 10px 15px;
     border-radius: 8px;
     margin-bottom: 8px;
@@ -880,7 +891,7 @@ a:hover {
     justify-content: space-between;
     align-items: center;
     font-size: 0.95rem;
-    border: 1px solid #3a3a3a;
+    border: 1px solid #3d3d61;
 }
 .file-list li .remove-file {
     color: var(--error-color);
@@ -918,7 +929,7 @@ a:hover {
     color: var(--primary-color);
     margin-bottom: 24px;
     display: block;
-    background: linear-gradient(to right, var(--primary-color), var(--gradient-end));
+    background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
@@ -953,6 +964,18 @@ a:hover {
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
+.profile-settings-section {
+    margin-top: 30px;
+    text-align: left;
+}
+.profile-settings-section h3 {
+    text-align: center;
+    font-size: 1.6rem;
+    font-weight: 600;
+    color: var(--primary-color);
+    margin-bottom: 24px;
+}
+
 
 .btn-logout {
     width: auto;
@@ -979,7 +1002,7 @@ a:hover {
     font-weight: 700;
     margin-bottom: 28px;
     text-align: center;
-    background: linear-gradient(to right, var(--primary-color), var(--gradient-end));
+    background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
@@ -998,13 +1021,13 @@ a:hover {
     margin-top: 12px;
 }
 .admin-form .btn-secondary {
-    background-color: #444444;
+    background-color: #44446a; /* Daha koyu lacivert gri */
     color: white;
     border: none;
     box-shadow: 0 4px 10px rgba(0,0,0,0.2);
 }
 .btn-secondary:hover {
-    background-color: #555555;
+    background-color: #555580;
     color: white;
 }
 .admin-form .btn-secondary.btn-small {
@@ -1036,7 +1059,7 @@ a:hover {
     font-size: 0.95rem;
 }
 .responsive-table thead {
-    background-color: #2a2a2a;
+    background-color: #2a2a4e;
 }
 .responsive-table th {
     font-weight: 600;
@@ -1048,7 +1071,7 @@ a:hover {
     border-bottom: none;
 }
 .responsive-table tbody tr:hover {
-    background-color: #2a2a2a;
+    background-color: #2a2a4e;
 }
 .responsive-table td:before {
     content: attr(data-label);
@@ -1083,44 +1106,49 @@ a:hover {
     color: var(--text-primary);
 }
 
-.user-edit-panel {
+.edit-panel { /* Generic style for user-edit-panel and task-edit-panel */
     background: var(--dark-bg);
     padding: 30px;
     border-radius: 12px;
     border: 1px solid var(--primary-color);
     margin-top: 24px;
     animation: fadeIn 0.3s ease-out;
-    box-shadow: 0 4px 15px rgba(168, 85, 247, 0.2);
+    box-shadow: 0 4px 15px rgba(109, 40, 217, 0.2);
 }
-.user-edit-panel h3 {
+.edit-panel h3 {
     text-align: center;
     margin-bottom: 24px;
     color: var(--primary-color);
     font-size: 1.6rem;
     font-weight: 600;
 }
-.user-edit-panel .admin-form {
+.edit-panel .admin-form {
     padding: 0;
 }
-.user-edit-panel .admin-form .btn-primary,
-.user-edit-panel .admin-form .btn-secondary,
-.user-edit-panel .admin-form .btn-danger {
-    margin-top: 10px;
-}
-.user-edit-panel .admin-form .btn-danger {
-    margin-left: 10px; /* Butonlar arasına boşluk */
-}
-/* Flex-end'e hizalama ve boşluk bırakma */
-.user-edit-panel .admin-form .btn-group {
+.edit-panel .admin-form .btn-group {
     display: flex;
     justify-content: flex-end; /* Butonları sağa hizala */
     gap: 10px; /* Butonlar arasına boşluk */
     margin-top: 20px;
 }
-/* Kaydet ve İptal butonlarını ayırma */
-.user-edit-panel .admin-form .btn-group button {
+.edit-panel .admin-form .btn-group button {
     flex-grow: 0;
+    width: auto;
+    margin-top: 0;
 }
+.edit-panel .admin-form .btn-danger { /* Specific style for delete button */
+    margin-right: auto; /* Push delete button to the left */
+}
+.action-buttons {
+    display: flex;
+    gap: 8px; /* Butonlar arasına boşluk */
+    flex-wrap: wrap; /* Küçük ekranlarda alta geçmesini sağlar */
+    justify-content: flex-end; /* Sağdan hizalama */
+}
+.action-buttons .btn-small {
+    margin-top: 0; /* Üst marjı kaldır */
+}
+
 
 
 /* --- Liderlik Tablosu --- */
@@ -1189,6 +1217,23 @@ a:hover {
     color: rgba(255,255,255,0.5);
     border-color: rgba(255,255,255,0.15);
 }
+/* Withdrawal section in wallet */
+.withdrawal-section {
+    padding-top: 30px;
+    border-top: 1px solid var(--border-color);
+    margin-top: 30px;
+}
+.withdrawal-section h3 {
+    text-align: center;
+    font-size: 1.6rem;
+    font-weight: 600;
+    color: var(--primary-color);
+    margin-bottom: 24px;
+}
+.withdrawal-section .admin-form { /* Reusing admin-form styles */
+    max-width: 400px;
+    margin: 0 auto;
+}
 
 
 /* --- SSS --- */
@@ -1222,7 +1267,7 @@ a:hover {
     transition: background-color 0.3s;
 }
 .faq-question:hover {
-    background-color: #2a2a2a;
+    background-color: #2a2a4e; /* Hover rengini daha koyu lacivert yap */
 }
 .faq-question i {
     transition: transform 0.3s ease;
@@ -1231,13 +1276,13 @@ a:hover {
 }
 .faq-item.active .faq-question i {
     transform: rotate(180deg);
-    color: var(--gradient-end);
+    color: var(--secondary-color);
 }
 .faq-answer {
     max-height: 0;
     overflow: hidden;
     transition: max-height 0.4s ease-out, padding 0.4s ease-out;
-    background-color: #222222;
+    background-color: #222244; /* Cevap kısmı için hafif koyu */
     border-top: 1px solid var(--border-color);
     padding-top: 0; /* Ensures padding collapses with max-height 0 */
     padding-bottom: 0; /* Ensures padding collapses with max-height 0 */
@@ -1267,7 +1312,7 @@ a:hover {
 }
 
 .support-ticket-item:hover {
-    background-color: #2a2a2a;
+    background-color: #2a2a4e;
 }
 
 .ticket-item-header {
@@ -1341,7 +1386,7 @@ a:hover {
 }
 
 .admin-message {
-    background-color: #333333;
+    background-color: #333355; /* Admin mesajları için hafif morumsu gri */
     color: var(--text-primary);
     align-self: flex-start;
     margin-right: auto;
@@ -1379,7 +1424,7 @@ a:hover {
     min-height: 70px;
     resize: vertical;
     padding: 12px 16px;
-    background-color: #222222;
+    background-color: #222244;
     border: 1px solid var(--border-color);
     border-radius: 10px;
     color: var(--text-primary);
@@ -1389,7 +1434,7 @@ a:hover {
 .message-input-area textarea:focus {
     outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.2);
+    box-shadow: 0 0 0 3px rgba(109, 40, 217, 0.3);
 }
 
 .message-input-area button {
@@ -1587,6 +1632,11 @@ a:hover {
         border: 1px solid var(--border-color);
         padding: 10px 0;
     }
+    .action-buttons {
+        justify-content: center; /* Butonları ortala */
+        width: 100%;
+    }
+
 
     .message-bubble {
         max-width: 95%;
@@ -1601,13 +1651,16 @@ a:hover {
     .message-input-area button {
         width: 100%;
     }
-    .admin-form .btn-group {
+    .edit-panel .admin-form .btn-group {
         flex-direction: column;
         gap: 10px;
     }
-    .admin-form .btn-group button {
+    .edit-panel .admin-form .btn-group button {
         width: 100%;
         margin-left: 0;
+    }
+    .edit-panel .admin-form .btn-danger {
+        margin-right: 0; /* Remove auto margin */
     }
 }
 
@@ -1686,11 +1739,11 @@ a:hover {
     .message-header { font-size: 0.65rem; }
     .message-input-area textarea { min-height: 60px; padding: 10px; font-size: 0.9rem; }
     .message-input-area button { padding: 10px 15px; font-size: 0.9rem; }
-    .admin-form .btn-group {
+    .edit-panel .admin-form .btn-group {
         flex-direction: column;
         gap: 10px;
     }
-    .admin-form .btn-group button {
+    .edit-panel .admin-form .btn-group button {
         width: 100%;
         margin-left: 0;
     }

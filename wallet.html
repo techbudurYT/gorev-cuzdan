@@ -36,6 +36,43 @@
                     <p id="wallet-balance">0.00 ₺</p>
                     <button class="btn-primary" disabled>Çekim Talebi (Yakında)</button>
                 </div>
+
+                <div class="withdrawal-section card">
+                    <h3>Para Çekme Talebi Oluştur</h3>
+                    <form id="withdrawal-form" class="admin-form">
+                        <div class="input-group">
+                            <label for="withdrawal-amount">Çekmek İstediğiniz Miktar (₺)</label>
+                            <input type="number" id="withdrawal-amount" step="0.01" min="10.00" required>
+                            <small class="text-secondary">Minimum çekim miktarı 10.00 ₺</small>
+                        </div>
+                        <div class="input-group">
+                            <label for="withdrawal-method">Çekim Yöntemi (IBAN, Papara vb.)</label>
+                            <input type="text" id="withdrawal-method" placeholder="Örn: TR1234..." required>
+                        </div>
+                        <button type="submit" class="btn-primary" id="submit-withdrawal-btn">Talep Gönder</button>
+                        <p id="withdrawal-message" class="message-box success-message"></p>
+                    </form>
+                </div>
+
+                <div class="withdrawal-section card" style="margin-top: 30px;">
+                    <h3>Geçmiş Para Çekme Taleplerim</h3>
+                    <div class="table-container">
+                        <table class="responsive-table">
+                            <thead>
+                                <tr>
+                                    <th>Miktar</th>
+                                    <th>Yöntem</th>
+                                    <th>Durum</th>
+                                    <th>Talep Tarihi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="user-withdrawal-history-body">
+                                <!-- Kullanıcının para çekme geçmişi buraya dinamik olarak yüklenecek -->
+                            </tbody>
+                        </table>
+                        <p id="user-withdrawal-history-message" class="message-box info-message"></p>
+                    </div>
+                </div>
             </div>
         </main>
     </div>

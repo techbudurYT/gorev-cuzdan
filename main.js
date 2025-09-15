@@ -2,6 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const balanceDisplay = document.getElementById('balance-display');
     const tasksCompletedDisplay = document.getElementById('tasks-completed-display');
     const taskList = document.getElementById('task-list');
+    const taskListMessage = document.getElementById('task-list-message');
     const adminPanelLink = document.getElementById('admin-panel-link');
     const logoutBtn = document.getElementById('logout-btn');
     const menuToggle = document.getElementById('menu-toggle');
@@ -76,43 +77,57 @@ document.addEventListener('DOMContentLoaded', () => {
     
     async function fetchAndDisplayTasks() {
         taskList.innerHTML = ''; 
-        const tasksSnapshot = await db.collection('tasks').get();
-        allTasks = []; 
-        tasksSnapshot.forEach(doc => {
-            allTasks.push({ id: doc.id, ...doc.data() });
-        });
+        taskListMessage.style.display = 'none';
 
-        filterAndRenderTasks();
+        try {
+            const tasksSnapshot = await db.collection('tasks').get();
+            allTasks = []; 
+            tasksSnapshot.forEach(doc => {
+                allTasks.push({ id: doc.id, ...doc.data() });
+            });
+            filterAndRenderTasks();
+        } catch (error) {
+            console.error("Görevler yüklenirken hata oluştu: ", error);
+            taskListMessage.textContent = 'Görevler yüklenemedi. Lütfen daha sonra tekrar deneyin.';
+            taskListMessage.className = 'message-box error-message';
+            taskListMessage.style.display = 'block';
+        }
     }
 
-    function filterAndRenderTasks() {
+    async function filterAndRenderTasks() {
         taskList.innerHTML = ''; 
+        taskListMessage.style.display = 'none';
+
         const userCompletedTasks = userData.completedTaskIds || [];
         const selectedCategory = categoryFilter.value;
 
-        db.collection('taskProofs')
-            .where('userId', '==', currentUser.uid)
-            .where('status', '==', 'pending')
-            .get()
-            .then(allPendingProofsSnapshot => {
-                const userPendingTaskIds = new Set();
-                allPendingProofsSnapshot.forEach(doc => {
-                    userPendingTaskIds.add(doc.data().taskId);
-                });
+        try {
+            const allPendingProofsSnapshot = await db.collection('taskProofs')
+                                                  .where('userId', '==', currentUser.uid)
+                                                  .where('status', '==', 'pending')
+                                                  .get();
+            const userPendingTaskIds = new Set();
+            allPendingProofsSnapshot.forEach(doc => {
+                userPendingTaskIds.add(doc.data().taskId);
+            });
 
-                let availableTasksCount = 0;
-                allTasks.forEach(task => {
-                    const taskId = task.id;
-                    const isCompleted = userCompletedTasks.includes(taskId);
-                    const hasPendingProof = userPendingTaskIds.has(taskId);
+            let availableTasksCount = 0;
+            allTasks.forEach(task => {
+                const taskId = task.id;
+                const isCompleted = userCompletedTasks.includes(taskId);
+                const hasPendingProof = userPendingTaskIds.has(taskId);
 
-                    const matchesCategory = selectedCategory === 'all' || task.category === selectedCategory;
+                const matchesCategory = selectedCategory === 'all' || task.category === selectedCategory;
 
-                    if (!isCompleted && !hasPendingProof && matchesCategory) {
-                        availableTasksCount++;
-                        const taskCard = document.createElement('div');
-                        taskCard.className = 'task-card';
+                const currentStock = task.stock - (task.completedCount || 0);
+                const isOutOfStock = task.stock > 0 && currentStock <= 0;
 
+                if (matchesCategory && !isOutOfStock) { // Display tasks if category matches and not out of stock
+                    const taskCard = document.createElement('div');
+                    taskCard.className = 'task-card';
+                    
+                    if (isCompleted) {
+                        taskCard.classList.add('completed-task');
                         taskCard.innerHTML = `
                             <img src="img/logos/${task.icon || 'other.png'}" alt="${task.title}" class="task-icon">
                             <div class="task-info">
@@ -122,13 +137,10 @@ document.addEventListener('DOMContentLoaded', () => {
                             <div class="task-reward">
                                 <span>+${task.reward.toFixed(2)} ₺</span>
                             </div>
-                            <a href="task-detail.html?taskId=${taskId}" class="btn-task">Görevi Yap</a>
+                            <button class="btn-task btn-success" disabled>Tamamlandı</button>
                         `;
-                        taskList.appendChild(taskCard);
-                    } else if (hasPendingProof && matchesCategory) {
-                        availableTasksCount++;
-                        const taskCard = document.createElement('div');
-                        taskCard.className = 'task-card pending-task';
+                    } else if (hasPendingProof) {
+                        taskCard.classList.add('pending-task');
                         taskCard.innerHTML = `
                             <img src="img/logos/${task.icon || 'other.png'}" alt="${task.title}" class="task-icon">
                             <div class="task-info">
@@ -140,18 +152,36 @@ document.addEventListener('DOMContentLoaded', () => {
                             </div>
                             <button class="btn-task btn-info" disabled>Onay Bekliyor</button>
                         `;
-                        taskList.appendChild(taskCard);
+                    } else {
+                        taskCard.innerHTML = `
+                            <img src="img/logos/${task.icon || 'other.png'}" alt="${task.title}" class="task-icon">
+                            <div class="task-info">
+                                <h4>${task.title}</h4>
+                                <p>${task.description}</p>
+                                ${task.stock > 0 ? `<p class="task-stock-info">Kalan: ${currentStock}</p>` : ''}
+                            </div>
+                            <div class="task-reward">
+                                <span>+${task.reward.toFixed(2)} ₺</span>
+                            </div>
+                            <a href="task-detail.html?taskId=${taskId}" class="btn-task">Görevi Yap</a>
+                        `;
                     }
-                });
-
-                if (availableTasksCount === 0) {
-                    taskList.innerHTML = '<p class="info-message">Uygun görev bulunmamaktadır.</p>';
+                    taskList.appendChild(taskCard);
+                    availableTasksCount++;
                 }
-            })
-            .catch(error => {
-                console.error("Bekleyen kanıtlar yüklenirken hata oluştu: ", error);
-                taskList.innerHTML = '<p class="error-message">Görevler yüklenemedi. Lütfen daha sonra tekrar deneyin.</p>';
             });
+
+            if (availableTasksCount === 0) {
+                taskListMessage.textContent = 'Uygun görev bulunmamaktadır.';
+                taskListMessage.className = 'message-box info-message';
+                taskListMessage.style.display = 'block';
+            }
+        } catch (error) {
+            console.error("Görevler filtrelenirken veya render edilirken hata oluştu: ", error);
+            taskListMessage.textContent = 'Görevler yüklenemedi. Lütfen daha sonra tekrar deneyin.';
+            taskListMessage.className = 'message-box error-message';
+            taskListMessage.style.display = 'block';
+        }
     }
 
     if (categoryFilter) {

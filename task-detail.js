@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!taskId) {
         if (initialLoadingMessage) {
             initialLoadingMessage.textContent = 'Görev bulunamadı. Lütfen geçerli bir görev seçin.';
-            initialLoadingMessage.className = 'error-message';
+            initialLoadingMessage.className = 'message-box error-message';
             initialLoadingMessage.style.display = 'block';
         }
         if (taskDetailCard) taskDetailCard.classList.add('content-hidden'); 
@@ -70,10 +70,13 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadUserDataAndTaskDetails(id, uid) {
         if (initialLoadingMessage) {
             initialLoadingMessage.textContent = 'Görev detayları yükleniyor...';
-            initialLoadingMessage.className = 'info-message';
+            initialLoadingMessage.className = 'message-box info-message';
             initialLoadingMessage.style.display = 'block';
         }
         if (taskDetailCard) taskDetailCard.classList.add('content-hidden');
+        if (completeTaskBtn) completeTaskBtn.disabled = true;
+        if (proofFilesInput) proofFilesInput.disabled = true;
+        if (proofMessage) proofMessage.style.display = 'none';
 
         try {
             const userDoc = await db.collection('users').doc(uid).get();
@@ -86,27 +89,32 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!taskDoc.exists) {
                 if (initialLoadingMessage) {
                     initialLoadingMessage.textContent = 'Görev bulunamadı.';
-                    initialLoadingMessage.className = 'error-message';
+                    initialLoadingMessage.className = 'message-box error-message';
+                    initialLoadingMessage.style.display = 'block';
                 }
-                if (completeTaskBtn) completeTaskBtn.disabled = true;
-                if (proofFilesInput) proofFilesInput.disabled = true;
                 return;
             }
             currentTask = { id: taskDoc.id, ...taskDoc.data() };
             console.log("Görev verisi yüklendi:", currentTask); 
 
+            // Check if task is already completed by user
             if (userData.completedTaskIds && userData.completedTaskIds.includes(taskId)) {
                 if (initialLoadingMessage) {
                     initialLoadingMessage.textContent = 'Bu görevi zaten tamamladınız!';
-                    initialLoadingMessage.className = 'success-message';
+                    initialLoadingMessage.className = 'message-box success-message';
                     initialLoadingMessage.style.display = 'block';
                 }
                 if (taskDetailContentWrapper) {
-                     taskDetailContentWrapper.innerHTML += `<button class="btn-primary" onclick="window.location.href='my-tasks.html'">Görevlere Geri Dön</button>`;
+                     const backBtn = document.createElement('button');
+                     backBtn.className = 'btn-primary';
+                     backBtn.textContent = 'Görevlere Geri Dön';
+                     backBtn.onclick = () => window.location.href='my-tasks.html';
+                     taskDetailContentWrapper.appendChild(backBtn);
                 }
                 return;
             }
 
+            // Check for pending proofs for this task by this user
             const pendingProofSnapshot = await db.collection('taskProofs')
                                                   .where('userId', '==', currentUser.uid)
                                                   .where('taskId', '==', taskId)
@@ -116,32 +124,41 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!pendingProofSnapshot.empty) {
                 if (initialLoadingMessage) {
                     initialLoadingMessage.textContent = 'Bu görev için gönderdiğiniz kanıtlar onay bekliyor.';
-                    initialLoadingMessage.className = 'info-message';
+                    initialLoadingMessage.className = 'message-box info-message';
                     initialLoadingMessage.style.display = 'block';
                 }
                 if (taskDetailContentWrapper) {
-                    taskDetailContentWrapper.innerHTML += `<button class="btn-primary" onclick="window.location.href='my-tasks.html'">Görevlere Geri Dön</button>`;
+                    const backBtn = document.createElement('button');
+                    backBtn.className = 'btn-primary';
+                    backBtn.textContent = 'Görevlere Geri Dön';
+                    backBtn.onclick = () => window.location.href='my-tasks.html';
+                    taskDetailContentWrapper.appendChild(backBtn);
                 }
                 return;
             }
 
+            // Check task stock
             const currentStock = currentTask.stock - (currentTask.completedCount || 0); 
             if (currentTask.stock > 0 && currentStock <= 0) { 
                 if (initialLoadingMessage) {
                     initialLoadingMessage.textContent = 'Bu görevin stoğu bitmiştir.';
-                    initialLoadingMessage.className = 'error-message';
+                    initialLoadingMessage.className = 'message-box error-message';
                     initialLoadingMessage.style.display = 'block';
                 }
                 if (taskDetailContentWrapper) {
-                    taskDetailContentWrapper.innerHTML += `<button class="btn-primary" onclick="window.location.href='my-tasks.html'">Görevlere Geri Dön</button>`;
+                    const backBtn = document.createElement('button');
+                    backBtn.className = 'btn-primary';
+                    backBtn.textContent = 'Görevlere Geri Dön';
+                    backBtn.onclick = () => window.location.href='my-tasks.html';
+                    taskDetailContentWrapper.appendChild(backBtn);
                 }
                 return;
             }
 
+            // If all checks pass, display task details and enable submission
             if (initialLoadingMessage) initialLoadingMessage.style.display = 'none'; 
             if (taskDetailCard) {
                 taskDetailCard.classList.remove('content-hidden'); 
-                console.log("Task detail card visibility updated:", taskDetailCard.style.display); 
             }
             
             if (taskDetailTitleHeader) taskDetailTitleHeader.textContent = currentTask.title;
@@ -149,14 +166,15 @@ document.addEventListener('DOMContentLoaded', () => {
             if (taskDetailIcon) taskDetailIcon.src = `img/logos/${currentTask.icon || 'other.png'}`;
             if (taskDetailDescription) taskDetailDescription.textContent = currentTask.description;
             if (taskDetailReward) taskDetailReward.textContent = `${currentTask.reward.toFixed(2)} ₺`;
-            if (taskDetailStock) taskDetailStock.textContent = `${currentStock === 0 ? 'Sınırsız' : currentStock}/${currentTask.stock === 0 ? 'Sınırsız' : currentTask.stock}`;
+            if (taskDetailStock) taskDetailStock.textContent = `${currentTask.stock === 0 ? 'Sınırsız' : currentStock}/${currentTask.stock === 0 ? 'Sınırsız' : currentTask.stock}`;
             if (taskDetailProofCount) taskDetailProofCount.textContent = currentTask.proofCount;
 
-            if (completeTaskBtn) completeTaskBtn.disabled = false;
+            if (completeTaskBtn) completeTaskBtn.disabled = selectedFiles.length !== (currentTask ? currentTask.proofCount : 0);
             if (proofFilesInput) proofFilesInput.disabled = false;
             if (proofMessage) {
                 proofMessage.textContent = `Bu görev için ${currentTask.proofCount} adet kanıt dosyası yüklemelisiniz.`;
-                proofMessage.className = 'info-message';
+                proofMessage.className = 'message-box info-message';
+                proofMessage.style.display = 'block';
             }
             renderSelectedFiles(); 
 
@@ -164,7 +182,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error("Görev detayları yüklenirken hata oluştu: ", error);
             if (initialLoadingMessage) {
                 initialLoadingMessage.textContent = `Görev detayları yüklenemedi: ${error.message}`;
-                initialLoadingMessage.className = 'error-message';
+                initialLoadingMessage.className = 'message-box error-message';
                 initialLoadingMessage.style.display = 'block';
             }
             if (taskDetailCard) taskDetailCard.classList.add('content-hidden');
@@ -182,7 +200,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!currentTask || !currentTask.proofCount) {
                 if (proofMessage) {
                     proofMessage.textContent = `Görev bilgileri eksik. Lütfen sayfayı yenileyin.`;
-                    proofMessage.className = 'error-message';
+                    proofMessage.className = 'message-box error-message';
+                    proofMessage.style.display = 'block';
                 }
                 if (proofFilesInput) proofFilesInput.value = '';
                 return;
@@ -191,15 +210,25 @@ document.addEventListener('DOMContentLoaded', () => {
             if (files.length > currentTask.proofCount) {
                 if (proofMessage) {
                     proofMessage.textContent = `En fazla ${currentTask.proofCount} dosya yükleyebilirsiniz. Lütfen dosya sayısını azaltın.`;
-                    proofMessage.className = 'error-message';
+                    proofMessage.className = 'message-box error-message';
+                    proofMessage.style.display = 'block';
                 }
                 if (proofFilesInput) proofFilesInput.value = ''; 
                 return;
             }
             
             if (proofMessage) proofMessage.textContent = ''; 
+            if (proofMessage) proofMessage.style.display = 'none';
 
             files.forEach(file => {
+                // Basit dosya tipi kontrolü
+                if (!file.type.startsWith('image/')) {
+                    alert(`Sadece resim dosyaları yükleyebilirsiniz. "${file.name}" bir resim dosyası değil.`);
+                    // Clear selected files or remove invalid one
+                    selectedFiles = [];
+                    e.target.value = ''; // Clear input
+                    return;
+                }
                 selectedFiles.push(file);
             });
             renderSelectedFiles();
@@ -209,15 +238,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderSelectedFiles() {
         if (fileList) fileList.innerHTML = '';
-        selectedFiles.forEach(file => {
+        selectedFiles.forEach((file, index) => {
             const listItem = document.createElement('li');
             listItem.textContent = file.name;
             const removeButton = document.createElement('span');
             removeButton.className = 'remove-file';
             removeButton.innerHTML = '&times;';
             removeButton.addEventListener('click', () => {
-                selectedFiles = selectedFiles.filter(f => f !== file);
-                if (proofFilesInput) proofFilesInput.value = '';
+                selectedFiles.splice(index, 1); // Remove by index
+                // Reset file input value to allow re-selection of same file if needed
+                if (proofFilesInput) proofFilesInput.value = ''; 
                 renderSelectedFiles();
             });
             listItem.appendChild(removeButton);
@@ -226,11 +256,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (proofMessage && currentTask) {
             if (selectedFiles.length === currentTask.proofCount) {
                 proofMessage.textContent = 'Tüm kanıt dosyaları seçildi.';
-                proofMessage.className = 'success-message';
+                proofMessage.className = 'message-box success-message';
             } else {
                 proofMessage.textContent = `Bu görev için ${currentTask.proofCount - selectedFiles.length} adet daha kanıt dosyası yüklemelisiniz.`;
-                proofMessage.className = 'info-message';
+                proofMessage.className = 'message-box info-message';
             }
+            proofMessage.style.display = 'block';
         }
         if (completeTaskBtn) completeTaskBtn.disabled = selectedFiles.length !== (currentTask ? currentTask.proofCount : 0);
     }
@@ -243,7 +274,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (selectedFiles.length === 0 || !currentTask || selectedFiles.length !== currentTask.proofCount) {
                 if (proofMessage) {
                     proofMessage.textContent = `Lütfen ${currentTask ? currentTask.proofCount : 0} adet kanıt dosyası yükleyin.`;
-                    proofMessage.className = 'error-message';
+                    proofMessage.className = 'message-box error-message';
+                    proofMessage.style.display = 'block';
                 }
                 return;
             }
@@ -254,7 +286,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (proofMessage) {
                 proofMessage.textContent = 'Kanıtlar yükleniyor ve görev onaya gönderiliyor...';
-                proofMessage.className = 'info-message';
+                proofMessage.className = 'message-box info-message';
+                proofMessage.style.display = 'block';
             }
 
             try {
@@ -290,7 +323,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (proofMessage) {
                     proofMessage.textContent = 'Kanıtlarınız başarıyla gönderildi ve görev onaya iletildi!';
-                    proofMessage.className = 'success-message';
+                    proofMessage.className = 'message-box success-message';
                 }
                 if (completeTaskBtn) completeTaskBtn.textContent = 'Onaya Gönderildi';
                 setTimeout(() => {
@@ -301,7 +334,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error("Kanıt yükleme veya onaya gönderme hatası: ", error);
                 if (proofMessage) {
                     proofMessage.textContent = `Hata: ${error.message}`;
-                    proofMessage.className = 'error-message';
+                    proofMessage.className = 'message-box error-message';
                 }
                 if (completeTaskBtn) {
                     completeTaskBtn.disabled = false;

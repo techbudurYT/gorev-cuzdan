@@ -46,7 +46,31 @@
               <strong id="profile-tasks-completed">0</strong>
             </div>
           </div>
-          <button id="logout-btn-profile" class="btn-primary btn-logout">Çıkış Yap</button>
+
+          <div class="profile-settings-section">
+            <hr class="divider">
+            <h3>Hesap Ayarları</h3>
+
+            <form id="update-username-form" class="admin-form">
+                <div class="input-group">
+                    <label for="profile-username">Kullanıcı Adı</label>
+                    <input type="text" id="profile-username" required>
+                </div>
+                <button type="submit" class="btn-primary">Kullanıcı Adını Değiştir</button>
+                <p id="username-message" class="message-box success-message"></p>
+            </form>
+
+            <form id="change-password-form" class="admin-form" style="margin-top: 20px;">
+                <p class="info-message">Şifre değiştirme işlemi için güvenlik nedenleriyle yeniden giriş yapmanız istenebilir.</p>
+                <button type="button" id="change-password-btn" class="btn-secondary">Şifreyi Değiştir</button>
+                <p id="password-message" class="message-box success-message"></p>
+            </form>
+
+            <button id="delete-account-btn" class="btn-danger" style="margin-top: 30px;">Hesabı Sil</button>
+            <p id="delete-account-message" class="message-box error-message"></p>
+          </div>
+          
+          <button id="logout-btn-profile" class="btn-primary btn-logout" style="margin-top: 40px;">Çıkış Yap</button>
         </div>
       </div>
     </main>

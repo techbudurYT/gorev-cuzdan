@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadFaqs() {
         if (faqLoadingMessage) {
             faqLoadingMessage.textContent = 'SSS yükleniyor...';
-            faqLoadingMessage.className = 'info-message';
+            faqLoadingMessage.className = 'message-box info-message';
             faqLoadingMessage.style.display = 'block';
         }
         if (faqContainer) {
@@ -56,7 +56,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (snapshot.empty) {
                 if (faqContainer) {
-                    faqContainer.innerHTML += '<p class="info-message">Şu anda Sıkça Sorulan Soru bulunmamaktadır.</p>';
+                    const noFaqMessage = document.createElement('p');
+                    noFaqMessage.className = 'message-box info-message';
+                    noFaqMessage.textContent = 'Şu anda Sıkça Sorulan Soru bulunmamaktadır.';
+                    faqContainer.appendChild(noFaqMessage);
                 }
                 return;
             }
@@ -115,7 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error("SSS yüklenirken hata oluştu: ", error);
             if (faqLoadingMessage) {
                 faqLoadingMessage.textContent = 'SSS yüklenemedi. Lütfen daha sonra tekrar deneyin.';
-                faqLoadingMessage.className = 'error-message';
+                faqLoadingMessage.className = 'message-box error-message';
                 faqLoadingMessage.style.display = 'block';
             }
             if (faqContainer) {

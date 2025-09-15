@@ -51,7 +51,7 @@
       </header>
 
       <div id="task-detail-content-wrapper">
-        <p id="initial-loading-message" class="info-message">Görev detayları yükleniyor...</p>
+        <p id="initial-loading-message" class="message-box info-message">Görev detayları yükleniyor...</p>
 
         <div id="task-detail-card" class="task-detail-card card content-hidden">
           <h2 id="task-card-main-title"></h2> <!-- Dinamik olarak doldurulacak -->
@@ -76,12 +76,12 @@
           <div class="proof-upload-section">
             <h4>Görevi Tamamlamak İçin Kanıt Yükleyin</h4>
             <form id="proof-upload-form">
-              <input type="file" id="proof-files" class="file-upload-input" multiple>
+              <input type="file" id="proof-files" class="file-upload-input" multiple accept="image/*">
               <ul id="file-list" class="file-list">
                 <!-- Yüklenen dosyalar buraya gelecek -->
               </ul>
               <button type="submit" class="btn-primary" id="complete-task-btn">Görevi Tamamla</button>
-              <p id="proof-message" class="info-message"></p>
+              <p id="proof-message" class="message-box info-message"></p>
             </form>
           </div>
         </div>

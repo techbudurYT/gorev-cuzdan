@@ -17,11 +17,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const password = document.getElementById('password').value;
         
         errorMessage.textContent = '';
+        errorMessage.style.display = 'none';
         submitButton.disabled = true;
         submitButton.textContent = 'İşleniyor...';
 
         if (!/^[a-zA-Z0-9_]{3,15}$/.test(username)) {
             errorMessage.textContent = 'Kullanıcı adı 3-15 karakter uzunluğunda olmalı ve sadece harf, rakam veya _ içerebilir.';
+            errorMessage.className = 'message-box error-message';
+            errorMessage.style.display = 'block';
             submitButton.disabled = false;
             submitButton.textContent = 'Kayıt Ol';
             return;
@@ -85,6 +88,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 errorMessage.textContent = 'Bir hata oluştu. Lütfen tekrar deneyin.';
             }
             console.error("Kayıt Hatası:", error);
+            errorMessage.className = 'message-box error-message';
+            errorMessage.style.display = 'block';
 
             submitButton.disabled = false;
             submitButton.textContent = 'Kayıt Ol';
