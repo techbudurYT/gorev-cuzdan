@@ -1,4 +1,3 @@
-
 document.addEventListener('DOMContentLoaded', () => {
     const faqContainer = document.querySelector('.faq-container'); // faq-container div'ini seçin
     const faqLoadingMessage = document.getElementById('faq-loading-message');
@@ -84,13 +83,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 button.addEventListener('click', () => {
                     const faqItem = button.closest('.faq-item');
                     if (faqItem) {
-                        faqItem.classList.toggle('active');
                         const answer = faqItem.querySelector('.faq-answer');
                         if (answer) {
                             if (faqItem.classList.contains('active')) {
-                                answer.style.maxHeight = answer.scrollHeight + 'px';
+                                // Close it
+                                faqItem.classList.remove('active');
+                                answer.style.maxHeight = null; // Remove inline style, let CSS take over (max-height: 0)
                             } else {
-                                answer.style.maxHeight = null;
+                                // Open it
+                                faqItem.classList.add('active');
+                                // Set max-height to scrollHeight for the animation
+                                answer.style.maxHeight = answer.scrollHeight + 'px';
+
+                                // After the transition, set max-height to 'auto' to ensure all content is visible
+                                // This is crucial because scrollHeight might not be perfectly accurate or
+                                // content might change dynamically after calculation.
+                                const transitionEndHandler = () => {
+                                    if (faqItem.classList.contains('active')) { // Only set to auto if it's still active (not quickly closed again)
+                                        answer.style.maxHeight = 'auto';
+                                    }
+                                    answer.removeEventListener('transitionend', transitionEndHandler);
+                                };
+                                answer.addEventListener('transitionend', transitionEndHandler);
                             }
                         }
                     }

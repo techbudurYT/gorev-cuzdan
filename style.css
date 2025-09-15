@@ -1239,19 +1239,14 @@ a:hover {
     transition: max-height 0.4s ease-out, padding 0.4s ease-out;
     background-color: #222222;
     border-top: 1px solid var(--border-color);
+    padding-top: 0; /* Ensures padding collapses with max-height 0 */
+    padding-bottom: 0; /* Ensures padding collapses with max-height 0 */
 }
 .faq-item.active .faq-answer {
-    max-height: fit-content; /* Daha uzun içerikler için artırıldı */
+    /* max-height: fit-content; REMOVED this line as it interferes with JS animation */
     padding-top: 15px;
     padding-bottom: 15px;
 }
-.faq-answer p {
-    padding: 0 24px;
-    color: var(--text-secondary);
-    line-height: 1.7;
-    font-size: 0.95rem;
-}
-
 /* Support Page / Chat Styles */
 .support-container {
     max-width: 900px;
